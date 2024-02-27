@@ -3,6 +3,7 @@ import time
 
 import pytest
 from packaging import version
+
 from unit.applications.lang.python import ApplicationPython
 
 prerequisites = {
@@ -60,7 +61,7 @@ def test_asgi_application_ipv6():
     client.load('empty')
 
     assert 'success' in client.conf(
-        {"[::1]:7080": {"pass": "applications/empty"}}, 'listeners'
+        {"[::1]:8080": {"pass": "applications/empty"}}, 'listeners'
     )
 
     assert client.get(sock_type='ipv6')['status'] == 200
@@ -172,7 +173,7 @@ def test_asgi_application_server_port():
     client.load('server_port')
 
     assert (
-        client.get()['headers']['Server-Port'] == '7080'
+        client.get()['headers']['Server-Port'] == '8080'
     ), 'Server-Port header'
 
 
@@ -215,6 +216,14 @@ def test_asgi_application_shm_ack_handle():
     resp = client.post(body=body, read_buffer_size=1024 * 1024)
 
     assert resp['body'] == body, 'keep-alive 1'
+
+
+def test_asgi_application_body_bytearray():
+    client.load('body_bytearray')
+
+    body = '0123456789'
+
+    assert client.post(body=body)['body'] == body
 
 
 def test_asgi_keepalive_body():

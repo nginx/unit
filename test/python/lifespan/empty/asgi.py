@@ -3,7 +3,7 @@ import os
 
 async def handler(prefix, scope, receive, send):
     if scope['type'] == 'lifespan':
-        with open(f'{prefix}version', 'w+') as f:
+        with open(f'{prefix}version', 'w+', encoding='utf-8') as f:
             f.write(
                 f"{scope['asgi']['version']} {scope['asgi']['spec_version']}"
             )

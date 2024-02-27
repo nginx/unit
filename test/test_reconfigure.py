@@ -1,6 +1,7 @@
 import time
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -10,7 +11,7 @@ client = ApplicationProto()
 def setup_method_fixture():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"return": 200}}],
             "applications": {},
         }

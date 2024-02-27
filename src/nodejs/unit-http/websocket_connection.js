@@ -36,11 +36,11 @@ var idCounter = 0;
 function WebSocketConnection(socket, extensions, protocol, maskOutgoingPackets, config) {
     this._debug = utils.BufferingLogger('websocket:connection', ++idCounter);
     this._debug('constructor');
-    
+
     if (this._debug.enabled) {
         instrumentSocketForDebugging(this, socket);
     }
-    
+
     // Superclass Constructor
     EventEmitter.call(this);
 
@@ -432,8 +432,8 @@ WebSocketConnection.prototype.processFrame = function(frame) {
                 // logic to emit the ping frame: this is only done when a listener is known to exist
                 // Expose a function allowing the user to override the default ping() behavior
                 var cancelled = false;
-                var cancel = function() { 
-                  cancelled = true; 
+                var cancel = function() {
+                  cancelled = true;
                 };
                 this.emit('ping', cancel, frame.binaryPayload);
 

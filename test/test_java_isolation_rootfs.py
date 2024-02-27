@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import pytest
+
 from unit.applications.lang.java import ApplicationJava
 from unit.option import option
 
@@ -25,6 +26,7 @@ def setup_method_fixture(temp_dir):
                 f'{temp_dir}/jars',
             ],
             stderr=subprocess.STDOUT,
+            check=True,
         )
 
     except KeyboardInterrupt:
@@ -39,6 +41,7 @@ def setup_method_fixture(temp_dir):
         subprocess.run(
             ["umount", "--lazy", f"{option.temp_dir}/jars"],
             stderr=subprocess.STDOUT,
+            check=True,
         )
 
     except KeyboardInterrupt:

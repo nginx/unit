@@ -240,7 +240,7 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
     nxt_str_t  *func;
 
     static nxt_str_t  func_str = nxt_string("function(uri, host, remoteAddr, "
-                                            "args, headers, cookies) {"
+                                            "args, headers, cookies, vars) {"
                                             "    return ");
 
     /*
@@ -388,16 +388,20 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
     njs_vm_t            *vm;
     njs_int_t           ret;
     njs_str_t           res;
+    njs_uint_t          i, n;
     njs_value_t         *value;
     njs_function_t      *func;
-    njs_opaque_value_t  retval, opaque_value, arguments[6];
+    njs_opaque_value_t  retval, opaque_value, arguments[7];
 
-    static const njs_str_t  uri_str = njs_str("uri");
-    static const njs_str_t  host_str = njs_str("host");
-    static const njs_str_t  remote_addr_str = njs_str("remoteAddr");
-    static const njs_str_t  args_str = njs_str("args");
-    static const njs_str_t  headers_str = njs_str("headers");
-    static const njs_str_t  cookies_str = njs_str("cookies");
+    static const njs_str_t  js_args[] = {
+        njs_str("uri"),
+        njs_str("host"),
+        njs_str("remoteAddr"),
+        njs_str("args"),
+        njs_str("headers"),
+        njs_str("cookies"),
+        njs_str("vars"),
+    };
 
     vm = cache->vm;
 
@@ -424,43 +428,17 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
         return NXT_ERROR;
     }
 
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &uri_str,
-                               &arguments[0]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
+    n = nxt_nitems(js_args);
+
+    for (i = 0; i < n; i++) {
+        value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value),
+                                   &js_args[i], &arguments[i]);
+        if (nxt_slow_path(value == NULL)) {
+            return NXT_ERROR;
+        }
     }
 
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &host_str,
-                               &arguments[1]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
-    }
-
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value),
-                               &remote_addr_str, &arguments[2]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
-    }
-
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &args_str,
-                               &arguments[3]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
-    }
-
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &headers_str,
-                               &arguments[4]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
-    }
-
-    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &cookies_str,
-                               &arguments[5]);
-    if (nxt_slow_path(value == NULL)) {
-        return NXT_ERROR;
-    }
-
-    ret = njs_vm_invoke(vm, func, njs_value_arg(&arguments), 6,
+    ret = njs_vm_invoke(vm, func, njs_value_arg(&arguments), n,
                         njs_value_arg(&retval));
 
     if (ret != NJS_OK) {

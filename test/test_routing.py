@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -12,7 +13,7 @@ client = ApplicationPython()
 def setup_method_fixture():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "match": {"method": "GET"},
@@ -24,8 +25,8 @@ def setup_method_fixture():
     ), 'routing configure'
 
 
-def route(route):
-    return client.conf([route], 'routes')
+def route(conf_route):
+    return client.conf([conf_route], 'routes')
 
 
 def route_match(match):
@@ -40,19 +41,21 @@ def route_match_invalid(match):
     ), 'route match configure invalid'
 
 
-def host(host, status):
+def host(host_header, status):
     assert (
-        client.get(headers={'Host': host, 'Connection': 'close'})['status']
+        client.get(headers={'Host': host_header, 'Connection': 'close'})[
+            'status'
+        ]
         == status
     ), 'match host'
 
 
-def cookie(cookie, status):
+def cookie(cookie_header, status):
     assert (
         client.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': cookie,
+                'Cookie': cookie_header,
                 'Connection': 'close',
             },
         )['status']
@@ -322,7 +325,7 @@ def test_routes_pass_encode():
     def check_pass(path, name):
         assert 'success' in client.conf(
             {
-                "listeners": {"*:7080": {"pass": f'applications/{path}'}},
+                "listeners": {"*:8080": {"pass": f'applications/{path}'}},
                 "applications": {
                     name: {
                         "type": client.get_application_type(),
@@ -345,7 +348,7 @@ def test_routes_pass_encode():
     def check_pass_error(path, name):
         assert 'error' in client.conf(
             {
-                "listeners": {"*:7080": {"pass": f'applications/{path}'}},
+                "listeners": {"*:8080": {"pass": f'applications/{path}'}},
                 "applications": {
                     name: {
                         "type": client.get_application_type(),
@@ -365,7 +368,7 @@ def test_routes_pass_encode():
 def test_routes_absent():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7081": {"pass": "applications/empty"}},
+            "listeners": {"*:8081": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": client.get_application_type(),
@@ -378,19 +381,19 @@ def test_routes_absent():
         }
     )
 
-    assert client.get(port=7081)['status'] == 200, 'routes absent'
+    assert client.get(port=8081)['status'] == 200, 'routes absent'
 
 
 def test_routes_pass_invalid():
     assert 'error' in client.conf(
-        {"pass": "routes/blah"}, 'listeners/*:7080'
+        {"pass": "routes/blah"}, 'listeners/*:8080'
     ), 'routes invalid'
 
 
 def test_route_empty():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/main"}},
+            "listeners": {"*:8080": {"pass": "routes/main"}},
             "routes": {"main": []},
             "applications": {},
         }
@@ -437,14 +440,14 @@ def test_routes_route_pass():
             "upstreams": {
                 "one": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
                 "two": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
             },
@@ -480,14 +483,14 @@ def test_routes_route_pass_invalid():
             "upstreams": {
                 "one": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
                 "two": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
             },
@@ -512,10 +515,10 @@ def test_routes_action_unique(temp_dir):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/app"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/app"},
             },
-            "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+            "routes": [{"action": {"proxy": "http://127.0.0.1:8081"}}],
             "applications": {
                 "app": {
                     "type": client.get_application_type(),
@@ -528,12 +531,12 @@ def test_routes_action_unique(temp_dir):
     )
 
     assert 'error' in client.conf(
-        {"proxy": "http://127.0.0.1:7081", "share": temp_dir},
+        {"proxy": "http://127.0.0.1:8081", "share": temp_dir},
         'routes/0/action',
     ), 'proxy share'
     assert 'error' in client.conf(
         {
-            "proxy": "http://127.0.0.1:7081",
+            "proxy": "http://127.0.0.1:8081",
             "pass": "applications/app",
         },
         'routes/0/action',
@@ -560,7 +563,7 @@ def test_routes_rules_two():
 def test_routes_two():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "listeners": {"*:8080": {"pass": "routes/first"}},
             "routes": {
                 "first": [
                     {
@@ -606,14 +609,14 @@ def test_routes_match_host_ipv4():
     route_match({"host": "127.0.0.1"})
 
     host('127.0.0.1', 200)
-    host('127.0.0.1:7080', 200)
+    host('127.0.0.1:8080', 200)
 
 
 def test_routes_match_host_ipv6():
     route_match({"host": "[::1]"})
 
     host('[::1]', 200)
-    host('[::1]:7080', 200)
+    host('[::1]:8080', 200)
 
 
 def test_routes_match_host_positive_many():
@@ -649,7 +652,7 @@ def test_routes_match_host_case_insensitive():
 def test_routes_match_host_port():
     route_match({"host": "example.com"})
 
-    host('example.com:7080', 200)
+    host('example.com:8080', 200)
 
 
 def test_routes_match_host_empty():
@@ -718,7 +721,7 @@ def test_routes_reconfigure():
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/main"}},
+            "listeners": {"*:8080": {"pass": "routes/main"}},
             "routes": {"main": [{"action": {"return": 200}}]},
             "applications": {},
         }
@@ -801,7 +804,7 @@ def test_routes_edit():
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/main"}},
+            "listeners": {"*:8080": {"pass": "routes/main"}},
             "routes": {"main": [{"action": {"return": 200}}]},
             "applications": {},
         }
@@ -817,7 +820,7 @@ def test_routes_edit():
     assert client.get()['status'] == 200, 'routes edit GET 7'
 
     assert 'success' in client.conf_delete(
-        'listeners/*:7080'
+        'listeners/*:8080'
     ), 'route edit configure 8'
     assert 'success' in client.conf_delete(
         'routes/main'
@@ -1646,14 +1649,14 @@ def test_routes_source_port():
 def test_routes_source_addr():
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "routes"},
-            "[::1]:7081": {"pass": "routes"},
+            "*:8080": {"pass": "routes"},
+            "[::1]:8081": {"pass": "routes"},
         },
         'listeners',
     ), 'source listeners configure'
 
     def get_ipv6():
-        return client.get(sock_type='ipv6', port=7081)
+        return client.get(sock_type='ipv6', port=8081)
 
     route_match({"source": "127.0.0.1"})
     assert client.get()['status'] == 200, 'exact'
@@ -1707,64 +1710,64 @@ def test_routes_source_addr():
 def test_routes_source_ipv6():
     assert 'success' in client.conf(
         {
-            "[::1]:7080": {"pass": "routes"},
-            "127.0.0.1:7081": {"pass": "routes"},
+            "[::1]:8080": {"pass": "routes"},
+            "127.0.0.1:8081": {"pass": "routes"},
         },
         'listeners',
     ), 'source listeners configure'
 
     route_match({"source": "::1"})
     assert client.get(sock_type='ipv6')['status'] == 200, 'exact'
-    assert client.get(port=7081)['status'] == 404, 'exact ipv4'
+    assert client.get(port=8081)['status'] == 404, 'exact ipv4'
 
     route_match({"source": ["::1"]})
     assert client.get(sock_type='ipv6')['status'] == 200, 'exact 2'
-    assert client.get(port=7081)['status'] == 404, 'exact 2 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'exact 2 ipv4'
 
     route_match({"source": "!::1"})
     assert client.get(sock_type='ipv6')['status'] == 404, 'exact neg'
-    assert client.get(port=7081)['status'] == 200, 'exact neg ipv4'
+    assert client.get(port=8081)['status'] == 200, 'exact neg ipv4'
 
     route_match({"source": "::2"})
     assert client.get(sock_type='ipv6')['status'] == 404, 'exact 3'
-    assert client.get(port=7081)['status'] == 404, 'exact 3 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'exact 3 ipv4'
 
     route_match({"source": "::1-::1"})
     assert client.get(sock_type='ipv6')['status'] == 200, 'range'
-    assert client.get(port=7081)['status'] == 404, 'range ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range ipv4'
 
     route_match({"source": "::2-::2"})
     assert client.get(sock_type='ipv6')['status'] == 404, 'range 2'
-    assert client.get(port=7081)['status'] == 404, 'range 2 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range 2 ipv4'
 
     route_match({"source": "::2-::3"})
     assert client.get(sock_type='ipv6')['status'] == 404, 'range 3'
-    assert client.get(port=7081)['status'] == 404, 'range 3 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range 3 ipv4'
 
     route_match({"source": "::1-::2"})
     assert client.get(sock_type='ipv6')['status'] == 200, 'range 4'
-    assert client.get(port=7081)['status'] == 404, 'range 4 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range 4 ipv4'
 
     route_match({"source": "::0-::2"})
     assert client.get(sock_type='ipv6')['status'] == 200, 'range 5'
-    assert client.get(port=7081)['status'] == 404, 'range 5 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range 5 ipv4'
 
     route_match({"source": "::0-::1"})
     assert client.get(sock_type='ipv6')['status'] == 200, 'range 6'
-    assert client.get(port=7081)['status'] == 404, 'range 6 ipv4'
+    assert client.get(port=8081)['status'] == 404, 'range 6 ipv4'
 
 
 def test_routes_source_cidr():
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "routes"},
-            "[::1]:7081": {"pass": "routes"},
+            "*:8080": {"pass": "routes"},
+            "[::1]:8081": {"pass": "routes"},
         },
         'listeners',
     ), 'source listeners configure'
 
     def get_ipv6():
-        return client.get(sock_type='ipv6', port=7081)
+        return client.get(sock_type='ipv6', port=8081)
 
     route_match({"source": "127.0.0.1/32"})
     assert client.get()['status'] == 200, '32'
@@ -1790,35 +1793,35 @@ def test_routes_source_cidr():
 def test_routes_source_cidr_ipv6():
     assert 'success' in client.conf(
         {
-            "[::1]:7080": {"pass": "routes"},
-            "127.0.0.1:7081": {"pass": "routes"},
+            "[::1]:8080": {"pass": "routes"},
+            "127.0.0.1:8081": {"pass": "routes"},
         },
         'listeners',
     ), 'source listeners configure'
 
     route_match({"source": "::1/128"})
     assert client.get(sock_type='ipv6')['status'] == 200, '128'
-    assert client.get(port=7081)['status'] == 404, '128 ipv4'
+    assert client.get(port=8081)['status'] == 404, '128 ipv4'
 
     route_match({"source": "::0/128"})
     assert client.get(sock_type='ipv6')['status'] == 404, '128 2'
-    assert client.get(port=7081)['status'] == 404, '128 ipv4'
+    assert client.get(port=8081)['status'] == 404, '128 ipv4'
 
     route_match({"source": "::0/127"})
     assert client.get(sock_type='ipv6')['status'] == 200, '127'
-    assert client.get(port=7081)['status'] == 404, '127 ipv4'
+    assert client.get(port=8081)['status'] == 404, '127 ipv4'
 
     route_match({"source": "::0/32"})
     assert client.get(sock_type='ipv6')['status'] == 200, '32'
-    assert client.get(port=7081)['status'] == 404, '32 ipv4'
+    assert client.get(port=8081)['status'] == 404, '32 ipv4'
 
     route_match({"source": "::0/1"})
     assert client.get(sock_type='ipv6')['status'] == 200, '1'
-    assert client.get(port=7081)['status'] == 404, '1 ipv4'
+    assert client.get(port=8081)['status'] == 404, '1 ipv4'
 
     route_match({"source": "::/0"})
     assert client.get(sock_type='ipv6')['status'] == 200, '0'
-    assert client.get(port=7081)['status'] == 404, '0 ipv4'
+    assert client.get(port=8081)['status'] == 404, '0 ipv4'
 
 
 def test_routes_source_unix(temp_dir):
@@ -1826,7 +1829,7 @@ def test_routes_source_unix(temp_dir):
 
     assert 'success' in client.conf(
         {
-            "127.0.0.1:7081": {"pass": "routes"},
+            "127.0.0.1:8081": {"pass": "routes"},
             f'unix:{addr}': {"pass": "routes"},
         },
         'listeners',
@@ -1843,7 +1846,7 @@ def test_routes_source_unix(temp_dir):
     ), 'unix ipv6 neg'
 
     route_match({"source": "unix"})
-    assert client.get(port=7081)['status'] == 404, 'unix ipv4'
+    assert client.get(port=8081)['status'] == 404, 'unix ipv4'
     assert client.get(sock_type='unix', addr=addr)['status'] == 200, 'unix'
 
 
@@ -1916,7 +1919,7 @@ def test_routes_match_source_invalid():
     route_match_invalid({"source": "2001::/129"})
     route_match_invalid({"source": "::FFFFF"})
     route_match_invalid({"source": "[::1]:"})
-    route_match_invalid({"source": "[:::]:7080"})
+    route_match_invalid({"source": "[:::]:8080"})
     route_match_invalid({"source": "*:"})
     route_match_invalid({"source": "*:1-a"})
     route_match_invalid({"source": "*:65536"})
@@ -1929,74 +1932,74 @@ def test_routes_match_source_none():
 
 def test_routes_match_destination():
     assert 'success' in client.conf(
-        {"*:7080": {"pass": "routes"}, "*:7081": {"pass": "routes"}},
+        {"*:8080": {"pass": "routes"}, "*:8081": {"pass": "routes"}},
         'listeners',
     ), 'listeners configure'
 
-    route_match({"destination": "*:7080"})
+    route_match({"destination": "*:8080"})
     assert client.get()['status'] == 200, 'dest'
-    assert client.get(port=7081)['status'] == 404, 'dest 2'
+    assert client.get(port=8081)['status'] == 404, 'dest 2'
 
-    route_match({"destination": ["127.0.0.1:7080"]})
+    route_match({"destination": ["127.0.0.1:8080"]})
     assert client.get()['status'] == 200, 'dest 3'
-    assert client.get(port=7081)['status'] == 404, 'dest 4'
+    assert client.get(port=8081)['status'] == 404, 'dest 4'
 
-    route_match({"destination": "!*:7080"})
+    route_match({"destination": "!*:8080"})
     assert client.get()['status'] == 404, 'dest neg'
-    assert client.get(port=7081)['status'] == 200, 'dest neg 2'
+    assert client.get(port=8081)['status'] == 200, 'dest neg 2'
 
-    route_match({"destination": ['!*:7080', '!*:7081']})
+    route_match({"destination": ['!*:8080', '!*:8081']})
     assert client.get()['status'] == 404, 'dest neg 3'
-    assert client.get(port=7081)['status'] == 404, 'dest neg 4'
+    assert client.get(port=8081)['status'] == 404, 'dest neg 4'
 
-    route_match({"destination": ['!*:7081', '!*:7082']})
+    route_match({"destination": ['!*:8081', '!*:8082']})
     assert client.get()['status'] == 200, 'dest neg 5'
 
-    route_match({"destination": ['*:7080', '!*:7080']})
+    route_match({"destination": ['*:8080', '!*:8080']})
     assert client.get()['status'] == 404, 'dest neg 6'
 
-    route_match({"destination": ['127.0.0.1:7080', '*:7081', '!*:7080']})
+    route_match({"destination": ['127.0.0.1:8080', '*:8081', '!*:8080']})
     assert client.get()['status'] == 404, 'dest neg 7'
-    assert client.get(port=7081)['status'] == 200, 'dest neg 8'
+    assert client.get(port=8081)['status'] == 200, 'dest neg 8'
 
-    route_match({"destination": ['!*:7081', '!*:7082', '*:7083']})
+    route_match({"destination": ['!*:8081', '!*:8082', '*:8083']})
     assert client.get()['status'] == 404, 'dest neg 9'
 
-    route_match({"destination": ['*:7081', '!127.0.0.1:7080', '*:7080']})
+    route_match({"destination": ['*:8081', '!127.0.0.1:8080', '*:8080']})
     assert client.get()['status'] == 404, 'dest neg 10'
-    assert client.get(port=7081)['status'] == 200, 'dest neg 11'
+    assert client.get(port=8081)['status'] == 200, 'dest neg 11'
 
     assert 'success' in client.conf_delete(
         'routes/0/match/destination/0'
     ), 'remove destination rule'
     assert client.get()['status'] == 404, 'dest neg 12'
-    assert client.get(port=7081)['status'] == 404, 'dest neg 13'
+    assert client.get(port=8081)['status'] == 404, 'dest neg 13'
 
     assert 'success' in client.conf_delete(
         'routes/0/match/destination/0'
     ), 'remove destination rule 2'
     assert client.get()['status'] == 200, 'dest neg 14'
-    assert client.get(port=7081)['status'] == 404, 'dest neg 15'
+    assert client.get(port=8081)['status'] == 404, 'dest neg 15'
 
     assert 'success' in client.conf_post(
         "\"!127.0.0.1\"", 'routes/0/match/destination'
     ), 'add destination rule'
     assert client.get()['status'] == 404, 'dest neg 16'
-    assert client.get(port=7081)['status'] == 404, 'dest neg 17'
+    assert client.get(port=8081)['status'] == 404, 'dest neg 17'
 
 
 def test_routes_match_destination_proxy():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes/first"},
-                "*:7081": {"pass": "routes/second"},
+                "*:8080": {"pass": "routes/first"},
+                "*:8081": {"pass": "routes/second"},
             },
             "routes": {
-                "first": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+                "first": [{"action": {"proxy": "http://127.0.0.1:8081"}}],
                 "second": [
                     {
-                        "match": {"destination": ["127.0.0.1:7081"]},
+                        "match": {"destination": ["127.0.0.1:8081"]},
                         "action": {"return": 200},
                     }
                 ],

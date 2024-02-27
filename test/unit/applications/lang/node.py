@@ -44,7 +44,7 @@ class ApplicationNode(ApplicationProto):
         self._load_conf(
             {
                 "listeners": {
-                    "*:7080": {"pass": f"applications/{quote(script, '')}"}
+                    "*:8080": {"pass": f"applications/{quote(script, '')}"}
                 },
                 "applications": {
                     script: {

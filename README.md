@@ -45,7 +45,7 @@ For a description of image tags, see the
 [docs](https://unit.nginx.org/installation/#docker-images).
 
 
-### Amazon Linux, Fedora, RedHat
+### Amazon Linux, Fedora, Red Hat
 
 ``` console
 $ wget https://raw.githubusercontent.com/nginx/unit/master/tools/setup-unit && chmod +x setup-unit
@@ -115,7 +115,7 @@ section of the API.  This time, we pass the config snippet straight from the
 command line:
 
 ``` console
-# curl -X PUT -d '{"127.0.0.1:8000": {"pass": "applications/helloworld"}}'  \
+# curl -X PUT -d '{"127.0.0.1:8080": {"pass": "applications/helloworld"}}'  \
        --unix-socket /path/to/control.unit.sock http://localhost/config/listeners
 ```
 ``` json
@@ -175,7 +175,7 @@ usability.
 ## Community
 
 - The go-to place to start asking questions and share your thoughts is
-  our [Slack channel](https://community.nginx.org/joinslack).
+ [GitHub Discussions](https://github.com/nginx/unit/discussions).
 
 - Our [GitHub issues page](https://github.com/nginx/unit/issues) offers
   space for a more technical discussion at your own pace.

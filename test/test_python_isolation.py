@@ -1,9 +1,9 @@
-import os
 import re
 import subprocess
 from pathlib import Path
 
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 from unit.utils import findmnt
@@ -24,10 +24,10 @@ def get_cgroup(app_name):
 
     cgroup = f'/proc/{pid}/cgroup'
 
-    if not os.path.isfile(cgroup):
+    if not Path(cgroup).is_file():
         pytest.skip(f'no cgroup at {cgroup}')
 
-    with open(cgroup, 'r') as f:
+    with open(cgroup, 'r', encoding='utf-8') as f:
         return f.read().rstrip()
 
 
@@ -151,8 +151,8 @@ def test_python_isolation_cgroup_two(require):
         assert 'success' in client.conf(
             {
                 "listeners": {
-                    "*:7080": {"pass": "applications/one"},
-                    "*:7081": {"pass": "applications/two"},
+                    "*:8080": {"pass": "applications/one"},
+                    "*:8081": {"pass": "applications/two"},
                 },
                 "applications": {
                     "one": {
@@ -193,7 +193,7 @@ def test_python_isolation_cgroup_invalid(require):
         script_path = f'{option.test_dir}/python/empty'
         assert 'error' in client.conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "listeners": {"*:8080": {"pass": "applications/empty"}},
                 "applications": {
                     "empty": {
                         "type": "python",

@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -10,7 +11,7 @@ client = ApplicationProto()
 def setup_method_fixture():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"return": 200}}],
             "applications": {},
         }
@@ -90,7 +91,7 @@ def test_return_update():
 def test_return_location():
     reserved = ":/?#[]@!&'()*+,;="
     unreserved = (
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" "0123456789-._~"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
     )
     unsafe = " \"%<>\\^`{|}"
     unsafe_enc = "%20%22%25%3C%3E%5C%5E%60%7B%7C%7D"

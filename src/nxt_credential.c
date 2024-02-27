@@ -74,8 +74,11 @@ nxt_credential_get(nxt_task_t *task, nxt_mp_t *mp, nxt_credential_t *uc,
         end = msg + NXT_MAX_ERROR_STR;
 
         for (i = 0; i < uc->ngroups; i++) {
-            p = nxt_sprintf(p, end, "%d%c", uc->gids[i],
-                            i+1 < uc->ngroups ? ',' : '\0');
+            p = nxt_sprintf(p, end, "%d,", uc->gids[i]);
+        }
+
+        if (uc->ngroups > 0) {
+            p--;
         }
 
         nxt_debug(task, "user \"%s\" has gids:%*s", uc->user, p - msg, msg);

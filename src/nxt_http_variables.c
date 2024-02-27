@@ -28,6 +28,8 @@ static u_char *nxt_http_log_date(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 static nxt_int_t nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
+static nxt_int_t nxt_http_var_request_id(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_status(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 static nxt_int_t nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str,
@@ -90,6 +92,10 @@ static nxt_var_decl_t  nxt_http_vars[] = {
         .handler = nxt_http_var_request_line,
         .cacheable = 1,
     }, {
+        .name = nxt_string("request_id"),
+        .handler = nxt_http_var_request_id,
+        .cacheable = 1,
+    }, {
         .name = nxt_string("status"),
         .handler = nxt_http_var_status,
         .cacheable = 1,
@@ -129,8 +135,7 @@ nxt_http_register_variables(void)
 
 
 nxt_int_t
-nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
-    nxt_str_t *name)
+nxt_http_unknown_var_ref(nxt_mp_t *mp, nxt_var_ref_t *ref, nxt_str_t *name)
 {
     int64_t    hash;
     nxt_str_t  str, *lower;
@@ -146,7 +151,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        lower = nxt_str_alloc(state->pool, str.length);
+        lower = nxt_str_alloc(mp, str.length);
         if (nxt_slow_path(lower == NULL)) {
             return NXT_ERROR;
         }
@@ -169,7 +174,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_header_hash(state->pool, &str);
+        hash = nxt_http_header_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -185,7 +190,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_argument_hash(state->pool, &str);
+        hash = nxt_http_argument_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -201,7 +206,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_cookie_hash(state->pool, &str);
+        hash = nxt_http_cookie_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -210,7 +215,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
         return NXT_ERROR;
     }
 
-    ref->data = nxt_var_field_new(state->pool, &str, (uint32_t) hash);
+    ref->data = nxt_var_field_new(mp, &str, (uint32_t) hash);
     if (nxt_slow_path(ref->data == NULL)) {
         return NXT_ERROR;
     }
@@ -396,6 +401,32 @@ nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
+nxt_http_var_request_id(nxt_task_t *task, nxt_str_t *str, void *ctx,
+    void *data)
+{
+    nxt_random_t        *rand;
+    nxt_http_request_t  *r;
+
+    r = ctx;
+
+    str->start = nxt_mp_nget(r->mem_pool, 32);
+    if (nxt_slow_path(str->start == NULL)) {
+        return NXT_ERROR;
+    }
+
+    str->length = 32;
+
+    rand = &task->thread->random;
+
+    (void) nxt_sprintf(str->start, str->start + 32, "%08xD%08xD%08xD%08xD",
+                       nxt_random(rand), nxt_random(rand),
+                       nxt_random(rand), nxt_random(rand));
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
 nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
     void *data)
 {
@@ -423,7 +454,6 @@ nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 static nxt_int_t
 nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
-    u_char              *p;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -433,9 +463,9 @@ nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
         return NXT_ERROR;
     }
 
-    p = nxt_sprintf(str->start, str->start + 3, "%03d", r->status);
+    (void) nxt_sprintf(str->start, str->start + 3, "%03d", r->status);
 
-    str->length = p - str->start;
+    str->length = 3;
 
     return NXT_OK;
 }

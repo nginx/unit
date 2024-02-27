@@ -2,6 +2,7 @@ import ssl
 import subprocess
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 from unit.option import option
 
@@ -14,7 +15,7 @@ client = ApplicationTLS()
 def setup_method_fixture():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"return": 200}}],
             "applications": {},
         }
@@ -24,7 +25,7 @@ def setup_method_fixture():
 def add_tls(cert='default'):
     assert 'success' in client.conf(
         {"pass": "routes", "tls": {"certificate": cert}},
-        'listeners/*:7080',
+        'listeners/*:8080',
     )
 
 
@@ -104,7 +105,7 @@ def config_bundles(bundles):
 
 
 def generate_ca_conf():
-    with open(f'{option.temp_dir}/ca.conf', 'w') as f:
+    with open(f'{option.temp_dir}/ca.conf', 'w', encoding='utf-8') as f:
         f.write(
             f"""[ ca ]
 default_ca = myca
@@ -126,10 +127,10 @@ commonName = optional
 basicConstraints = critical,CA:TRUE"""
         )
 
-    with open(f'{option.temp_dir}/certserial', 'w') as f:
+    with open(f'{option.temp_dir}/certserial', 'w', encoding='utf-8') as f:
         f.write('1000')
 
-    with open(f'{option.temp_dir}/certindex', 'w') as f:
+    with open(f'{option.temp_dir}/certindex', 'w', encoding='utf-8') as f:
         f.write('')
 
 
@@ -141,7 +142,7 @@ def load_certs(bundles):
 
 
 def remove_tls():
-    assert 'success' in client.conf({"pass": "routes"}, 'listeners/*:7080')
+    assert 'success' in client.conf({"pass": "routes"}, 'listeners/*:8080')
 
 
 def test_tls_sni():
@@ -289,7 +290,7 @@ def test_tls_sni_invalid():
     def check_certificate(cert):
         assert 'error' in client.conf(
             {"pass": "routes", "tls": {"certificate": cert}},
-            'listeners/*:7080',
+            'listeners/*:8080',
         )
 
     check_certificate('')

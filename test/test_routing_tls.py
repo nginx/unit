@@ -11,8 +11,8 @@ def test_routes_match_scheme_tls():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {
+                "*:8080": {"pass": "routes"},
+                "*:8081": {
                     "pass": "routes",
                     "tls": {"certificate": 'default'},
                 },
@@ -26,4 +26,4 @@ def test_routes_match_scheme_tls():
     ), 'scheme configure'
 
     assert client.get()['status'] == 200, 'http'
-    assert client.get_ssl(port=7081)['status'] == 201, 'https'
+    assert client.get_ssl(port=8081)['status'] == 201, 'https'

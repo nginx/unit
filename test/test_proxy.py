@@ -3,6 +3,7 @@ import socket
 import time
 
 import pytest
+
 from conftest import run_process
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
@@ -23,10 +24,10 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/mirror"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/mirror"},
             },
-            "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+            "routes": [{"action": {"proxy": "http://127.0.0.1:8081"}}],
             "applications": {
                 "mirror": {
                     "type": client.get_application_type(),
@@ -110,19 +111,19 @@ def test_proxy_chain():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes/first"},
-                "*:7081": {"pass": "routes/second"},
-                "*:7082": {"pass": "routes/third"},
-                "*:7083": {"pass": "routes/fourth"},
-                "*:7084": {"pass": "routes/fifth"},
-                "*:7085": {"pass": "applications/mirror"},
+                "*:8080": {"pass": "routes/first"},
+                "*:8081": {"pass": "routes/second"},
+                "*:8082": {"pass": "routes/third"},
+                "*:8083": {"pass": "routes/fourth"},
+                "*:8084": {"pass": "routes/fifth"},
+                "*:8085": {"pass": "applications/mirror"},
             },
             "routes": {
-                "first": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
-                "second": [{"action": {"proxy": "http://127.0.0.1:7082"}}],
-                "third": [{"action": {"proxy": "http://127.0.0.1:7083"}}],
-                "fourth": [{"action": {"proxy": "http://127.0.0.1:7084"}}],
-                "fifth": [{"action": {"proxy": "http://127.0.0.1:7085"}}],
+                "first": [{"action": {"proxy": "http://127.0.0.1:8081"}}],
+                "second": [{"action": {"proxy": "http://127.0.0.1:8082"}}],
+                "third": [{"action": {"proxy": "http://127.0.0.1:8083"}}],
+                "fourth": [{"action": {"proxy": "http://127.0.0.1:8084"}}],
+                "fifth": [{"action": {"proxy": "http://127.0.0.1:8085"}}],
             },
             "applications": {
                 "mirror": {
@@ -210,7 +211,7 @@ def test_proxy_parallel():
 
 def test_proxy_header():
     assert 'success' in client.conf(
-        {"pass": "applications/custom_header"}, 'listeners/*:7081'
+        {"pass": "applications/custom_header"}, 'listeners/*:8081'
     ), 'custom_header configure'
 
     header_value = 'blah'
@@ -325,7 +326,7 @@ def test_proxy_fragmented_body_close():
 
 def test_proxy_nowhere():
     assert 'success' in client.conf(
-        [{"action": {"proxy": "http://127.0.0.1:7082"}}], 'routes'
+        [{"action": {"proxy": "http://127.0.0.1:8082"}}], 'routes'
     ), 'proxy path changed'
 
     assert get_http10()['status'] == 502, 'status'
@@ -334,14 +335,14 @@ def test_proxy_nowhere():
 def test_proxy_ipv6():
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "routes"},
-            "[::1]:7081": {'application': 'mirror'},
+            "*:8080": {"pass": "routes"},
+            "[::1]:8081": {'application': 'mirror'},
         },
         'listeners',
     ), 'add ipv6 listener configure'
 
     assert 'success' in client.conf(
-        [{"action": {"proxy": "http://[::1]:7081"}}], 'routes'
+        [{"action": {"proxy": "http://[::1]:8081"}}], 'routes'
     ), 'proxy ipv6 configure'
 
     assert get_http10()['status'] == 200, 'status'
@@ -352,7 +353,7 @@ def test_proxy_unix(temp_dir):
 
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "routes"},
+            "*:8080": {"pass": "routes"},
             f'unix:{addr}': {'application': 'mirror'},
         },
         'listeners',
@@ -367,7 +368,7 @@ def test_proxy_unix(temp_dir):
 
 def test_proxy_delayed():
     assert 'success' in client.conf(
-        {"pass": "applications/delayed"}, 'listeners/*:7081'
+        {"pass": "applications/delayed"}, 'listeners/*:8081'
     ), 'delayed configure'
 
     body = '0123456789' * 1000
@@ -400,7 +401,7 @@ def test_proxy_delayed():
 
 def test_proxy_delayed_close():
     assert 'success' in client.conf(
-        {"pass": "applications/delayed"}, 'listeners/*:7081'
+        {"pass": "applications/delayed"}, 'listeners/*:8081'
     ), 'delayed configure'
 
     sock = post_http10(
@@ -469,11 +470,11 @@ def test_proxy_invalid():
     check_proxy('http://127.0.0.1:')
     check_proxy('http://127.0.0.1:blah')
     check_proxy('http://127.0.0.1:-1')
-    check_proxy('http://127.0.0.1:7080b')
+    check_proxy('http://127.0.0.1:8080b')
     check_proxy('http://[]')
-    check_proxy('http://[]:7080')
-    check_proxy('http://[:]:7080')
-    check_proxy('http://[::7080')
+    check_proxy('http://[]:8080')
+    check_proxy('http://[:]:8080')
+    check_proxy('http://[::8080')
 
 
 @pytest.mark.skip('not yet')
@@ -486,11 +487,11 @@ def test_proxy_loop(skip_alert):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/mirror"},
-                "*:7082": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/mirror"},
+                "*:8082": {"pass": "routes"},
             },
-            "routes": [{"action": {"proxy": "http://127.0.0.1:7082"}}],
+            "routes": [{"action": {"proxy": "http://127.0.0.1:8082"}}],
             "applications": {
                 "mirror": {
                     "type": client.get_application_type(),

@@ -1,4 +1,5 @@
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 
 prerequisites = {'modules': {'python': 'any'}}
@@ -333,7 +334,7 @@ def test_http_header_host_port():
     client.load('host')
 
     resp = client.get(
-        headers={'Host': 'exmaple.com:7080', 'Connection': 'close'}
+        headers={'Host': 'exmaple.com:8080', 'Connection': 'close'}
     )
 
     assert resp['status'] == 200, 'Host port status'
@@ -341,7 +342,7 @@ def test_http_header_host_port():
         resp['headers']['X-Server-Name'] == 'exmaple.com'
     ), 'Host port SERVER_NAME'
     assert (
-        resp['headers']['X-Http-Host'] == 'exmaple.com:7080'
+        resp['headers']['X-Http-Host'] == 'exmaple.com:8080'
     ), 'Host port HTTP_HOST'
 
 
@@ -373,14 +374,14 @@ def test_http_header_host_literal():
 def test_http_header_host_literal_ipv6():
     client.load('host')
 
-    resp = client.get(headers={'Host': '[::1]:7080', 'Connection': 'close'})
+    resp = client.get(headers={'Host': '[::1]:8080', 'Connection': 'close'})
 
     assert resp['status'] == 200, 'Host literal ipv6 status'
     assert (
         resp['headers']['X-Server-Name'] == '[::1]'
     ), 'Host literal ipv6 SERVER_NAME'
     assert (
-        resp['headers']['X-Http-Host'] == '[::1]:7080'
+        resp['headers']['X-Http-Host'] == '[::1]:8080'
     ), 'Host literal ipv6 HTTP_HOST'
 
 

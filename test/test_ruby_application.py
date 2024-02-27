@@ -2,6 +2,7 @@ import re
 import subprocess
 
 import pytest
+
 from unit.applications.lang.ruby import ApplicationRuby
 
 prerequisites = {'modules': {'ruby': 'all'}}
@@ -91,7 +92,7 @@ def test_ruby_application_server_port():
     client.load('server_port')
 
     assert (
-        client.get()['headers']['Server-Port'] == '7080'
+        client.get()['headers']['Server-Port'] == '8080'
     ), 'Server-Port header'
 
 
@@ -161,15 +162,6 @@ def test_ruby_application_input_each():
     body = '\n01234\n56789\n\n'
 
     assert client.post(body=body)['body'] == body, 'input each'
-
-
-@pytest.mark.skip('not yet')
-def test_ruby_application_input_rewind():
-    client.load('input_rewind')
-
-    body = '0123456789'
-
-    assert client.post(body=body)['body'] == body, 'input rewind'
 
 
 @pytest.mark.skip('not yet')
@@ -317,11 +309,45 @@ def test_ruby_application_header_status():
     assert client.get()['status'] == 200, 'header status'
 
 
+def test_ruby_application_header_array():
+    client.load('header_array')
+
+    assert client.get()['headers']['x-array'] == 'name=value; ; value; av'
+
+
+def test_ruby_application_header_array_nil():
+    client.load('header_array_nil')
+
+    assert client.get()['status'] == 503
+
+
+def test_ruby_application_header_array_empty():
+    client.load('header_array_empty')
+
+    headers = client.get()['headers']
+    assert 'x-array' in headers
+    assert headers['x-array'] == ''
+
+
 @pytest.mark.skip('not yet')
 def test_ruby_application_header_rack():
     client.load('header_rack')
 
     assert client.get()['status'] == 500, 'header rack'
+
+
+@pytest.mark.skip('not yet')
+def test_ruby_application_session():
+    client.load('session')
+
+    assert client.get()['status'] == 200
+
+
+@pytest.mark.skip('not yet')
+def test_ruby_application_multipart():
+    client.load('multipart')
+
+    assert client.get()['status'] == 200
 
 
 def test_ruby_application_body_empty():

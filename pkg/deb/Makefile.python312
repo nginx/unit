@@ -1,0 +1,46 @@
+MODULES+=			python312
+MODULE_SUFFIX_python312=		python3.12
+
+MODULE_SUMMARY_python312=	Python 3.12 module for NGINX Unit
+
+MODULE_VERSION_python312=	$(VERSION)
+MODULE_RELEASE_python312=	1
+
+MODULE_CONFARGS_python312=	python --config=python3.12-config
+MODULE_MAKEARGS_python312=	python3.12
+MODULE_INSTARGS_python312=	python3.12-install
+
+MODULE_SOURCES_python312=	unit.example-python-app \
+				unit.example-python3.12-config
+
+BUILD_DEPENDS_python312=	python3.12-dev
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python312)
+
+MODULE_BUILD_DEPENDS_python312=,python3.12-dev
+
+define MODULE_PREINSTALL_python312
+	mkdir -p debian/unit-python3.12/usr/share/doc/unit-python3.12/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python3.12/usr/share/doc/unit-python3.12/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python3.12-config debian/unit-python3.12/usr/share/doc/unit-python3.12/examples/unit.config
+endef
+export MODULE_PREINSTALL_python312
+
+define MODULE_POST_python312
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python312) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_python312)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python312

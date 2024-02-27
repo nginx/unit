@@ -58,6 +58,10 @@ typedef volatile nxt_atomic_uint_t  nxt_atomic_t;
 #define nxt_cpu_pause()                                                       \
     __asm__ ("pause")
 
+#elif (__aarch64__ || __arm64__)
+#define nxt_cpu_pause()                                                       \
+    __asm__ ("isb")
+
 #else
 #define nxt_cpu_pause()
 #endif

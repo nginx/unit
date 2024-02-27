@@ -16,7 +16,7 @@ def args_handler(conf_func):
         elif argcount == 3:
             conf = args[0]
 
-            if isinstance(conf, dict) or isinstance(conf, list):
+            if isinstance(conf, (dict, list)):
                 conf = json.dumps(conf)
 
             url = args[1] if len(args) == 2 else url_default

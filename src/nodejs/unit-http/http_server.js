@@ -138,6 +138,10 @@ ServerResponse.prototype.removeHeader = function removeHeader(name) {
     }
 };
 
+ServerResponse.prototype.flushHeaders = function flushHeaders() {
+    this._sendHeaders();
+};
+
 ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
     let entry = this.headers[lc_name];
     let name_len = Buffer.byteLength(entry[0] + "", 'latin1');
@@ -409,7 +413,14 @@ ServerRequest.prototype._read = function _read(n) {
 };
 
 
-function Server(requestListener) {
+function Server(options, requestListener) {
+    if (typeof options === 'function') {
+        requestListener = options;
+        options = {};
+    } else {
+        console.warn("http.Server constructor was called with unsupported options, using default settings");
+    }
+
     EventEmitter.call(this);
 
     this.unit = new unit_lib.Unit();

@@ -12,8 +12,8 @@ def test_status_tls_requests():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {
+                "*:8080": {"pass": "routes"},
+                "*:8081": {
                     "pass": "routes",
                     "tls": {"certificate": "default"},
                 },
@@ -26,6 +26,6 @@ def test_status_tls_requests():
     Status.init()
 
     assert client.get()['status'] == 200
-    assert client.get_ssl(port=7081)['status'] == 200
+    assert client.get_ssl(port=8081)['status'] == 200
 
     assert Status.get('/requests/total') == 2

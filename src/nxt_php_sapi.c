@@ -1225,6 +1225,8 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         nxt_unit_req_debug(ctx->req, "php_request_startup() failed");
 
         nxt_unit_request_done(ctx->req, NXT_UNIT_ERROR);
+        fclose(fp);
+
         return;
     }
 

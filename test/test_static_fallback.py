@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -11,7 +12,7 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     assets_dir = f'{temp_dir}/assets'
     os.makedirs(f'{assets_dir}/dir')
-    Path(f'{assets_dir}/index.html').write_text('0123456789')
+    Path(f'{assets_dir}/index.html').write_text('0123456789', encoding='utf-8')
 
     os.makedirs(f'{assets_dir}/403')
     os.chmod(f'{assets_dir}/403', 0o000)
@@ -19,8 +20,8 @@ def setup_method_fixture(temp_dir):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "routes"},
             },
             "routes": [{"action": {"share": f'{assets_dir}$uri'}}],
             "applications": {},
@@ -108,13 +109,13 @@ def test_static_fallback_proxy():
     assert 'success' in client.conf(
         [
             {
-                "match": {"destination": "*:7081"},
+                "match": {"destination": "*:8081"},
                 "action": {"return": 200},
             },
             {
                 "action": {
                     "share": "/blah",
-                    "fallback": {"proxy": "http://127.0.0.1:7081"},
+                    "fallback": {"proxy": "http://127.0.0.1:8081"},
                 }
             },
         ],
@@ -136,11 +137,11 @@ def test_static_fallback_proxy_loop(skip_alert):
     )
 
     action_update(
-        {"share": "/blah", "fallback": {"proxy": "http://127.0.0.1:7080"}}
+        {"share": "/blah", "fallback": {"proxy": "http://127.0.0.1:8080"}}
     )
     client.get(no_recv=True)
 
-    assert 'success' in client.conf_delete('listeners/*:7081')
+    assert 'success' in client.conf_delete('listeners/*:8081')
     client.get(read_timeout=1)
 
 
@@ -152,6 +153,6 @@ def test_static_fallback_invalid():
     check_error({"share": "/blah", "fallback": ""})
     check_error({"return": 200, "fallback": {"share": "/blah"}})
     check_error(
-        {"proxy": "http://127.0.0.1:7081", "fallback": {"share": "/blah"}}
+        {"proxy": "http://127.0.0.1:8081", "fallback": {"share": "/blah"}}
     )
     check_error({"fallback": {"share": "/blah"}})

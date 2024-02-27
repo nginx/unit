@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 import pytest
+
 from unit.applications.lang.php import ApplicationPHP
 from unit.option import option
 
@@ -93,13 +94,13 @@ def set_opcache(app, val):
 
 
 def set_preload(preload):
-    with open(f'{option.temp_dir}/php.ini', 'w') as ini:
-        ini.write(
-            f"""opcache.preload = {option.test_dir}/php/opcache/preload\
+    Path(f'{option.temp_dir}/php.ini').write_text(
+        f"""opcache.preload = {option.test_dir}/php/opcache/preload\
 /{preload}
 opcache.preload_user = {option.user or getpass.getuser()}
-"""
-        )
+""",
+        encoding='utf-8',
+    )
 
     assert 'success' in client.conf(
         {"file": f"{option.temp_dir}/php.ini"},
@@ -174,7 +175,7 @@ def test_php_application_query_string_empty():
 def test_php_application_query_string_rewrite():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "action": {
@@ -678,7 +679,7 @@ def test_php_application_error_log(findall, wait_for_record):
 def test_php_application_script():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/script"}},
+            "listeners": {"*:8080": {"pass": "applications/script"}},
             "applications": {
                 "script": {
                     "type": client.get_application_type(),
@@ -699,7 +700,7 @@ def test_php_application_script():
 def test_php_application_index_default():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": client.get_application_type(),
@@ -718,16 +719,18 @@ def test_php_application_index_default():
 
 def test_php_application_trailing_slash(temp_dir):
     new_root = f'{temp_dir}/php-root'
-    os.makedirs(f'{new_root}/path')
 
-    Path(f'{new_root}/path/index.php').write_text('<?php echo "OK\n"; ?>')
+    Path(f'{new_root}/path').mkdir(parents=True)
+    Path(f'{new_root}/path/index.php').write_text(
+        '<?php echo "OK\n"; ?>', encoding='utf-8'
+    )
 
     addr = f'{temp_dir}/sock'
 
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "applications/php-path"},
+                "*:8080": {"pass": "applications/php-path"},
                 f'unix:{addr}': {"pass": "applications/php-path"},
             },
             "applications": {
@@ -745,7 +748,7 @@ def test_php_application_trailing_slash(temp_dir):
     resp = client.get(url='/path?q=a')
     assert resp['status'] == 301, 'uri without trailing /'
     assert (
-        resp['headers']['Location'] == 'http://localhost:7080/path/?q=a'
+        resp['headers']['Location'] == 'http://localhost:8080/path/?q=a'
     ), 'Location with query string'
 
     resp = client.get(
@@ -761,13 +764,11 @@ def test_php_application_trailing_slash(temp_dir):
 
 
 def test_php_application_forbidden(temp_dir):
-    new_root = f'{temp_dir}/php-root/path'
-    os.makedirs(new_root)
-    os.chmod(new_root, 0o000)
+    Path(f'{temp_dir}/php-root/path').mkdir(mode=0o000, parents=True)
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/php-path"}},
+            "listeners": {"*:8080": {"pass": "applications/php-path"}},
             "applications": {
                 "php-path": {
                     "type": client.get_application_type(),
@@ -787,12 +788,12 @@ def test_php_application_extension_check(temp_dir):
     assert client.get(url='/index.wrong')['status'] != 200, 'status'
 
     new_root = f'{temp_dir}/php'
-    os.mkdir(new_root)
+    Path(new_root).mkdir(parents=True)
     shutil.copy(f'{option.test_dir}/php/phpinfo/index.wrong', new_root)
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": client.get_application_type(),

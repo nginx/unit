@@ -22,6 +22,7 @@ typedef enum {
     NXT_APP_RUBY,
     NXT_APP_JAVA,
     NXT_APP_WASM,
+    NXT_APP_WASM_WC,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -104,6 +105,13 @@ typedef struct {
 } nxt_wasm_app_conf_t;
 
 
+typedef struct {
+    const char        *component;
+
+    nxt_conf_value_t  *access;
+} nxt_wasm_wc_app_conf_t;
+
+
 struct nxt_common_app_conf_s {
     nxt_str_t                  name;
     nxt_str_t                  type;
@@ -133,6 +141,7 @@ struct nxt_common_app_conf_s {
         nxt_ruby_app_conf_t      ruby;
         nxt_java_app_conf_t      java;
         nxt_wasm_app_conf_t      wasm;
+        nxt_wasm_wc_app_conf_t   wasm_wc;
     } u;
 
     nxt_conf_value_t           *self;

@@ -1,6 +1,7 @@
 import ssl
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 
 prerequisites = {'modules': {'openssl': 'any'}}
@@ -15,7 +16,7 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {
+                "*:8080": {
                     "pass": "routes",
                     "tls": {"certificate": "default"},
                 }
@@ -55,7 +56,7 @@ def test_tls_conf_command():
             "certificate": "default",
             "conf_commands": {"protocol": f'-{protocol}'},
         },
-        'listeners/*:7080/tls',
+        'listeners/*:8080/tls',
     ), 'protocol disabled'
 
     sock.close()
@@ -84,7 +85,7 @@ def test_tls_conf_command():
                 "cipherstring": f"{cipher[1]}:!{cipher[0]}",
             },
         },
-        'listeners/*:7080/tls',
+        'listeners/*:8080/tls',
     ), 'cipher disabled'
 
     if len(ciphers) > 1:
@@ -106,7 +107,7 @@ def test_tls_conf_command_invalid(skip_alert):
     def check_conf_commands(conf_commands):
         assert 'error' in client.conf(
             {"certificate": "default", "conf_commands": conf_commands},
-            'listeners/*:7080/tls',
+            'listeners/*:8080/tls',
         ), 'ivalid conf_commands'
 
     check_conf_commands([])

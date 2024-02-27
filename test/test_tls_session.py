@@ -26,7 +26,7 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {
+                "*:8080": {
                     "pass": "routes",
                     "tls": {"certificate": "default", "session": {}},
                 }
@@ -45,11 +45,11 @@ def add_session(cache_size=None, timeout=None):
     if timeout is not None:
         session['timeout'] = timeout
 
-    return client.conf(session, 'listeners/*:7080/tls/session')
+    return client.conf(session, 'listeners/*:8080/tls/session')
 
 
 def connect(ctx=None, session=None):
-    sock = socket.create_connection(('127.0.0.1', 7080))
+    sock = socket.create_connection(('127.0.0.1', 8080))
 
     if ctx is None:
         ctx = Context(TLSv1_2_METHOD)

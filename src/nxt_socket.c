@@ -322,15 +322,15 @@ nxt_socket_error(nxt_socket_t s)
 
     err = 0;
     len = sizeof(int);
-    /*  
-     * Linux and BSDs return 0 and store a pending error in the err argument; 
+    /*
+     * Linux and BSDs return 0 and store a pending error in the err argument;
      * Solaris returns -1 and sets the errno.
-     */  
+     */
     ret = getsockopt(s, SOL_SOCKET, SO_ERROR, (void *) &err, &len);
 
     if (nxt_slow_path(ret == -1)) {
         err = nxt_errno;
-    }   
+    }
 
     return err;
 }

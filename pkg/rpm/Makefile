@@ -22,8 +22,10 @@ else ifeq ($(shell rpm --eval "%{?amzn}"), 2023)
 OSVER = amazonlinux2023
 else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35 -a 0%{?fedora} -le 36'`; echo $$?),0)
 OSVER = fedora
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37'`; echo $$?),0)
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37 -a 0%{?fedora} -le 38'`; echo $$?),0)
 OSVER = fedora37
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 39'`; echo $$?),0)
+OSVER = fedora39
 endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint
@@ -123,6 +125,18 @@ include Makefile.jsc8
 include Makefile.jsc11
 include Makefile.wasm
 endif
+
+ifeq ($(OSVER), fedora39)
+include Makefile.php
+include Makefile.python312
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc17
+include Makefile.wasm
+endif
+
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
@@ -254,7 +268,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 	cat ../../build/unit-$(MODULE_SUFFIX_$*).rpm-changelog | sed -e \
 		"s/> - $(DEFAULT_VERSION)-$(DEFAULT_RELEASE)/> - $(MODULE_VERSION_$*)-$(MODULE_RELEASE_$*)/" \
 		>> $@.tmp
-	mv $@.tmp $@ 
+	mv $@.tmp $@
 
 unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $(subst _,-,$@) package" ; \

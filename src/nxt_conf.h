@@ -3,6 +3,7 @@
  * Copyright (C) Igor Sysoev
  * Copyright (C) Valentin V. Bartenev
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #ifndef _NXT_CONF_INCLUDED_
@@ -116,6 +117,8 @@ void nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
 NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT nxt_str_t *nxt_conf_get_string_dup(nxt_conf_value_t *value,
+    nxt_mp_t *mp, nxt_str_t *str);
 NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
 NXT_EXPORT nxt_int_t nxt_conf_set_string_dup(nxt_conf_value_t *value,
     nxt_mp_t *mp, const nxt_str_t *str);

@@ -2,7 +2,7 @@
 server = require('http').createServer(function() {});
 webSocketServer = require('websocket').server;
 
-server.listen(7080, function() {});
+server.listen(8080, function() {});
 
 var wsServer = new webSocketServer({
     maxReceivedMessageSize: 0x1000000000,

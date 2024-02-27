@@ -1,8 +1,11 @@
 from unit.applications.lang.ruby import ApplicationRuby
 from unit.option import option
 from unit.utils import waitforglob
+from packaging import version
 
-prerequisites = {'modules': {'ruby': 'all'}}
+prerequisites = {
+    'modules': {'ruby': lambda v: version.parse(v) >= version.parse('3.0')}
+}
 
 client = ApplicationRuby()
 

@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 
 from unit.applications.lang.go import ApplicationGo
 from unit.applications.lang.java import ApplicationJava
@@ -21,7 +21,7 @@ def check_isolation():
         ApplicationGo().prepare_env('empty', 'app')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "external",
@@ -35,7 +35,7 @@ def check_isolation():
 
     elif 'python' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "python",
@@ -50,7 +50,7 @@ def check_isolation():
 
     elif 'php' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": "php",
@@ -67,7 +67,7 @@ def check_isolation():
         ApplicationRuby().prepare_env('empty')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "ruby",
@@ -83,7 +83,7 @@ def check_isolation():
         ApplicationJava().prepare_env('empty')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "unit_jars": f"{option.current_dir}/build",
@@ -100,7 +100,7 @@ def check_isolation():
         ApplicationNode().prepare_env('basic')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/basic"}},
+            "listeners": {"*:8080": {"pass": "applications/basic"}},
             "applications": {
                 "basic": {
                     "type": "external",
@@ -114,7 +114,7 @@ def check_isolation():
 
     elif 'perl' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/body_empty"}},
+            "listeners": {"*:8080": {"pass": "applications/body_empty"}},
             "applications": {
                 "body_empty": {
                     "type": "perl",
@@ -145,11 +145,12 @@ def check_isolation():
 
     isolation = {'user': userns}
 
-    unp_clone_path = '/proc/sys/kernel/unprivileged_userns_clone'
-    if os.path.exists(unp_clone_path):
-        with open(unp_clone_path, 'r') as f:
-            if str(f.read()).rstrip() == '1':
-                isolation['unprivileged_userns_clone'] = True
+    path_clone = Path('/proc/sys/kernel/unprivileged_userns_clone')
+    if (
+        path_clone.exists()
+        and path_clone.read_text(encoding='utf-8').rstrip() == '1'
+    ):
+        isolation['unprivileged_userns_clone'] = True
 
     for ns in allns:
         ns_value = getns(ns)

@@ -889,11 +889,39 @@ nxt_ruby_hash_info(VALUE r_key, VALUE r_value, VALUE arg)
         goto fail;
     }
 
-    if (nxt_slow_path(TYPE(r_value) != T_STRING)) {
+    if (nxt_slow_path(TYPE(r_value) != T_STRING && TYPE(r_value) != T_ARRAY)) {
         nxt_unit_req_error(headers_info->req,
                            "Ruby: Wrong header entry 'value' from application");
 
         goto fail;
+    }
+
+    if (TYPE(r_value) == T_ARRAY) {
+        int     i;
+        int     arr_len = RARRAY_LEN(r_value);
+        VALUE   item;
+        size_t  len = 0;
+
+        for (i = 0; i < arr_len; i++) {
+            item = rb_ary_entry(r_value, i);
+            if (TYPE(item) != T_STRING) {
+                nxt_unit_req_error(headers_info->req,
+                                   "Ruby: Wrong header entry in 'value' array "
+                                   "from application");
+                goto fail;
+            }
+
+            len += RSTRING_LEN(item) + 2;   /* +2 for '; ' */
+        }
+
+        if (arr_len > 0) {
+            len -= 2;
+        }
+
+        headers_info->fields++;
+        headers_info->size += RSTRING_LEN(r_key) + len;
+
+        return ST_CONTINUE;
     }
 
     value = RSTRING_PTR(r_value);
@@ -941,10 +969,53 @@ nxt_ruby_hash_add(VALUE r_key, VALUE r_value, VALUE arg)
     headers_info = (void *) (uintptr_t) arg;
     rc = &headers_info->rc;
 
+    key_len = RSTRING_LEN(r_key);
+
+    if (TYPE(r_value) == T_ARRAY) {
+        int     i;
+        int     arr_len = RARRAY_LEN(r_value);
+        char    *field, *p;
+        VALUE   item;
+        size_t  len = 0;
+
+        for (i = 0; i < arr_len; i++) {
+            item = rb_ary_entry(r_value, i);
+
+            len += RSTRING_LEN(item) + 2;   /* +2 for '; ' */
+        }
+
+        field = nxt_unit_malloc(NULL, len);
+        if (field == NULL) {
+            goto fail;
+        }
+
+        p = field;
+
+        for (i = 0; i < arr_len; i++) {
+            item = rb_ary_entry(r_value, i);
+
+            p = nxt_cpymem(p, RSTRING_PTR(item), RSTRING_LEN(item));
+            p = nxt_cpymem(p, "; ", 2);
+        }
+
+        if (arr_len > 0) {
+            len -= 2;
+        }
+
+        *rc = nxt_unit_response_add_field(headers_info->req,
+                                          RSTRING_PTR(r_key), key_len,
+                                          field, len);
+        nxt_unit_free(NULL, field);
+
+        if (nxt_slow_path(*rc != NXT_UNIT_OK)) {
+            goto fail;
+        }
+
+        return ST_CONTINUE;
+    }
+
     value = RSTRING_PTR(r_value);
     value_end = value + RSTRING_LEN(r_value);
-
-    key_len = RSTRING_LEN(r_key);
 
     pos = value;
 

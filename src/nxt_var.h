@@ -59,10 +59,10 @@ nxt_int_t nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error);
 nxt_int_t nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     nxt_var_cache_t *cache, nxt_var_t *var, nxt_str_t *str, void *ctx,
     nxt_bool_t logging);
-nxt_str_t *nxt_var_get(nxt_task_t *task, nxt_var_cache_t *cache,
-    nxt_str_t *name, void *ctx);
+nxt_str_t *nxt_var_get(nxt_task_t *task, nxt_tstr_state_t *state,
+    nxt_var_cache_t *cache, nxt_str_t *name, void *ctx);
 
-nxt_int_t nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
+nxt_int_t nxt_http_unknown_var_ref(nxt_mp_t *mp, nxt_var_ref_t *ref,
     nxt_str_t *name);
 
 

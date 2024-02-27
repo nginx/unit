@@ -362,16 +362,6 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
     Py_ssize_t              body_len, body_off;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
-    body = PyDict_GetItem(dict, nxt_py_body_str);
-    if (nxt_slow_path(body != NULL && !PyBytes_Check(body))) {
-        return PyErr_Format(PyExc_TypeError, "'body' is not a byte string");
-    }
-
-    more_body = PyDict_GetItem(dict, nxt_py_more_body_str);
-    if (nxt_slow_path(more_body != NULL && !PyBool_Check(more_body))) {
-        return PyErr_Format(PyExc_TypeError, "'more_body' is not a bool");
-    }
-
     if (nxt_slow_path(http->complete)) {
         return PyErr_Format(PyExc_RuntimeError,
                             "Unexpected ASGI message 'http.response.body' "
@@ -382,9 +372,26 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
         return PyErr_Format(PyExc_RuntimeError, "Concurrent send");
     }
 
+    more_body = PyDict_GetItem(dict, nxt_py_more_body_str);
+    if (nxt_slow_path(more_body != NULL && !PyBool_Check(more_body))) {
+        return PyErr_Format(PyExc_TypeError, "'more_body' is not a bool");
+    }
+
+    body = PyDict_GetItem(dict, nxt_py_body_str);
+
     if (body != NULL) {
-        body_str = PyBytes_AS_STRING(body);
-        body_len = PyBytes_GET_SIZE(body);
+        if (PyBytes_Check(body)) {
+            body_str = PyBytes_AS_STRING(body);
+            body_len = PyBytes_GET_SIZE(body);
+
+        } else if (PyByteArray_Check(body)) {
+            body_str = PyByteArray_AS_STRING(body);
+            body_len = PyByteArray_GET_SIZE(body);
+
+        } else {
+            return PyErr_Format(PyExc_TypeError,
+                                "'body' is not a byte string or bytearray");
+        }
 
         nxt_unit_req_debug(http->req, "asgi_http_response_body: %d, %d",
                            (int) body_len, (more_body == Py_True) );

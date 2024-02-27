@@ -1,6 +1,7 @@
 import time
 
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -17,14 +18,18 @@ def load(script):
     ), 'access_log configure'
 
 
-def set_format(format):
+def set_format(log_format):
     assert 'success' in client.conf(
         {
             'path': f'{option.temp_dir}/access.log',
-            'format': format,
+            'format': log_format,
         },
         'access_log',
     ), 'access_log format'
+
+
+def set_if(condition):
+    assert 'success' in client.conf(f'"{condition}"', 'access_log/if')
 
 
 def test_access_log_keepalive(wait_for_record):
@@ -93,7 +98,7 @@ def test_access_log_ipv6(wait_for_record):
     load('empty')
 
     assert 'success' in client.conf(
-        {"[::1]:7080": {"pass": "applications/empty"}}, 'listeners'
+        {"[::1]:8080": {"pass": "applications/empty"}}, 'listeners'
     )
 
     client.get(sock_type='ipv6')
@@ -283,14 +288,14 @@ def test_access_log_change(temp_dir, wait_for_record):
 def test_access_log_format(wait_for_record):
     load('empty')
 
-    def check_format(format, expect, url='/'):
-        set_format(format)
+    def check_format(log_format, expect, url='/'):
+        set_format(log_format)
 
         assert client.get(url=url)['status'] == 200
         assert wait_for_record(expect, 'access.log') is not None, 'found'
 
-    format = 'BLAH\t0123456789'
-    check_format(format, format)
+    log_format = 'BLAH\t0123456789'
+    check_format(log_format, log_format)
     check_format('$uri $status $uri $status', '/ 200 / 200')
 
 
@@ -305,6 +310,62 @@ def test_access_log_variables(wait_for_record):
     assert (
         wait_for_record(fr'^\/bbs {len(body)}$', 'access.log') is not None
     ), '$body_bytes_sent'
+
+
+def test_access_log_if(search_in_file, wait_for_record):
+    load('empty')
+    set_format('$uri')
+
+    def try_if(condition):
+        set_if(condition)
+        assert client.get(url=f'/{condition}')['status'] == 200
+
+    # const
+
+    try_if('')
+    try_if('0')
+    try_if('false')
+    try_if('undefined')
+    try_if('!')
+    try_if('!null')
+    try_if('1')
+
+    # variable
+
+    set_if('$arg_foo')
+    assert client.get(url='/bar?bar')['status'] == 200
+    assert client.get(url='/foo_empty?foo')['status'] == 200
+    assert client.get(url='/foo?foo=1')['status'] == 200
+
+    # check results
+
+    assert wait_for_record(r'^/foo$', 'access.log') is not None
+
+    assert search_in_file(r'^/$', 'access.log') is None
+    assert search_in_file(r'^/0$', 'access.log') is None
+    assert search_in_file(r'^/false$', 'access.log') is None
+    assert search_in_file(r'^/undefined$', 'access.log') is None
+    assert search_in_file(r'^/!$', 'access.log') is not None
+    assert search_in_file(r'^/!null$', 'access.log') is not None
+    assert search_in_file(r'^/1$', 'access.log') is not None
+
+    assert search_in_file(r'^/bar$', 'access.log') is None
+    assert search_in_file(r'^/foo_empty$', 'access.log') is None
+
+
+def test_access_log_if_njs(require, search_in_file, wait_for_record):
+    require({'modules': {'njs': 'any'}})
+
+    load('empty')
+    set_format('$uri')
+
+    set_if('`${args.foo == \'1\'}`')
+
+    assert client.get(url='/foo_2?foo=2')['status'] == 200
+    assert client.get(url='/foo_1?foo=1')['status'] == 200
+
+    assert wait_for_record(r'^/foo_1$', 'access.log') is not None
+    assert search_in_file(r'^/foo_2$', 'access.log') is None
 
 
 def test_access_log_incorrect(temp_dir, skip_alert):
@@ -322,3 +383,5 @@ def test_access_log_incorrect(temp_dir, skip_alert):
         },
         'access_log',
     ), 'access_log format incorrect'
+
+    assert 'error' in client.conf('$arg_', 'access_log/if')

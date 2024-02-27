@@ -5,6 +5,178 @@
 <change_log title="unit">
 
 
+<changes apply="unit-jsc21" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 21 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.12" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.12 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-python3.12
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20 unit-jsc21
+                unit-wasm"
+         ver="1.32.0" rev="1"
+         date="2024-02-27" time="18:00:00 +0000"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.32.0.
+</para>
+</change>
+
+
+</changes>
+
+
+<changes apply="unit" ver="1.32.0" rev="1"
+         date="2024-02-27" time="18:00:00 +0000"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
+<para>
+WebAssembly Components using WASI interfaces defined in wasi:http/proxy@0.2.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+conditional access logging.
+</para>
+</change>
+
+<change type="feature">
+<para>
+NJS variables access.
+</para>
+</change>
+
+<change type="feature">
+<para>
+$request_id variable contains a string that is formed using random data and
+can be used as a unique request identifier.
+</para>
+</change>
+
+<change type="feature">
+<para>
+options to set control socket permissions.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby arrays in response headers, improving compatibility with Rack v3.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python bytearray response bodies for ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+router could crash while sending large files. Thanks to rustedsword.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+serving static files from a network filesystem could lead to error.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"uidmap" and "gidmap" isolation options validation.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+abstract UNIX socket name could be corrupted during configuration validation.
+Thanks to Alejandro Colomar.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP header field value encoding could be misinterpreted in Python module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js http.createServer() accepts and ignores the "options" argument,
+improving compatibility with strapi applications, among others.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.flushHeaders() implemented in Node.js module to make it compatible
+with Next.js.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.httpVersion variable format in Node.js module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js module handles standard library imports prefixed with "node:", making it
+possible to run newer Nuxt applications, among others.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js tarball location changed to avoid build/install errors.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Go module sets environment variables necessary for building on macOS/arm64
+systems.
+</para>
+</change>
+
+</changes>
+
 <changes apply="unit-php
                 unit-python unit-python2.7
                 unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
@@ -80,8 +252,8 @@ compatibility with Node.js 15.0.0 and above.
 
 <change type="bugfix">
 <para>
-Node.JS unit-http NPM module now has appropriate default paths for
-macOS/arm64 systems.
+Node.JS unit-http NPM module now has appropriate default paths for macOS/arm64
+systems.
 </para>
 </change>
 

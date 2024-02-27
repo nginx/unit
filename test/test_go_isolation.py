@@ -3,6 +3,7 @@ import os
 import pwd
 
 import pytest
+
 from unit.applications.lang.go import ApplicationGo
 from unit.option import option
 from unit.utils import getns
@@ -319,7 +320,7 @@ def test_go_isolation_rootfs_container_priv(require, temp_dir):
 
 def test_go_isolation_rootfs_automount_tmpfs(is_su, require, temp_dir):
     try:
-        open("/proc/self/mountinfo")
+        open("/proc/self/mountinfo", encoding='utf-8')
     except:
         pytest.skip('The system lacks /proc/self/mountinfo file')
 

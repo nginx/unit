@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -11,13 +12,15 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     os.makedirs(f'{temp_dir}/assets/dir')
     os.makedirs(f'{temp_dir}/assets/d$r')
-    Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
-    Path(f'{temp_dir}/assets/dir/file').write_text('file')
-    Path(f'{temp_dir}/assets/d$r/file').write_text('d$r')
+    Path(f'{temp_dir}/assets/index.html').write_text(
+        '0123456789', encoding='utf-8'
+    )
+    Path(f'{temp_dir}/assets/dir/file').write_text('file', encoding='utf-8')
+    Path(f'{temp_dir}/assets/d$r/file').write_text('d$r', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
         }
     )

@@ -11,10 +11,12 @@ import sys
 import tempfile
 import time
 from multiprocessing import Process
+from pathlib import Path
 
 import pytest
-from unit.check.discover_available import discover_available
+
 from unit.check.check_prerequisites import check_prerequisites
+from unit.check.discover_available import discover_available
 from unit.http import HTTP1
 from unit.log import Log
 from unit.log import print_log_on_assert
@@ -265,27 +267,26 @@ def unit_run(state_dir=None):
     if not option.restart and 'unitd' in unit_instance:
         return unit_instance
 
-    builddir   = f'{option.current_dir}/build'
-    libdir     = f'{builddir}/lib'
+    builddir = f'{option.current_dir}/build'
+    libdir = f'{builddir}/lib'
     modulesdir = f'{libdir}/unit/modules'
-    sbindir    = f'{builddir}/sbin'
-    unitd      = f'{sbindir}/unitd'
+    sbindir = f'{builddir}/sbin'
+    unitd = f'{sbindir}/unitd'
 
-    if not os.path.isfile(unitd):
-        exit('Could not find unit')
+    if not Path(unitd).is_file():
+        sys.exit('Could not find unit')
 
-    temp_dir = tempfile.mkdtemp(prefix='unit-test-')
-    option.temp_dir = temp_dir
-    public_dir(temp_dir)
+    temporary_dir = tempfile.mkdtemp(prefix='unit-test-')
+    option.temp_dir = temporary_dir
+    public_dir(temporary_dir)
 
-    if oct(stat.S_IMODE(os.stat(builddir).st_mode)) != '0o777':
+    if oct(stat.S_IMODE(Path(builddir).stat().st_mode)) != '0o777':
         public_dir(builddir)
 
-    statedir = f'{temp_dir}/state' if state_dir is None else state_dir
-    if not os.path.isdir(statedir):
-        os.mkdir(statedir)
+    statedir = f'{temporary_dir}/state' if state_dir is None else state_dir
+    Path(statedir).mkdir(exist_ok=True)
 
-    control_sock = f'{temp_dir}/control.unit.sock'
+    control_sock = f'{temporary_dir}/control.unit.sock'
 
     unitd_args = [
         unitd,
@@ -295,31 +296,32 @@ def unit_run(state_dir=None):
         '--statedir',
         statedir,
         '--pid',
-        f'{temp_dir}/unit.pid',
+        f'{temporary_dir}/unit.pid',
         '--log',
-        f'{temp_dir}/unit.log',
+        f'{temporary_dir}/unit.log',
         '--control',
-        f'unix:{temp_dir}/control.unit.sock',
+        f'unix:{temporary_dir}/control.unit.sock',
         '--tmpdir',
-        temp_dir,
+        temporary_dir,
     ]
 
     if option.user:
         unitd_args.extend(['--user', option.user])
 
-    with open(f'{temp_dir}/unit.log', 'w') as log:
+    with open(f'{temporary_dir}/unit.log', 'w', encoding='utf-8') as log:
         unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
     if not waitforfiles(control_sock):
         Log.print_log()
-        exit('Could not start unit')
+        sys.exit('Could not start unit')
 
-    unit_instance['temp_dir'] = temp_dir
+    unit_instance['temp_dir'] = temporary_dir
     unit_instance['control_sock'] = control_sock
     unit_instance['unitd'] = unitd
 
-    with open(f'{temp_dir}/unit.pid', 'r') as f:
-        unit_instance['pid'] = f.read().rstrip()
+    unit_instance['pid'] = (
+        Path(f'{temporary_dir}/unit.pid').read_text(encoding='utf-8').rstrip()
+    )
 
     if state_dir is None:
         _clear_conf()
@@ -424,26 +426,27 @@ def _clear_conf(*, log=None):
 
 
 def _clear_temp_dir():
-    temp_dir = unit_instance['temp_dir']
+    temporary_dir = unit_instance['temp_dir']
 
-    if is_findmnt and not waitforunmount(temp_dir, timeout=600):
-        exit('Could not unmount some filesystems in tmpdir ({temp_dir}).')
+    if is_findmnt and not waitforunmount(temporary_dir, timeout=600):
+        sys.exit('Could not unmount filesystems in tmpdir ({temporary_dir}).')
 
-    for item in os.listdir(temp_dir):
-        if item not in [
+    for item in Path(temporary_dir).iterdir():
+        if item.name not in [
             'control.unit.sock',
             'state',
             'unit.pid',
             'unit.log',
         ]:
-            path = os.path.join(temp_dir, item)
-            public_dir(path)
-            if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
-                os.remove(path)
+
+            public_dir(item)
+
+            if item.is_file() or stat.S_ISSOCK(item.stat().st_mode):
+                item.unlink()
             else:
                 for _ in range(10):
                     try:
-                        shutil.rmtree(path)
+                        shutil.rmtree(item)
                         break
                     except OSError as err:
                         # OSError: [Errno 16] Device or resource busy
@@ -456,7 +459,7 @@ def _clear_temp_dir():
 def _check_processes():
     router_pid = _fds_info['router']['pid']
     controller_pid = _fds_info['controller']['pid']
-    unit_pid = unit_instance['pid']
+    main_pid = unit_instance['pid']
 
     for _ in range(600):
         out = (
@@ -466,7 +469,7 @@ def _check_processes():
             .decode()
             .splitlines()
         )
-        out = [l for l in out if unit_pid in l]
+        out = [l for l in out if main_pid in l]
 
         if len(out) <= 3:
             break
@@ -485,14 +488,14 @@ def _check_processes():
     out = [
         l
         for l in out
-        if re.search(fr'{router_pid}\s+{unit_pid}.*unit: router', l) is None
+        if re.search(fr'{router_pid}\s+{main_pid}.*unit: router', l) is None
     ]
     assert len(out) == 1, 'one router'
 
     out = [
         l
         for l in out
-        if re.search(fr'{controller_pid}\s+{unit_pid}.*unit: controller', l)
+        if re.search(fr'{controller_pid}\s+{main_pid}.*unit: controller', l)
         is None
     ]
     assert len(out) == 0, 'one controller'
@@ -542,9 +545,9 @@ def _check_fds(*, log=None):
 
 
 def _count_fds(pid):
-    procfile = f'/proc/{pid}/fd'
-    if os.path.isdir(procfile):
-        return len(os.listdir(procfile))
+    procfile = Path(f'/proc/{pid}/fd')
+    if procfile.is_dir():
+        return len(list(procfile.iterdir()))
 
     try:
         out = subprocess.check_output(
@@ -616,7 +619,7 @@ def pytest_sessionfinish():
     public_dir(option.cache_dir)
     shutil.rmtree(option.cache_dir)
 
-    if not option.save_log and os.path.isdir(option.temp_dir):
+    if not option.save_log and Path(option.temp_dir).is_dir():
         public_dir(option.temp_dir)
         shutil.rmtree(option.temp_dir)
 

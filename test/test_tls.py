@@ -2,8 +2,10 @@ import io
 import ssl
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 from unit.option import option
 
@@ -12,7 +14,7 @@ prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 client = ApplicationTLS()
 
 
-def add_tls(application='empty', cert='default', port=7080):
+def add_tls(application='empty', cert='default', port=8080):
     assert 'success' in client.conf(
         {
             "pass": f"applications/{application}",
@@ -53,9 +55,8 @@ def context_cert_req(cert='root'):
 
 
 def generate_ca_conf():
-    with open(f'{option.temp_dir}/ca.conf', 'w') as f:
-        f.write(
-            f"""[ ca ]
+    Path(f'{option.temp_dir}/ca.conf').write_text(
+        f"""[ ca ]
 default_ca = myca
 
 [ myca ]
@@ -72,20 +73,16 @@ copy_extensions = copy
 commonName = optional
 
 [ myca_extensions ]
-basicConstraints = critical,CA:TRUE"""
-        )
+basicConstraints = critical,CA:TRUE""",
+        encoding='utf-8',
+    )
 
-    with open(f'{option.temp_dir}/certserial', 'w') as f:
-        f.write('1000')
-
-    with open(f'{option.temp_dir}/certindex', 'w') as f:
-        f.write('')
-
-    with open(f'{option.temp_dir}/certindex.attr', 'w') as f:
-        f.write('')
+    Path(f'{option.temp_dir}/certserial').write_text('1000', encoding='utf-8')
+    Path(f'{option.temp_dir}/certindex').touch()
+    Path(f'{option.temp_dir}/certindex.attr').touch()
 
 
-def remove_tls(application='empty', port=7080):
+def remove_tls(application='empty', port=8080):
     assert 'success' in client.conf(
         {"pass": f"applications/{application}"}, f'listeners/*:{port}'
     )
@@ -178,12 +175,12 @@ def test_tls_certificate_update():
 
     add_tls()
 
-    cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
+    cert_old = ssl.get_server_certificate(('127.0.0.1', 8080))
 
     client.certificate()
 
     assert cert_old != ssl.get_server_certificate(
-        ('127.0.0.1', 7080)
+        ('127.0.0.1', 8080)
     ), 'update certificate'
 
 
@@ -207,12 +204,12 @@ def test_tls_certificate_change():
 
     add_tls()
 
-    cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
+    cert_old = ssl.get_server_certificate(('127.0.0.1', 8080))
 
     add_tls(cert='new')
 
     assert cert_old != ssl.get_server_certificate(
-        ('127.0.0.1', 7080)
+        ('127.0.0.1', 8080)
     ), 'change certificate'
 
 
@@ -322,8 +319,8 @@ def test_tls_certificate_chain(temp_dir):
 
     with open(crt_path, 'wb') as crt, open(end_path, 'rb') as end, open(
         int_path, 'rb'
-    ) as int:
-        crt.write(end.read() + int.read())
+    ) as inter:
+        crt.write(end.read() + inter.read())
 
     # incomplete chain
 
@@ -428,7 +425,9 @@ def test_tls_certificate_chain_long(temp_dir):
             else f'{temp_dir}/int{i}.crt'
         )
 
-        with open(f'{temp_dir}/all.crt', 'a') as chain, open(path) as cert:
+        with open(f'{temp_dir}/all.crt', 'a', encoding='utf-8') as chain, open(
+            path, encoding='utf-8'
+        ) as cert:
             chain.write(cert.read())
 
     assert 'success' in client.certificate_load(
@@ -542,7 +541,7 @@ def test_tls_no_close_notify():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {
+                "*:8080": {
                     "pass": "routes",
                     "tls": {"certificate": "default"},
                 }
@@ -576,7 +575,7 @@ def test_tls_keepalive_certificate_remove():
     )
 
     assert 'success' in client.conf(
-        {"pass": "applications/empty"}, 'listeners/*:7080'
+        {"pass": "applications/empty"}, 'listeners/*:8080'
     )
     assert 'success' in client.conf_delete('/certificates/default')
 
@@ -697,8 +696,8 @@ def test_tls_multi_listener():
     client.certificate()
 
     add_tls()
-    add_tls(port=7081)
+    add_tls(port=8081)
 
     assert client.get_ssl()['status'] == 200, 'listener #1'
 
-    assert client.get_ssl(port=7081)['status'] == 200, 'listener #2'
+    assert client.get_ssl(port=8081)['status'] == 200, 'listener #2'

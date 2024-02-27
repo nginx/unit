@@ -326,19 +326,19 @@ nxt_isolation_credential_map(nxt_task_t *task, nxt_mp_t *mp,
     static nxt_conf_map_t  nxt_clone_map_entry_conf[] = {
         {
             nxt_string("container"),
-            NXT_CONF_MAP_INT,
+            NXT_CONF_MAP_INT64,
             offsetof(nxt_clone_map_entry_t, container),
         },
 
         {
             nxt_string("host"),
-            NXT_CONF_MAP_INT,
+            NXT_CONF_MAP_INT64,
             offsetof(nxt_clone_map_entry_t, host),
         },
 
         {
             nxt_string("size"),
-            NXT_CONF_MAP_INT,
+            NXT_CONF_MAP_INT64,
             offsetof(nxt_clone_map_entry_t, size),
         },
     };

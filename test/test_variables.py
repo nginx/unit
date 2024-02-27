@@ -1,11 +1,11 @@
-import os
-from pathlib import Path
 import re
 import time
+from pathlib import Path
 
 import pytest
-from unit.applications.proto import ApplicationProto
+
 from unit.applications.lang.python import ApplicationPython
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 client = ApplicationProto()
@@ -16,17 +16,17 @@ client_python = ApplicationPython()
 def setup_method_fixture():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"return": 200}}],
         },
     ), 'configure routes'
 
 
-def set_format(format):
+def set_format(log_format):
     assert 'success' in client.conf(
         {
             'path': f'{option.temp_dir}/access.log',
-            'format': format,
+            'format': log_format,
         },
         'access_log',
     ), 'access_log format'
@@ -127,12 +127,12 @@ def test_variables_uri(search_in_file, wait_for_record):
 
 
 def test_variables_uri_no_cache(temp_dir):
-    os.makedirs(f'{temp_dir}/foo/bar')
-    Path(f'{temp_dir}/foo/bar/index.html').write_text('index')
+    Path(f'{temp_dir}/foo/bar').mkdir(parents=True)
+    Path(f'{temp_dir}/foo/bar/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "action": {
@@ -163,7 +163,7 @@ def test_variables_host(search_in_file, wait_for_record):
 
     check_host('localhost')
     check_host('localhost1.', 'localhost1')
-    check_host('localhost2:7080', 'localhost2')
+    check_host('localhost2:8080', 'localhost2')
     check_host('.localhost')
     check_host('www.localhost')
 
@@ -175,7 +175,7 @@ def test_variables_remote_addr(search_in_file, wait_for_record):
     assert wait_for_record(r'^127\.0\.0\.1$', 'access.log') is not None
 
     assert 'success' in client.conf(
-        {"[::1]:7080": {"pass": "routes"}}, 'listeners'
+        {"[::1]:8080": {"pass": "routes"}}, 'listeners'
     )
 
     reg = r'^::1$'
@@ -209,6 +209,26 @@ def test_variables_request_line(search_in_file, wait_for_record):
     assert search_in_file(reg, 'access.log') is None
     assert client.get(url='/r_line')['status'] == 200
     assert wait_for_record(reg, 'access.log') is not None
+
+
+def test_variables_request_id(search_in_file, wait_for_record, findall):
+    set_format('$uri $request_id $request_id')
+
+    assert search_in_file(r'/request_id', 'access.log') is None
+    assert client.get(url='/request_id_1')['status'] == 200
+    assert client.get(url='/request_id_2')['status'] == 200
+    assert wait_for_record(r'/request_id_2', 'access.log') is not None
+
+    id1 = findall(
+        r'^\/request_id_1 ([0-9a-f]{32}) ([0-9a-f]{32})$', 'access.log'
+    )[0]
+    id2 = findall(
+        r'^\/request_id_2 ([0-9a-f]{32}) ([0-9a-f]{32})$', 'access.log'
+    )[0]
+
+    assert id1[0] == id1[1], 'same ids first'
+    assert id2[0] == id2[1], 'same ids second'
+    assert id1[0] != id2[0], 'first id != second id'
 
 
 def test_variables_status(search_in_file, wait_for_record):
@@ -423,11 +443,11 @@ def test_variables_response_header(temp_dir, wait_for_record):
     # share
 
     Path(f'{temp_dir}/foo').mkdir()
-    Path(f'{temp_dir}/foo/index.html').write_text('index')
+    Path(f'{temp_dir}/foo/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "action": {
@@ -494,11 +514,11 @@ def test_variables_response_header_application(require, wait_for_record):
 
 
 def test_variables_invalid(temp_dir):
-    def check_variables(format):
+    def check_variables(log_format):
         assert 'error' in client.conf(
             {
                 'path': f'{temp_dir}/access.log',
-                'format': format,
+                'format': log_format,
             },
             'access_log',
         ), 'access_log format'

@@ -2,6 +2,7 @@
 /*
  * Copyright (C) Valentin V. Bartenev
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_main.h>
@@ -77,6 +78,8 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t *value);
+static nxt_int_t nxt_conf_vldt_if(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
     NXT_MAYBE_UNUSED;
@@ -216,8 +219,6 @@ static nxt_int_t nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-static nxt_int_t nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt,
-    const char* mapfile, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
@@ -690,6 +691,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_common_members[] = {
     {
         .name       = nxt_string("rewrite"),
         .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_TSTR,
     },
     {
         .name       = nxt_string("response_headers"),
@@ -1093,6 +1095,22 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_wc_members[] = {
+    {
+        .name       = nxt_string("component"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("access"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_wasm_access_members,
+    },
+
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[] = {
     {
         .name       = nxt_string("filesystem"),
@@ -1324,12 +1342,15 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
     {
         .name       = nxt_string("container"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     }, {
         .name       = nxt_string("host"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     }, {
         .name       = nxt_string("size"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     },
 
     NXT_CONF_VLDT_END
@@ -1368,6 +1389,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[] = {
     }, {
         .name       = nxt_string("format"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("if"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_if,
     },
 
     NXT_CONF_VLDT_END
@@ -1531,6 +1556,37 @@ nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     if (nxt_tstr_test(vldt->tstr_state, value, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
                                    error, name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_if(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t  str;
+
+    static nxt_str_t  if_str = nxt_string("if");
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"if\" must be a string");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (str.length == 0) {
+        return NXT_OK;
+    }
+
+    if (str.start[0] == '!') {
+        str.start++;
+        str.length--;
+    }
+
+    if (nxt_is_tstr(&str)) {
+        return nxt_conf_vldt_var(vldt, &if_str, &str);
     }
 
     return NXT_OK;
@@ -1897,10 +1953,13 @@ static nxt_int_t
 nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_str_t       name;
+    nxt_str_t       name, *ret;
     nxt_sockaddr_t  *sa;
 
-    nxt_conf_get_string(value, &name);
+    ret = nxt_conf_get_string_dup(value, vldt->pool, &name);
+    if (nxt_slow_path(ret == NULL)) {
+        return NXT_ERROR;
+    }
 
     if (nxt_str_start(&name, "http://", 7)) {
         name.length -= 7;
@@ -2617,6 +2676,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         { nxt_conf_vldt_object, nxt_conf_vldt_ruby_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_java_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_wasm_members },
+        { nxt_conf_vldt_object, nxt_conf_vldt_wasm_wc_members },
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
@@ -2787,7 +2847,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                       ret;
     nxt_conf_vldt_processes_conf_t  proc;
 
-    if (nxt_conf_type(value) == NXT_CONF_NUMBER) {
+    if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
         int_value = nxt_conf_get_number(value);
 
         if (int_value < 1) {
@@ -2874,13 +2934,11 @@ nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
 
     for ( ;; ) {
         member = nxt_conf_next_object_member(value, &name, &index);
-
         if (member == NULL) {
             return NXT_OK;
         }
 
         ret = validator(vldt, &name, member);
-
         if (ret != NXT_OK) {
             return ret;
         }
@@ -3050,73 +3108,6 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
-typedef struct {
-    nxt_int_t container;
-    nxt_int_t host;
-    nxt_int_t size;
-} nxt_conf_vldt_clone_procmap_conf_t;
-
-
-static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
-    {
-        nxt_string("container"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, container),
-    },
-
-    {
-        nxt_string("host"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, host),
-    },
-
-    {
-        nxt_string("size"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, size),
-    },
-
-};
-
-
-static nxt_int_t
-nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile,
-        nxt_conf_value_t *value)
-{
-    nxt_int_t                           ret;
-    nxt_conf_vldt_clone_procmap_conf_t  procmap;
-
-    procmap.container = -1;
-    procmap.host = -1;
-    procmap.size = -1;
-
-    ret = nxt_conf_map_object(vldt->pool, value,
-                              nxt_conf_vldt_clone_procmap_conf_map,
-                              nxt_nitems(nxt_conf_vldt_clone_procmap_conf_map),
-                              &procmap);
-    if (ret != NXT_OK) {
-        return ret;
-    }
-
-    if (procmap.container == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"container\" field set.", mapfile);
-    }
-
-    if (procmap.host == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"host\" field set.", mapfile);
-    }
-
-    if (procmap.size == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"size\" field set.", mapfile);
-    }
-
-    return NXT_OK;
-}
-
-
 static nxt_int_t
 nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 {
@@ -3133,7 +3124,7 @@ nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return ret;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, "uid_map", value);
+    return NXT_OK;
 }
 
 
@@ -3153,7 +3144,7 @@ nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return ret;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, "gid_map", value);
+    return NXT_OK;
 }
 
 #endif
@@ -3296,16 +3287,19 @@ nxt_conf_vldt_server(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
     nxt_int_t       ret;
+    nxt_str_t       str;
     nxt_sockaddr_t  *sa;
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }
 
-    sa = nxt_sockaddr_parse(vldt->pool, name);
+    if (nxt_slow_path(nxt_str_dup(vldt->pool, &str, name) == NULL)) {
+        return NXT_ERROR;
+    }
 
+    sa = nxt_sockaddr_parse(vldt->pool, &str);
     if (sa == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" is not valid "
                                    "server address.", name);

@@ -76,7 +76,12 @@ cat << END
   java OPTIONS         configure Java module
                        run "./configure java --help" to see available options
 
-  wasm OPTIONS	       configure WebAssembly module
-		       run "./configure wasm --help" to see available options
+  wasm OPTIONS         configure WebAssembly module
+                       run "./configure wasm --help" to see available options
+
+  wasm-wasi-component OPTIONS
+                       configure WebAssembly Component Model module
+                       run "./configure wasm-wasi-component --help" to see
+                       available options
 
 END

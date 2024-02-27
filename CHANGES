@@ -1,4 +1,57 @@
 
+Changes with Unit 1.32.0                                         27 Feb 2024
+
+    *) Feature: WebAssembly Components using WASI interfaces defined in
+       wasi:http/proxy@0.2.0.
+
+    *) Feature: conditional access logging.
+
+    *) Feature: NJS variables access.
+
+    *) Feature: $request_id variable contains a string that is formed using
+       random data and can be used as a unique request identifier.
+
+    *) Feature: options to set control socket permissions.
+
+    *) Feature: Ruby arrays in response headers, improving compatibility
+       with Rack v3.0.
+
+    *) Feature: Python bytearray response bodies for ASGI applications.
+
+    *) Bugfix: router could crash while sending large files. Thanks to
+       rustedsword.
+
+    *) Bugfix: serving static files from a network filesystem could lead to
+       error.
+
+    *) Bugfix: "uidmap" and "gidmap" isolation options validation.
+
+    *) Bugfix: abstract UNIX socket name could be corrupted during
+       configuration validation. Thanks to Alejandro Colomar.
+
+    *) Bugfix: HTTP header field value encoding could be misinterpreted in
+       Python module.
+
+    *) Bugfix: Node.js http.createServer() accepts and ignores the "options"
+       argument, improving compatibility with strapi applications, among
+       others.
+
+    *) Bugfix: ServerRequest.flushHeaders() implemented in Node.js module to
+       make it compatible with Next.js.
+
+    *) Bugfix: ServerRequest.httpVersion variable format in Node.js module.
+
+    *) Bugfix: Node.js module handles standard library imports prefixed with
+       "node:", making it possible to run newer Nuxt applications, among
+       others.
+
+    *) Bugfix: Node.js tarball location changed to avoid build/install
+       errors.
+
+    *) Bugfix: Go module sets environment variables necessary for building
+       on macOS/arm64 systems.
+
+
 Changes with Unit 1.31.1                                         19 Oct 2023
 
     *) Feature: allow to set the HTTP response status in Wasm module.

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -10,15 +11,15 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     Path(f'{temp_dir}/assets').mkdir()
     for ext in ['.xml', '.mp4', '.php', '', '.txt', '.html', '.png']:
-        Path(f'{temp_dir}/assets/file{ext}').write_text(ext)
+        Path(f'{temp_dir}/assets/file{ext}').write_text(ext, encoding='utf-8')
 
-    Path(f'{temp_dir}/assets/index.html').write_text('index')
+    Path(f'{temp_dir}/assets/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "routes"},
             },
             "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
             "applications": {},
@@ -124,14 +125,14 @@ def test_static_types_fallback(temp_dir):
     assert 'success' in client.conf(
         [
             {
-                "match": {"destination": "*:7081"},
+                "match": {"destination": "*:8081"},
                 "action": {"return": 200},
             },
             {
                 "action": {
                     "share": f'{temp_dir}/assets$uri',
                     "types": ["!application/x-httpd-php"],
-                    "fallback": {"proxy": "http://127.0.0.1:7081"},
+                    "fallback": {"proxy": "http://127.0.0.1:8081"},
                 }
             },
         ],
@@ -155,7 +156,7 @@ def test_static_types_index(temp_dir):
 def test_static_types_custom_mime(temp_dir):
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
             "applications": {},
             "settings": {

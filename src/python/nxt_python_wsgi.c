@@ -863,11 +863,38 @@ nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
     char      *p, *src;
     PyObject  *res;
 
+    src = nxt_unit_sptr_get(&f->value);
+
 #if PY_MAJOR_VERSION == 3
-    res = PyUnicode_New(vl, 255);
+    if (nxt_slow_path(n > 1)) {
+        char  *ptr;
+
+        p = nxt_unit_malloc(NULL, vl + 1);
+        if (nxt_slow_path(p == NULL)) {
+            return NULL;
+        }
+
+        ptr = p;
+        p = nxt_cpymem(p, src, f->value_length);
+
+        for (i = 1; i < n; i++) {
+            p = nxt_cpymem(p, ", ", 2);
+
+            src = nxt_unit_sptr_get(&f[i].value);
+            p = nxt_cpymem(p, src, f[i].value_length);
+        }
+        *p = '\0';
+
+        src = ptr;
+    }
+
+    res = PyUnicode_DecodeCharmap(src, vl, NULL, NULL);
+
+    if (nxt_slow_path(n > 1)) {
+        nxt_unit_free(NULL, src);
+    }
 #else
     res = PyString_FromStringAndSize(NULL, vl);
-#endif
 
     if (nxt_slow_path(res == NULL)) {
         return NULL;
@@ -875,7 +902,6 @@ nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
 
     p = PyString_AS_STRING(res);
 
-    src = nxt_unit_sptr_get(&f->value);
     p = nxt_cpymem(p, src, f->value_length);
 
     for (i = 1; i < n; i++) {
@@ -884,6 +910,7 @@ nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
         src = nxt_unit_sptr_get(&f[i].value);
         p = nxt_cpymem(p, src, f[i].value_length);
     }
+#endif
 
     return res;
 }

@@ -23,7 +23,7 @@ def test_njs_modules():
     assert 'success' in client.conf(
         {
             "settings": {"js_module": "next"},
-            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "listeners": {"*:8080": {"pass": "routes/first"}},
             "routes": {
                 "first": [{"action": {"pass": "`routes/${next.route()}`"}}],
                 "next": [{"action": {"return": 200}}],
@@ -68,7 +68,7 @@ def test_njs_modules_import():
     assert 'success' in client.conf(
         {
             "settings": {"js_module": "import_from"},
-            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "listeners": {"*:8080": {"pass": "routes/first"}},
             "routes": {
                 "first": [
                     {"action": {"pass": "`routes/${import_from.num()}`"}}
@@ -86,7 +86,7 @@ def test_njs_modules_this():
     assert 'success' in client.conf(
         {
             "settings": {"js_module": "global_this"},
-            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "listeners": {"*:8080": {"pass": "routes/first"}},
             "routes": {
                 "first": [
                     {"action": {"pass": "`routes/${global_this.str()}`"}}

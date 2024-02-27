@@ -2,6 +2,7 @@ import os
 import re
 
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -15,23 +16,23 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "upstreams/one"},
-                "*:7090": {"pass": "upstreams/two"},
-                "*:7081": {"pass": "routes/one"},
-                "*:7082": {"pass": "routes/two"},
-                "*:7083": {"pass": "routes/three"},
+                "*:8080": {"pass": "upstreams/one"},
+                "*:8090": {"pass": "upstreams/two"},
+                "*:8081": {"pass": "routes/one"},
+                "*:8082": {"pass": "routes/two"},
+                "*:8083": {"pass": "routes/three"},
             },
             "upstreams": {
                 "one": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
                 "two": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
             },
@@ -47,7 +48,7 @@ def setup_method_fixture():
     client.cpu_count = os.cpu_count()
 
 
-def get_resps(req=100, port=7080):
+def get_resps(req=100, port=8080):
     resps = [0]
 
     for _ in range(req):
@@ -64,7 +65,7 @@ def get_resps(req=100, port=7080):
     return resps
 
 
-def get_resps_sc(req=100, port=7080):
+def get_resps_sc(req=100, port=8080):
     to_send = b"""GET / HTTP/1.1
 Host: localhost
 
@@ -96,14 +97,14 @@ def test_upstreams_rr_no_weight():
     assert abs(resps[0] - resps[1]) <= client.cpu_count, 'no weight'
 
     assert 'success' in client.conf_delete(
-        'upstreams/one/servers/127.0.0.1:7081'
+        'upstreams/one/servers/127.0.0.1:8081'
     ), 'no weight server remove'
 
     resps = get_resps(req=50)
     assert resps[1] == 50, 'no weight 2'
 
     assert 'success' in client.conf(
-        {}, 'upstreams/one/servers/127.0.0.1:7081'
+        {}, 'upstreams/one/servers/127.0.0.1:8081'
     ), 'no weight server revert'
 
     resps = get_resps()
@@ -111,7 +112,7 @@ def test_upstreams_rr_no_weight():
     assert abs(resps[0] - resps[1]) <= client.cpu_count, 'no weight 3'
 
     assert 'success' in client.conf(
-        {}, 'upstreams/one/servers/127.0.0.1:7083'
+        {}, 'upstreams/one/servers/127.0.0.1:8083'
     ), 'no weight server new'
 
     resps = get_resps()
@@ -126,7 +127,7 @@ def test_upstreams_rr_no_weight():
 
 def test_upstreams_rr_weight():
     assert 'success' in client.conf(
-        {"weight": 3}, 'upstreams/one/servers/127.0.0.1:7081'
+        {"weight": 3}, 'upstreams/one/servers/127.0.0.1:8081'
     ), 'configure weight'
 
     resps = get_resps_sc()
@@ -134,14 +135,14 @@ def test_upstreams_rr_weight():
     assert resps[1] == 25, 'weight 3 1'
 
     assert 'success' in client.conf_delete(
-        'upstreams/one/servers/127.0.0.1:7081/weight'
+        'upstreams/one/servers/127.0.0.1:8081/weight'
     ), 'configure weight remove'
     resps = get_resps_sc(req=10)
     assert resps[0] == 5, 'weight 0 0'
     assert resps[1] == 5, 'weight 0 1'
 
     assert 'success' in client.conf(
-        '1', 'upstreams/one/servers/127.0.0.1:7081/weight'
+        '1', 'upstreams/one/servers/127.0.0.1:8081/weight'
     ), 'configure weight 1'
 
     resps = get_resps_sc()
@@ -150,8 +151,8 @@ def test_upstreams_rr_weight():
 
     assert 'success' in client.conf(
         {
-            "127.0.0.1:7081": {"weight": 3},
-            "127.0.0.1:7083": {"weight": 2},
+            "127.0.0.1:8081": {"weight": 3},
+            "127.0.0.1:8083": {"weight": 2},
         },
         'upstreams/one/servers',
     ), 'configure weight 2'
@@ -165,8 +166,8 @@ def test_upstreams_rr_weight_rational():
     def set_weights(w1, w2):
         assert 'success' in client.conf(
             {
-                "127.0.0.1:7081": {"weight": w1},
-                "127.0.0.1:7082": {"weight": w2},
+                "127.0.0.1:8081": {"weight": w1},
+                "127.0.0.1:8082": {"weight": w2},
             },
             'upstreams/one/servers',
         ), 'configure weights'
@@ -195,15 +196,15 @@ def test_upstreams_rr_weight_rational():
 
     set_weights(0.25, 0.25)
     assert 'success' in client.conf_delete(
-        'upstreams/one/servers/127.0.0.1:7081/weight'
+        'upstreams/one/servers/127.0.0.1:8081/weight'
     ), 'delete weight'
     check_reqs(1, 0.25)
 
     assert 'success' in client.conf(
         {
-            "127.0.0.1:7081": {"weight": 0.1},
-            "127.0.0.1:7082": {"weight": 1},
-            "127.0.0.1:7083": {"weight": 0.9},
+            "127.0.0.1:8081": {"weight": 0.1},
+            "127.0.0.1:8082": {"weight": 1},
+            "127.0.0.1:8083": {"weight": 0.9},
         },
         'upstreams/one/servers',
     ), 'configure weights'
@@ -221,7 +222,7 @@ def test_upstreams_rr_independent():
 
         return sum_r
 
-    resps = get_resps_sc(req=30, port=7090)
+    resps = get_resps_sc(req=30, port=8090)
     assert resps[0] == 15, 'dep two before 0'
     assert resps[1] == 15, 'dep two before 1'
 
@@ -230,10 +231,10 @@ def test_upstreams_rr_independent():
     assert resps[1] == 15, 'dep one before 1'
 
     assert 'success' in client.conf(
-        '2', 'upstreams/two/servers/127.0.0.1:7081/weight'
+        '2', 'upstreams/two/servers/127.0.0.1:8081/weight'
     ), 'configure dep weight'
 
-    resps = get_resps_sc(req=30, port=7090)
+    resps = get_resps_sc(req=30, port=8090)
     assert resps[0] == 20, 'dep two 0'
     assert resps[1] == 10, 'dep two 1'
 
@@ -242,13 +243,13 @@ def test_upstreams_rr_independent():
     assert resps[1] == 15, 'dep one 1'
 
     assert 'success' in client.conf(
-        '1', 'upstreams/two/servers/127.0.0.1:7081/weight'
+        '1', 'upstreams/two/servers/127.0.0.1:8081/weight'
     ), 'configure dep weight 1'
 
     r_one, r_two = [0, 0], [0, 0]
     for _ in range(10):
         r_one = sum_resps(r_one, get_resps(req=10))
-        r_two = sum_resps(r_two, get_resps(req=10, port=7090))
+        r_two = sum_resps(r_two, get_resps(req=10, port=8090))
 
     assert sum(r_one) == 100, 'dep one mix sum'
     assert abs(r_one[0] - r_one[1]) <= client.cpu_count, 'dep one mix'
@@ -261,25 +262,25 @@ def test_upstreams_rr_delay():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "upstreams/one"},
-                "*:7081": {"pass": "routes"},
-                "*:7082": {"pass": "routes"},
+                "*:8080": {"pass": "upstreams/one"},
+                "*:8081": {"pass": "routes"},
+                "*:8082": {"pass": "routes"},
             },
             "upstreams": {
                 "one": {
                     "servers": {
-                        "127.0.0.1:7081": {},
-                        "127.0.0.1:7082": {},
+                        "127.0.0.1:8081": {},
+                        "127.0.0.1:8082": {},
                     },
                 },
             },
             "routes": [
                 {
-                    "match": {"destination": "*:7081"},
+                    "match": {"destination": "*:8081"},
                     "action": {"pass": "applications/delayed"},
                 },
                 {
-                    "match": {"destination": "*:7082"},
+                    "match": {"destination": "*:8082"},
                     "action": {"return": 201},
                 },
             ],
@@ -351,14 +352,14 @@ Connection: close
     assert client.get()['body'] == ''
 
     assert 'success' in client.conf(
-        {"127.0.0.1:7083": {"weight": 2}},
+        {"127.0.0.1:8083": {"weight": 2}},
         'upstreams/one/servers',
     ), 'active req new server'
     assert 'success' in client.conf_delete(
-        'upstreams/one/servers/127.0.0.1:7083'
+        'upstreams/one/servers/127.0.0.1:8083'
     ), 'active req server remove'
     assert 'success' in client.conf_delete(
-        'listeners/*:7080'
+        'listeners/*:8080'
     ), 'delete listener'
     assert 'success' in client.conf_delete(
         'upstreams/one'
@@ -377,7 +378,7 @@ Connection: close
 
 def test_upstreams_rr_bad_server():
     assert 'success' in client.conf(
-        {"weight": 1}, 'upstreams/one/servers/127.0.0.1:7084'
+        {"weight": 1}, 'upstreams/one/servers/127.0.0.1:8084'
     ), 'configure bad server'
 
     resps = get_resps_sc(req=30)
@@ -409,7 +410,7 @@ def test_upstreams_rr_unix(temp_dir):
 
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "upstreams/one"},
+            "*:8080": {"pass": "upstreams/one"},
             f"unix:{addr_0}": {"pass": "routes/one"},
             f"unix:{addr_1}": {"pass": "routes/two"},
         },
@@ -430,15 +431,15 @@ def test_upstreams_rr_unix(temp_dir):
 def test_upstreams_rr_ipv6():
     assert 'success' in client.conf(
         {
-            "*:7080": {"pass": "upstreams/one"},
-            "[::1]:7081": {"pass": "routes/one"},
-            "[::1]:7082": {"pass": "routes/two"},
+            "*:8080": {"pass": "upstreams/one"},
+            "[::1]:8081": {"pass": "routes/one"},
+            "[::1]:8082": {"pass": "routes/two"},
         },
         'listeners',
     ), 'configure listeners ipv6'
 
     assert 'success' in client.conf(
-        {"[::1]:7081": {}, "[::1]:7082": {}}, 'upstreams/one/servers'
+        {"[::1]:8081": {}, "[::1]:8082": {}}, 'upstreams/one/servers'
     ), 'configure servers ipv6'
 
     resps = get_resps_sc()
@@ -454,13 +455,13 @@ def test_upstreams_rr_servers_empty():
     assert client.get()['status'] == 502, 'servers empty'
 
     assert 'success' in client.conf(
-        {"127.0.0.1:7081": {"weight": 0}}, 'upstreams/one/servers'
+        {"127.0.0.1:8081": {"weight": 0}}, 'upstreams/one/servers'
     ), 'configure servers empty one'
     assert client.get()['status'] == 502, 'servers empty one'
     assert 'success' in client.conf(
         {
-            "127.0.0.1:7081": {"weight": 0},
-            "127.0.0.1:7082": {"weight": 0},
+            "127.0.0.1:8081": {"weight": 0},
+            "127.0.0.1:8082": {"weight": 0},
         },
         'upstreams/one/servers',
     ), 'configure servers empty two'
@@ -474,12 +475,12 @@ def test_upstreams_rr_invalid():
         {}, 'upstreams/one/servers/127.0.0.1'
     ), 'invalid address'
     assert 'error' in client.conf(
-        {}, 'upstreams/one/servers/127.0.0.1:7081/blah'
+        {}, 'upstreams/one/servers/127.0.0.1:8081/blah'
     ), 'invalid server option'
 
     def check_weight(w):
         assert 'error' in client.conf(
-            w, 'upstreams/one/servers/127.0.0.1:7081/weight'
+            w, 'upstreams/one/servers/127.0.0.1:8081/weight'
         ), 'invalid weight option'
 
     check_weight({})

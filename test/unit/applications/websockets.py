@@ -6,6 +6,7 @@ import select
 import struct
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -69,7 +70,7 @@ class ApplicationWebsocket(ApplicationProto):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
     def frame_read(self, sock, read_timeout=60):
-        def recv_bytes(sock, bytes):
+        def recv_bytes(sock, bytes_len):
             data = b''
             while True:
                 rlist = select.select([sock], [], [], read_timeout)[0]
@@ -80,9 +81,9 @@ class ApplicationWebsocket(ApplicationProto):
                         pytest.fail("Can't read response from server.")
                     break
 
-                data += sock.recv(bytes - len(data))
+                data += sock.recv(bytes_len - len(data))
 
-                if len(data) == bytes:
+                if len(data) == bytes_len:
                     break
 
             return data
@@ -206,18 +207,18 @@ class ApplicationWebsocket(ApplicationProto):
                     end = frame_len
                 pos = end
 
-    def message(self, sock, type, message, fragmention_size=None, **kwargs):
+    def message(self, sock, mes_type, message, fragmention_size=None, **kwargs):
         message_len = len(message)
 
         if fragmention_size is None:
             fragmention_size = message_len
 
         if message_len <= fragmention_size:
-            self.frame_write(sock, type, message, **kwargs)
+            self.frame_write(sock, mes_type, message, **kwargs)
             return
 
         pos = 0
-        op_code = type
+        op_code = mes_type
         while pos < message_len:
             end = min(pos + fragmention_size, message_len)
             fin = end == message_len

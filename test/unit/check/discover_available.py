@@ -18,6 +18,8 @@ def discover_available(unit):
         [unit['unitd'], '--version'], stderr=subprocess.STDOUT
     ).decode()
 
+    option.configure_flag['asan'] = '-fsanitize=address' in output_version
+
     # wait for controller start
 
     if Log.wait_for_record(r'controller started') is None:

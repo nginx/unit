@@ -1,4 +1,5 @@
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 
 prerequisites = {'modules': {'python': 'any'}}
@@ -14,11 +15,11 @@ def setup_method_fixture():
 def forwarded_header(forwarded):
     assert 'success' in client.conf(
         {
-            "127.0.0.1:7081": {
+            "127.0.0.1:8081": {
                 "forwarded": forwarded,
                 "pass": "applications/forwarded_header",
             },
-            "[::1]:7082": {
+            "[::1]:8082": {
                 "forwarded": forwarded,
                 "pass": "applications/forwarded_header",
             },
@@ -28,7 +29,7 @@ def forwarded_header(forwarded):
 
 
 def get_fwd(sock_type='ipv4', xff=None, xfp=None):
-    port = 7081 if sock_type == 'ipv4' else 7082
+    port = 8081 if sock_type == 'ipv4' else 8082
 
     headers = {'Connection': 'close'}
 
@@ -243,7 +244,7 @@ def test_forwarded_header_source_range():
 def test_forwarded_header_invalid():
     assert 'error' in client.conf(
         {
-            "127.0.0.1:7081": {
+            "127.0.0.1:8081": {
                 "forwarded": {"source": '127.0.0.1'},
                 "pass": "applications/forwarded_header",
             }
@@ -254,7 +255,7 @@ def test_forwarded_header_invalid():
     def check_invalid_source(source):
         assert 'error' in client.conf(
             {
-                "127.0.0.1:7081": {
+                "127.0.0.1:8081": {
                     "forwarded": {
                         "client_ip": "X-Forwarded-For",
                         "source": source,

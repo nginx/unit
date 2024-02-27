@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from unit.applications.lang.node import ApplicationNode
 from unit.utils import waitforfiles
 
@@ -19,6 +20,12 @@ def test_node_application_basic():
     client.load('basic')
 
     assert_basic_application()
+
+def test_node_application_options(wait_for_record):
+    client.load('options')
+
+    assert_basic_application()
+    assert wait_for_record(r'constructor was called with unsupported') is not None
 
 
 def test_node_application_loader_unit_http():
@@ -79,7 +86,7 @@ def test_node_application_variables(date_to_sec_epoch, sec_epoch):
         'Request-Method': 'POST',
         'Request-Uri': '/',
         'Http-Host': 'localhost',
-        'Server-Protocol': 'HTTP/1.1',
+        'Server-Protocol': '1.1',
         'Custom-Header': 'blah',
     }, 'headers'
     assert resp['body'] == body, 'body'
@@ -149,10 +156,12 @@ def test_node_application_write_buffer():
 
     assert client.get()['body'] == 'buffer', 'write buffer'
 
+
 def test_node_application_write_array():
     client.load('write_array')
 
     assert client.get()['body'] == 'array', 'write array'
+
 
 def test_node_application_write_callback(temp_dir):
     client.load('write_callback')
@@ -302,6 +311,12 @@ def test_node_application_get_header_names():
         'date',
         'x-header',
     ], 'get header names'
+
+
+def test_node_application_flush_headers():
+    client.load('flush_headers')
+
+    assert client.get()['headers']['X-Header'] == 'blah'
 
 
 def test_node_application_has_header():

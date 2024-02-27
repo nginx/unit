@@ -53,7 +53,7 @@ class ApplicationGo(ApplicationProto):
 
         replace_path = f'{option.current_dir}/build/go/src/unit.nginx.org/go'
 
-        with open(f'{temp_dir}go.mod', 'w') as f:
+        with open(f'{temp_dir}go.mod', 'w', encoding='utf-8') as f:
             f.write(
                 f"""module test/app
 require unit.nginx.org/go v0.0.0
@@ -91,7 +91,7 @@ replace unit.nginx.org/go => {replace_path}
         ApplicationGo.prepare_env(script, name, static=static_build)
 
         conf = {
-            "listeners": {"*:7080": {"pass": f"applications/{script}"}},
+            "listeners": {"*:8080": {"pass": f"applications/{script}"}},
             "applications": {
                 script: {
                     "type": "external",

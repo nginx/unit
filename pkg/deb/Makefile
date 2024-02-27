@@ -19,6 +19,23 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 23.10
+ifeq ($(CODENAME),mantic)
+include Makefile.php
+include Makefile.python311
+include Makefile.python312
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc19
+include Makefile.jsc20
+include Makefile.jsc21
+include Makefile.wasm
+endif
+
 # Ubuntu 23.04
 ifeq ($(CODENAME),lunar)
 include Makefile.php

@@ -19,7 +19,7 @@ INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
 
-VERSIONS_go ?=		1.20 1.21
+VERSIONS_go ?=		1.21 1.22
 VARIANT_go ?=		$(VARIANT)
 $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(goversion)-$(VARIANT_go)))
 CONFIGURE_go ?=		go --go-path=$$GOPATH
@@ -35,7 +35,7 @@ INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		rm -rf /root/.m2
 MODULE_PREBUILD_jsc ?= /bin/true
 
-VERSIONS_node ?=	18 20
+VERSIONS_node ?=	20 21
 VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
@@ -51,7 +51,7 @@ INSTALL_perl ?=		perl-install
 RUN_perl ?=			/bin/true
 MODULE_PREBUILD_perl ?=	/bin/true
 
-VERSIONS_php ?=		8.2
+VERSIONS_php ?=		8.2 8.3
 VARIANT_php ?=		cli-$(VARIANT)
 $(foreach phpversion, $(VERSIONS_php), $(eval CONTAINER_php$(phpversion) = php:$(phpversion)-$(VARIANT_php)))
 CONFIGURE_php ?=	php
@@ -59,7 +59,7 @@ INSTALL_php ?=		php-install
 RUN_php ?=			ldconfig
 MODULE_PREBUILD_php ?= /bin/true
 
-VERSIONS_python ?=  3.11
+VERSIONS_python ?=  3.11 3.12
 VARIANT_python ?=	$(VARIANT)
 $(foreach pythonversion, $(VERSIONS_python), $(eval CONTAINER_python$(pythonversion) = python:$(pythonversion)-$(VARIANT_python)))
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
@@ -67,7 +67,7 @@ INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 MODULE_PREBUILD_python ?= /bin/true
 
-VERSIONS_ruby ?=	3.2
+VERSIONS_ruby ?=	3.2 3.3
 VARIANT_ruby ?=		$(VARIANT)
 $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = ruby:$(rubyversion)-$(VARIANT_ruby)))
 CONFIGURE_ruby ?=	ruby
@@ -77,11 +77,13 @@ MODULE_PREBUILD_ruby ?=	/bin/true
 
 VERSIONS_wasm ?=
 CONTAINER_wasm ?= debian:$(VARIANT)-slim
-CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/
-INSTALL_wasm ?=	wasm-install
-RUN_wasm ?=		/bin/true
+CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
+INSTALL_wasm ?=   wasm-install wasm-wasi-component-install
+RUN_wasm ?=       /bin/true
+
 define MODULE_PREBUILD_wasm
-export RUST_VERSION=1.71.0 \\\n \
+apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
+\ \ \ \&\& export RUST_VERSION=1.76.0 \\\n \
 \ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
 \ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
 \ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \

@@ -4,4 +4,4 @@ require('http').createServer(function (req, res) {
     res.setHeader('X-Header', 'blah');
     res.setHeader('X-Names', res.getHeaderNames());
     res.end();
-}).listen(7080);
+}).listen(8080);

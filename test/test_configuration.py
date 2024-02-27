@@ -1,6 +1,7 @@
 import socket
 
 import pytest
+
 from unit.control import Control
 
 prerequisites = {'modules': {'python': 'any'}}
@@ -234,12 +235,12 @@ def test_applications_relative_path():
 
 @pytest.mark.skip('not yet, unsafe')
 def test_listeners_empty():
-    assert 'error' in client.conf({"*:7080": {}}, 'listeners'), 'listener empty'
+    assert 'error' in client.conf({"*:8080": {}}, 'listeners'), 'listener empty'
 
 
 def test_listeners_no_app():
     assert 'error' in client.conf(
-        {"*:7080": {"pass": "applications/app"}}, 'listeners'
+        {"*:8080": {"pass": "applications/app"}}, 'listeners'
     ), 'listeners no app'
 
 
@@ -254,9 +255,9 @@ def test_listeners_unix_abstract(system):
 
 
 def test_listeners_addr():
-    assert 'success' in try_addr("*:7080"), 'wildcard'
-    assert 'success' in try_addr("127.0.0.1:7081"), 'explicit'
-    assert 'success' in try_addr("[::1]:7082"), 'explicit ipv6'
+    assert 'success' in try_addr("*:8080"), 'wildcard'
+    assert 'success' in try_addr("127.0.0.1:8081"), 'explicit'
+    assert 'success' in try_addr("[::1]:8082"), 'explicit ipv6'
 
 
 def test_listeners_addr_error():
@@ -266,7 +267,7 @@ def test_listeners_addr_error():
 def test_listeners_addr_error_2(skip_alert):
     skip_alert(r'bind.*failed', r'failed to apply new conf')
 
-    assert 'error' in try_addr("[f607:7403:1e4b:6c66:33b2:843f:2517:da27]:7080")
+    assert 'error' in try_addr("[f607:7403:1e4b:6c66:33b2:843f:2517:da27]:8080")
 
 
 def test_listeners_port_release():
@@ -277,7 +278,7 @@ def test_listeners_port_release():
 
             client.conf(
                 {
-                    "listeners": {"127.0.0.1:7080": {"pass": "routes"}},
+                    "listeners": {"127.0.0.1:8080": {"pass": "routes"}},
                     "routes": [],
                 }
             )
@@ -285,7 +286,7 @@ def test_listeners_port_release():
             resp = client.conf({"listeners": {}, "applications": {}})
 
             try:
-                s.bind(('127.0.0.1', 7080))
+                s.bind(('127.0.0.1', 8080))
                 s.listen()
 
             except OSError:
@@ -302,7 +303,7 @@ def test_json_application_name_large():
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": f"applications/{name}"}},
+            "listeners": {"*:8080": {"pass": f"applications/{name}"}},
             "applications": {
                 name: {
                     "type": "python",
@@ -349,7 +350,7 @@ def test_json_application_python_prefix():
                 "prefix": "/app",
             }
         },
-        "listeners": {"*:7080": {"pass": "routes"}},
+        "listeners": {"*:8080": {"pass": "routes"}},
         "routes": [
             {
                 "match": {"uri": "/app/*"},
@@ -378,7 +379,7 @@ def test_json_application_prefix_target():
                 },
             }
         },
-        "listeners": {"*:7080": {"pass": "routes"}},
+        "listeners": {"*:8080": {"pass": "routes"}},
         "routes": [
             {
                 "match": {"uri": "/app/*"},
@@ -405,7 +406,7 @@ def test_json_application_invalid_python_prefix():
                 "prefix": "app",
             }
         },
-        "listeners": {"*:7080": {"pass": "applications/sub-app"}},
+        "listeners": {"*:8080": {"pass": "applications/sub-app"}},
     }
 
     assert 'error' in client.conf(conf)
@@ -422,7 +423,7 @@ def test_json_application_empty_python_prefix():
                 "prefix": "",
             }
         },
-        "listeners": {"*:7080": {"pass": "applications/sub-app"}},
+        "listeners": {"*:8080": {"pass": "applications/sub-app"}},
     }
 
     assert 'error' in client.conf(conf)
@@ -441,7 +442,7 @@ def test_json_application_many2():
             # open files limit due to the lack of file descriptors.
             for a in range(100)
         },
-        "listeners": {"*:7080": {"pass": "applications/app-1"}},
+        "listeners": {"*:8080": {"pass": "applications/app-1"}},
     }
 
     assert 'success' in client.conf(conf)

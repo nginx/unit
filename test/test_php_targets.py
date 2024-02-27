@@ -10,7 +10,7 @@ def test_php_application_targets():
     targets_dir = f"{option.test_dir}/php/targets"
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "match": {"uri": "/1"},
@@ -65,7 +65,7 @@ def test_php_application_targets():
 def test_php_application_targets_error():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/targets/default"}},
+            "listeners": {"*:8080": {"pass": "applications/targets/default"}},
             "applications": {
                 "targets": {
                     "type": client.get_application_type(),
@@ -83,7 +83,7 @@ def test_php_application_targets_error():
     assert client.get()['status'] == 200
 
     assert 'error' in client.conf(
-        {"pass": "applications/targets/blah"}, 'listeners/*:7080'
+        {"pass": "applications/targets/blah"}, 'listeners/*:8080'
     ), 'invalid targets pass'
     assert 'error' in client.conf(
         f'"{option.test_dir}/php/targets"',

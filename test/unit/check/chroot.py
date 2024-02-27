@@ -15,7 +15,7 @@ def check_chroot():
             addr=f'{option.temp_dir}/control.unit.sock',
             body=json.dumps(
                 {
-                    "listeners": {"*:7080": {"pass": "routes"}},
+                    "listeners": {"*:8080": {"pass": "routes"}},
                     "routes": [
                         {
                             "action": {

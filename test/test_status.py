@@ -39,9 +39,9 @@ def test_status_requests(skip_alert):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/empty"},
-                "*:7082": {"pass": "applications/blah"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/empty"},
+                "*:8082": {"pass": "applications/blah"},
             },
             "routes": [{"action": {"return": 200}}],
             "applications": {
@@ -60,7 +60,7 @@ def test_status_requests(skip_alert):
     assert client.get()['status'] == 200
     assert Status.get('/requests/total') == 1, '2xx'
 
-    assert client.get(port=7081)['status'] == 200
+    assert client.get(port=8081)['status'] == 200
     assert Status.get('/requests/total') == 2, '2xx app'
 
     assert (
@@ -69,7 +69,7 @@ def test_status_requests(skip_alert):
     )
     assert Status.get('/requests/total') == 3, '4xx'
 
-    assert client.get(port=7082)['status'] == 503
+    assert client.get(port=8082)['status'] == 503
     assert Status.get('/requests/total') == 4, '5xx'
 
     client.http(
@@ -85,7 +85,7 @@ Connection: close
     )
     assert Status.get('/requests/total') == 6, 'pipeline'
 
-    sock = client.get(port=7081, no_recv=True)
+    sock = client.get(port=8081, no_recv=True)
 
     time.sleep(1)
 
@@ -98,8 +98,8 @@ def test_status_connections():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/delayed"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/delayed"},
             },
             "routes": [{"action": {"return": 200}}],
             "applications": {
@@ -136,7 +136,7 @@ def test_status_connections():
             'X-Delay': '2',
             'Connection': 'close',
         },
-        port=7081,
+        port=8081,
         start=True,
         read_timeout=1,
     )
@@ -194,8 +194,8 @@ def test_status_applications():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "applications/restart"},
-                "*:7081": {"pass": "applications/delayed"},
+                "*:8080": {"pass": "applications/restart"},
+                "*:8081": {"pass": "applications/delayed"},
             },
             "routes": [],
             "applications": {
@@ -220,13 +220,13 @@ def test_status_proxy():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "applications/empty"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "applications/empty"},
             },
             "routes": [
                 {
                     "match": {"uri": "/"},
-                    "action": {"proxy": "http://127.0.0.1:7081"},
+                    "action": {"proxy": "http://127.0.0.1:8081"},
                 }
             ],
             "applications": {
