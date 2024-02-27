@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import pytest
-from unit.applications.proto import ApplicationProto
+
 from unit.applications.lang.python import ApplicationPython
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 client = ApplicationProto()
@@ -12,7 +13,7 @@ client_python = ApplicationPython()
 @pytest.fixture(autouse=True)
 def setup_method_fixture(temp_dir):
     path = Path(f'{temp_dir}/index.html')
-    path.write_text('0123456789')
+    path.write_text('0123456789', encoding='utf-8')
 
     assert 'success' in client.conf(
         {

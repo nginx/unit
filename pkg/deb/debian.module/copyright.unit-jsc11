@@ -1,13 +1,19 @@
 
    NGINX Unit.
 
-   Copyright 2017-2023 NGINX, Inc.
-   Copyright 2017-2023 Andrei Zeliankou
-   Copyright 2018-2023 Konstantin Pavlov
-   Copyright 2021-2023 Zhidao Hong
+   Copyright 2017-2024 NGINX, Inc.
+   Copyright 2017-2024 Andrei Zeliankou
+   Copyright 2018-2024 Konstantin Pavlov
+   Copyright 2021-2024 Zhidao Hong
+   Copyright 2022-2024 Andrew Clayton
+   Copyright 2022-2024 Liam Crilly
+   Copyright 2023-2024 Dan Callahan
+   Copyright 2023-2024 Danielle De Leo
+   Copyright 2023-2024 Dylan Arbour
+   Copyright 2023-2024 Gabor Javorszky
+   Copyright 2023-2024 Igor Ippolitov
+   Copyright 2023-2024 Taryn Musgrave
    Copyright 2021-2023 Alejandro Colomar
-   Copyright 2022-2023 Andrew Clayton
-   Copyright 2022-2023 Liam Crilly
    Copyright 2017-2022 Valentin V. Bartenev
    Copyright 2017-2022 Max Romanov
    Copyright 2021-2022 Oisín Canty

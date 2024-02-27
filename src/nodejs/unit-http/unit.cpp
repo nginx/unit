@@ -581,6 +581,7 @@ Unit::get_server_object()
 void
 Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 {
+    char                *p;
     uint32_t            i;
     napi_value          headers, raw_headers;
     napi_status         status;
@@ -602,7 +603,12 @@ Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 
     set_named_property(request, "headers", headers);
     set_named_property(request, "rawHeaders", raw_headers);
-    set_named_property(request, "httpVersion", r->version, r->version_length);
+
+    // trim the "HTTP/" protocol prefix
+    p = (char *) nxt_unit_sptr_get(&r->version);
+    p += 5;
+
+    set_named_property(request, "httpVersion", create_string_latin1(p, 3));
     set_named_property(request, "method", r->method, r->method_length);
     set_named_property(request, "url", r->target, r->target_length);
 

@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 import pytest
+
 from unit.applications.lang.php import ApplicationPHP
 from unit.option import option
 
@@ -93,13 +94,13 @@ def set_opcache(app, val):
 
 
 def set_preload(preload):
-    with open(f'{option.temp_dir}/php.ini', 'w') as ini:
-        ini.write(
-            f"""opcache.preload = {option.test_dir}/php/opcache/preload\
+    Path(f'{option.temp_dir}/php.ini').write_text(
+        f"""opcache.preload = {option.test_dir}/php/opcache/preload\
 /{preload}
 opcache.preload_user = {option.user or getpass.getuser()}
-"""
-        )
+""",
+        encoding='utf-8',
+    )
 
     assert 'success' in client.conf(
         {"file": f"{option.temp_dir}/php.ini"},
@@ -718,9 +719,11 @@ def test_php_application_index_default():
 
 def test_php_application_trailing_slash(temp_dir):
     new_root = f'{temp_dir}/php-root'
-    os.makedirs(f'{new_root}/path')
 
-    Path(f'{new_root}/path/index.php').write_text('<?php echo "OK\n"; ?>')
+    Path(f'{new_root}/path').mkdir(parents=True)
+    Path(f'{new_root}/path/index.php').write_text(
+        '<?php echo "OK\n"; ?>', encoding='utf-8'
+    )
 
     addr = f'{temp_dir}/sock'
 
@@ -761,9 +764,7 @@ def test_php_application_trailing_slash(temp_dir):
 
 
 def test_php_application_forbidden(temp_dir):
-    new_root = f'{temp_dir}/php-root/path'
-    os.makedirs(new_root)
-    os.chmod(new_root, 0o000)
+    Path(f'{temp_dir}/php-root/path').mkdir(mode=0o000, parents=True)
 
     assert 'success' in client.conf(
         {
@@ -787,7 +788,7 @@ def test_php_application_extension_check(temp_dir):
     assert client.get(url='/index.wrong')['status'] != 200, 'status'
 
     new_root = f'{temp_dir}/php'
-    os.mkdir(new_root)
+    Path(new_root).mkdir(parents=True)
     shutil.copy(f'{option.test_dir}/php/phpinfo/index.wrong', new_root)
 
     assert 'success' in client.conf(

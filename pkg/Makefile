@@ -11,10 +11,11 @@ default:
 
 dist:
 	rm -f unit-$(VERSION).tar.gz
-	hg archive unit-$(VERSION).tar.gz \
-		-r $(VERSION) \
-		-p unit-$(VERSION) \
-		-X "../.hg*" -X "../pkg/" -X "../docs/*.*" -X "../docs/Makefile"
+	cd .. && git archive \
+		--output pkg/unit-$(VERSION).tar.gz \
+		--prefix unit-$(VERSION)/ \
+		--worktree-attributes \
+		$(VERSION) ./
 	$(SHA512SUM) unit-$(VERSION).tar.gz > unit-$(VERSION).tar.gz.sha512
 
 rpm:

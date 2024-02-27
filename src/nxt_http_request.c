@@ -24,6 +24,8 @@ static void nxt_http_request_proto_info(nxt_task_t *task,
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
+static nxt_int_t nxt_http_request_access_log(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_router_conf_t *rtcf);
 
 static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
@@ -816,27 +818,27 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_tstr_t               *log_format;
+    nxt_int_t                ret;
     nxt_http_proto_t         proto;
+    nxt_router_conf_t        *rtcf;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;
     nxt_socket_conf_joint_t  *conf;
-    nxt_router_access_log_t  *access_log;
 
     r = obj;
     proto.any = data;
 
     conf = r->conf;
+    rtcf = conf->socket_conf->router_conf;
 
     if (!r->logged) {
         r->logged = 1;
 
-        access_log = conf->socket_conf->router_conf->access_log;
-        log_format = conf->socket_conf->router_conf->log_format;
-
-        if (access_log != NULL) {
-            access_log->handler(task, r, access_log, log_format);
-            return;
+        if (rtcf->access_log != NULL) {
+            ret = nxt_http_request_access_log(task, r, rtcf);
+            if (ret == NXT_OK) {
+                return;
+            }
         }
     }
 
@@ -863,6 +865,57 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_mp_release(r->mem_pool);
     }
+}
+
+
+static nxt_int_t
+nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_conf_t *rtcf)
+{
+    nxt_int_t                ret;
+    nxt_str_t                str;
+    nxt_bool_t               expr;
+    nxt_router_access_log_t  *access_log;
+
+    access_log = rtcf->access_log;
+
+    expr = 1;
+
+    if (rtcf->log_expr != NULL) {
+
+        if (nxt_tstr_is_const(rtcf->log_expr)) {
+            nxt_tstr_str(rtcf->log_expr, &str);
+
+        } else {
+            ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
+                                      &r->tstr_cache, r, r->mem_pool);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return NXT_DECLINED;
+            }
+
+            nxt_tstr_query(task, r->tstr_query, rtcf->log_expr, &str);
+
+            if (nxt_slow_path(nxt_tstr_query_failed(r->tstr_query))) {
+                return NXT_DECLINED;
+            }
+        }
+
+        if (str.length == 0
+            || nxt_str_eq(&str, "0", 1)
+            || nxt_str_eq(&str, "false", 5)
+            || nxt_str_eq(&str, "null", 4)
+            || nxt_str_eq(&str, "undefined", 9))
+        {
+            expr = 0;
+        }
+    }
+
+    if (rtcf->log_negate ^ expr) {
+        access_log->handler(task, r, access_log, rtcf->log_format);
+        return NXT_OK;
+    }
+
+    return NXT_DECLINED;
 }
 
 

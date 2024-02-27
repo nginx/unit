@@ -413,7 +413,14 @@ ServerRequest.prototype._read = function _read(n) {
 };
 
 
-function Server(requestListener) {
+function Server(options, requestListener) {
+    if (typeof options === 'function') {
+        requestListener = options;
+        options = {};
+    } else {
+        console.warn("http.Server constructor was called with unsupported options, using default settings");
+    }
+
     EventEmitter.call(this);
 
     this.unit = new unit_lib.Unit();

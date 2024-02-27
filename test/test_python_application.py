@@ -8,6 +8,7 @@ import venv
 
 import pytest
 from packaging import version
+
 from unit.applications.lang.python import ApplicationPython
 
 prerequisites = {'modules': {'python': 'all'}}
@@ -586,8 +587,8 @@ def test_python_application_encoding():
     if not matches:
         pytest.skip('no available locales')
 
-    def unify(str):
-        str.upper().replace('-', '').replace('_', '')
+    def unify(enc):
+        enc.upper().replace('-', '').replace('_', '')
 
     for loc in matches:
         assert 'success' in client.conf(

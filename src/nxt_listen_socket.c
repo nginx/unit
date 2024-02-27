@@ -127,11 +127,21 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     if (family == AF_UNIX) {
-        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+        const char     *user;
+        const char     *group;
+        nxt_runtime_t  *rt = thr->runtime;
 
-        access = (S_IRUSR | S_IWUSR);
+        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+        access = rt->control_mode > 0 ? rt->control_mode : S_IRUSR | S_IWUSR;
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
+            goto listen_fail;
+        }
+
+        user = rt->control_user;
+        group = rt->control_group;
+
+        if (nxt_file_chown(name, user, group) != NXT_OK) {
             goto listen_fail;
         }
     }

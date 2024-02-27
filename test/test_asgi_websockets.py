@@ -3,6 +3,7 @@ import time
 
 import pytest
 from packaging import version
+
 from unit.applications.lang.python import ApplicationPython
 from unit.applications.websockets import ApplicationWebsocket
 

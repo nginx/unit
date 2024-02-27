@@ -70,8 +70,12 @@ struct nxt_runtime_s {
     const char             *ver_tmp;
     const char             *conf;
     const char             *conf_tmp;
-    const char             *control;
     const char             *tmp;
+    const char             *control;
+
+    mode_t                 control_mode;
+    const char             *control_user;
+    const char             *control_group;
 
     nxt_str_t              certs;
     nxt_str_t              scripts;

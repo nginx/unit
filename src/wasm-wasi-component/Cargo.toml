@@ -1,0 +1,30 @@
+[package]
+name = "wasm-wasi-component"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.75"
+bytes = "1.5.0"
+futures-util = { version = "0.3.29", default-features = false }
+http = "1.0.0"
+http-body = { version = "1.0.0", default-features = false }
+http-body-util = "0.1.0"
+tokio = { version = "1.33.0", default-features = false }
+wasmtime = { version = "17.0.0", default-features = false, features = ['component-model', 'cranelift'] }
+wasmtime-wasi = "17.0.0"
+wasmtime-wasi-http = "17.0.0"
+
+[build-dependencies]
+bindgen = "0.68.1"
+cc = "1.0.83"
+
+[profile.dev]
+panic = 'abort'
+
+[profile.release]
+panic = 'abort'

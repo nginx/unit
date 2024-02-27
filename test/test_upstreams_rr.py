@@ -2,6 +2,7 @@ import os
 import re
 
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 

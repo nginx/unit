@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -12,8 +13,8 @@ def setup_method_fixture(temp_dir):
     os.makedirs(f'{temp_dir}/assets/dir')
     os.makedirs(f'{temp_dir}/assets/dir2')
 
-    Path(f'{temp_dir}/assets/dir/file').write_text('1')
-    Path(f'{temp_dir}/assets/dir2/file2').write_text('2')
+    Path(f'{temp_dir}/assets/dir/file').write_text('1', encoding='utf-8')
+    Path(f'{temp_dir}/assets/dir2/file2').write_text('2', encoding='utf-8')
 
     assert 'success' in client.conf(
         {

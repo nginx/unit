@@ -11,10 +11,12 @@ if (module.parent && module.parent.id === "internal/preload") {
         Module.prototype.require = function (id) {
             switch(id) {
                 case "http":
+                case "node:http":
                 case "unit-http":
                     return http
 
                 case "websocket":
+                case "node:websocket":
                 case "unit-http/websocket":
                     return websocket
             }

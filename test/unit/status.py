@@ -30,16 +30,16 @@ class Status:
                     for k in d1
                     if k in d2
                 }
-            else:
-                return d1 - d2
+
+            return d1 - d2
 
         return find_diffs(Status.control.conf_get('/status'), Status._status)
 
     def get(path='/'):
-        path = path.split('/')[1:]
+        path_lst = path.split('/')[1:]
         diff = Status.diff()
 
-        for p in path:
-            diff = diff[p]
+        for part in path_lst:
+            diff = diff[part]
 
         return diff

@@ -11,11 +11,11 @@ LABEL org.opencontainers.image.version="@@VERSION@@"
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
-    && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev curl pkg-config \
+    && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && hg clone -u @@VERSION@@-@@PATCHLEVEL@@ https://hg.nginx.org/unit \
+    && git clone --depth 1 -b @@VERSION@@-@@PATCHLEVEL@@ https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
@@ -77,7 +77,7 @@ RUN set -ex \
     && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
-    && ln -sf /dev/stdout /var/log/unit.log
+    && ln -sf /dev/stderr /var/log/unit.log
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY welcome.* /usr/share/unit/welcome/

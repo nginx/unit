@@ -1,6 +1,7 @@
 import socket
 
 import pytest
+
 from unit.control import Control
 
 prerequisites = {'modules': {'python': 'any'}}

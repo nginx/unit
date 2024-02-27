@@ -6,6 +6,6 @@ async def application(scope, receive, send):
                 await send({"type": "lifespan.startup.failed"})
                 raise Exception('Exception blah')
 
-            elif message['type'] == 'lifespan.shutdown':
+            if message['type'] == 'lifespan.shutdown':
                 await send({'type': 'lifespan.shutdown.complete'})
                 return

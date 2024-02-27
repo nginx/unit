@@ -117,9 +117,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_set(&conf->index, "index.html");
 
     } else {
-        nxt_conf_get_string(acf->index, &str);
-
-        ret = nxt_str_dup(mp, &conf->index, &str);
+        ret = nxt_conf_get_string_dup(acf->index, mp, &conf->index);
         if (nxt_slow_path(ret == NULL)) {
             return NXT_ERROR;
         }
@@ -879,12 +877,7 @@ complete_buf:
 
     n = nxt_file_read(fb->file, b->mem.start, size, fb->file_pos);
 
-    if (n != size) {
-        if (n >= 0) {
-            nxt_log(task, NXT_LOG_ERR, "file \"%FN\" has changed "
-                    "while sending response to a client", fb->file->name);
-        }
-
+    if (nxt_slow_path(n == NXT_ERROR)) {
         nxt_http_request_error_handler(task, r, r->proto.any);
         goto clean;
     }

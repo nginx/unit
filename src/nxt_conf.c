@@ -3,6 +3,7 @@
  * Copyright (C) Igor Sysoev
  * Copyright (C) Valentin V. Bartenev
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_main.h>
@@ -171,6 +172,16 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
         str->length = value->u.string.length;
         str->start = value->u.string.start;
     }
+}
+
+
+nxt_str_t *
+nxt_conf_get_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+{
+    nxt_str_t  s;
+
+    nxt_conf_get_string(value, &s);
+    return nxt_str_dup(mp, str, &s);
 }
 
 

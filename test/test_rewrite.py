@@ -1,6 +1,7 @@
-import os
+from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -39,9 +40,9 @@ def set_rewrite(rewrite, uri):
 
 def test_rewrite(findall, wait_for_record):
     assert client.get()['status'] == 200
-    assert wait_for_record(rf'\[notice\].*"routes/1" selected') is not None
-    assert len(findall(rf'\[notice\].*URI rewritten to "/new"')) == 1
-    assert len(findall(rf'\[notice\].*URI rewritten')) == 1
+    assert wait_for_record(r'\[notice\].*"routes/1" selected') is not None
+    assert len(findall(r'\[notice\].*URI rewritten to "/new"')) == 1
+    assert len(findall(r'\[notice\].*URI rewritten')) == 1
 
     set_rewrite("", "")
     assert client.get()['status'] == 200
@@ -131,11 +132,9 @@ def test_rewrite_location():
 
 
 def test_rewrite_share(temp_dir):
-    os.makedirs(f'{temp_dir}/dir')
-    os.makedirs(f'{temp_dir}/foo')
-
-    with open(f'{temp_dir}/foo/index.html', 'w') as fooindex:
-        fooindex.write('fooindex')
+    Path(f'{temp_dir}/dir').mkdir()
+    Path(f'{temp_dir}/foo/').mkdir()
+    Path(f'{temp_dir}/foo/index.html').write_text('fooindex', encoding='utf-8')
 
     # same action block
 

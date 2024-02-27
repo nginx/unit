@@ -3,7 +3,8 @@
 #####################################################################
 #
 # Copyright (C) NGINX, Inc.
-# Author:  NGINX Unit Team, F5 Inc.
+# Author: NGINX Unit Team, F5 Inc.
+# Copyright 2024, Alejandro Colomar <alx@kernel.org>
 #
 #####################################################################
 
@@ -28,6 +29,7 @@ test -v BASH_VERSION \
 test -v ZSH_VERSION \
 && setopt sh_word_split;
 
+
 export LC_ALL=C
 
 dry_run='no';
@@ -36,7 +38,7 @@ help_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $0 [-h] COMMAND [ARGS]
+        $0 [-h[h]] COMMAND [ARGS]
 
     Subcommands
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
@@ -61,9 +63,8 @@ OPTIONS
         -h, --help
                 Print this help.
 
-        --help-more
-                Print help for more commands.  They are experimental.  Using
-                these isn't recommended, unless you know what you're doing.
+        -hh, --help-more
+                Print help for more (advanced) commands.
 
 __EOF__
 }
@@ -72,14 +73,14 @@ help_more_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $0 [-h] COMMAND [ARGS]
+        $0 [-h[h]] COMMAND [ARGS]
 
     Subcommands
         ├── cmd          [-h]
         ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
-        │   ├── edit     [-h] PATH
-        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
-        │   └── insert   [-h] PATH INDEX
+        │   ├── edit     [-h] PATH
+        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
+        │   └── insert   [-h] PATH INDEX
         ├── freeport     [-h]
         ├── json-ins     [-hn] JSON INDEX
         ├── os-probe     [-h]
@@ -87,8 +88,8 @@ SYNOPSIS
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
         ├── restart      [-hls]
         ├── sock         [-h] SUBCOMMAND [ARGS]
-        │   ├── filter   [-chs]
-        │   └── find     [-h]
+        │   ├── filter   [-chs]
+        │   └── find     [-h]
         └── welcome      [-hn]
 
 DESCRIPTION
@@ -118,6 +119,9 @@ COMMANDS
                 Configure your package manager with the NGINX Unit
                 repository for later installation.
 
+        restart
+                Restart all running unitd(8) instances.
+
         sock    Print the control API socket address.
 
         welcome
@@ -128,10 +132,15 @@ OPTIONS
         -h, --help
                 Print basic help (some commands are hidden).
 
-        --help-more
+        -hh, --help-more
                 Print the hidden help with more commands.
 
 __EOF__
+}
+
+info()
+{
+    >&2 echo "$(basename "$0"): info: $*";
 }
 
 warn()
@@ -159,6 +168,18 @@ dry_run_eval()
     else
         eval "$*";
     fi;
+}
+
+run_trap()
+{
+    trap -p "$1" \
+    | tr -d '\n' \
+    | sed "s/[^']*'\(.*\)'[^']*/\1/" \
+    | sed "s/'\\\\''/'/g" \
+    | read -r trap_cmd;
+
+    eval $trap_cmd;
+    trap - "$1";
 }
 
 
@@ -299,25 +320,44 @@ unit_ctl()
     if echo $sock | grep '^ssh://' >/dev/null; then
         local remote="$(echo $sock | sed 's,\(ssh://[^/]*\).*,\1,')";
         local sock="$(echo $sock | sed 's,ssh://[^/]*\(.*\),unix:\1,')";
+
+        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
+        local local_sock="$(mktemp -u -p /var/run/unit/)";
+        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
+
+        mkdir -p /var/run/unit/;
+
+        ssh -fMNnT -S "$ssh_ctrl" \
+                   -o 'ExitOnForwardFailure yes' \
+                   -L "$local_sock:$remote_sock" "$remote";
+
+        trap "ssh -S '$ssh_ctrl' -O exit '$remote' 2>/dev/null;
+              unlink '$local_sock';" EXIT;
+
+        sock="unix:$local_sock";
     fi;
 
     case $1 in
     edit)
         shift;
-        unit_ctl_edit ${remote:+ ---r $remote} ---s "$sock" $@;
+        unit_ctl_edit ---s "$sock" $@;
         ;;
     http)
         shift;
-        unit_ctl_http ${remote:+ ---r $remote} ---s "$sock" $@;
+        unit_ctl_http ---s "$sock" $@;
         ;;
     insert)
         shift;
-        unit_ctl_insert ${remote:+ ---r $remote} ---s "$sock" $@;
+        unit_ctl_insert ---s "$sock" $@;
         ;;
     *)
         err "ctl: $1: Unknown argument.";
         ;;
     esac;
+
+    if test -v remote; then
+        run_trap EXIT;
+    fi;
 }
 
 
@@ -362,10 +402,6 @@ unit_ctl_edit()
             help_unit_ctl_edit;
             exit 0;
             ;;
-        ---r | ----remote)
-            local remote="$2";
-            shift;
-            ;;
         ---s | ----sock)
             local sock="$2";
             shift;
@@ -381,29 +417,19 @@ unit_ctl_edit()
     done;
 
     if ! test $# -ge 1; then
-        err 'ctl: insert: PATH: Missing argument.';
+        err 'ctl: edit: PATH: Missing argument.';
     fi;
     local req_path="$1";
 
-    if test -v remote; then
-        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
-        local local_sock="$(mktemp -u -p /var/run/unit/)";
-        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
-
-        mkdir -p /var/run/unit/;
-
-        ssh -fMNnT -S "$ssh_ctrl" \
-                   -o 'ExitOnForwardFailure yes' \
-                   -L "$local_sock:$remote_sock" "$remote";
-
-        sock="unix:$local_sock";
-    fi;
-
-    local tmp="$(mktemp ||:)";
+    echo "$req_path" \
+    | sed 's%^/js_modules/.*%.js%' \
+    | sed 's%^/config\>.*%.json%' \
+    | sed 's%^/.*%.txt%' \
+    | xargs mktemp --suffix \
+    | read -r tmp;
 
     unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
-            </dev/null >"$tmp" \
-    ||:;
+            </dev/null >"$tmp";
 
     $(
         ((test -v VISUAL && test -n "$VISUAL") && printf '%s\n' "$VISUAL") \
@@ -412,16 +438,13 @@ unit_ctl_edit()
         || command -v vi \
         || command -v vim \
         || echo ed;
-    ) "$tmp" \
-    ||:;
+    ) "$tmp";
 
-    unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp" \
-    ||:;
+    trap "info 'ctl: edit: Invalid configuration saved in <$tmp>.'" ERR
 
-    if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
-    fi;
+    unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp";
+
+    trap - ERR;
 }
 
 
@@ -477,10 +500,6 @@ unit_ctl_http()
             help_unit_ctl_http;
             exit 0;
             ;;
-        ---r | ----remote)
-            local remote="$2";
-            shift;
-            ;;
         ---s | ----sock)
             local sock="$2";
             shift;
@@ -505,28 +524,8 @@ unit_ctl_http()
     fi;
     local req_path="$2";
 
-    if test -v remote; then
-        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
-        local local_sock="$(mktemp -u -p /var/run/unit/)";
-        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
-
-        mkdir -p /var/run/unit/;
-
-        ssh -fMNnT -S "$ssh_ctrl" \
-                   -o 'ExitOnForwardFailure yes' \
-                   -L "$local_sock:$remote_sock" "$remote";
-
-        sock="unix:$local_sock";
-    fi;
-
-    curl $curl_options -X $method -d@- \
-            $(echo "$sock" | unit_sock_filter -c)${req_path} \
-    ||:;
-
-    if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
-    fi;
+    curl --fail-with-body $curl_options -X $method -d@- \
+            $(echo "$sock" | unit_sock_filter -c)${req_path};
 }
 
 
@@ -561,10 +560,6 @@ unit_ctl_insert()
             help_unit_ctl_insert;
             exit 0;
             ;;
-        ---r | ----remote)
-            local remote="$2";
-            shift;
-            ;;
         ---s | ----sock)
             local sock="$2";
             shift;
@@ -589,34 +584,13 @@ unit_ctl_insert()
     fi;
     local idx="$2";
 
-    if test -v remote; then
-        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
-        local local_sock="$(mktemp -u -p /var/run/unit/)";
-        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
-
-        mkdir -p /var/run/unit/;
-
-        ssh -fMNnT -S "$ssh_ctrl" \
-                   -o 'ExitOnForwardFailure yes' \
-                   -L "$local_sock:$remote_sock" "$remote";
-
-        sock="unix:$local_sock";
-    fi;
-
-    local old="$(mktemp ||:)";
+    local old="$(mktemp)";
 
     unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
-            </dev/null >"$old" \
-    ||:;
+            </dev/null >"$old";
 
     unit_json_ins "$old" "$idx" \
-    | unit_ctl_http ---s "$sock" PUT "$req_path" \
-    ||:;
-
-    if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
-    fi;
+    | unit_ctl_http ---s "$sock" PUT "$req_path";
 }
 
 
@@ -786,7 +760,7 @@ unit_ctl_welcome()
 
                 <hr>
                 <p><a href="https://unit.nginx.org/?referer=welcome">NGINX Unit &mdash; the universal web app server</a><br>
-                NGINX, Inc. &copy; 2023</p>
+                NGINX, Inc. &copy; 2024</p>
             </body>
         </html>
 __EOF__';
@@ -1634,7 +1608,7 @@ while test $# -ge 1; do
         help_unit;
         exit 0;
         ;;
-    --help-more)
+    -hh | --help-more)
         help_more_unit;
         exit 0;
         ;;

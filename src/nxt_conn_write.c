@@ -172,6 +172,13 @@ nxt_conn_io_sendbuf(nxt_task_t *task, nxt_sendbuf_t *sb)
         return 0;
     }
 
+    /*
+     * XXX Temporary fix for <https://github.com/nginx/unit/issues/1125>
+     */
+    if (niov == 0 && sb->buf == NULL) {
+        return 0;
+    }
+
     if (niov == 0 && nxt_buf_is_file(sb->buf)) {
         return nxt_conn_io_sendfile(task, sb);
     }

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -10,9 +11,9 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     Path(f'{temp_dir}/assets').mkdir()
     for ext in ['.xml', '.mp4', '.php', '', '.txt', '.html', '.png']:
-        Path(f'{temp_dir}/assets/file{ext}').write_text(ext)
+        Path(f'{temp_dir}/assets/file{ext}').write_text(ext, encoding='utf-8')
 
-    Path(f'{temp_dir}/assets/index.html').write_text('index')
+    Path(f'{temp_dir}/assets/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {

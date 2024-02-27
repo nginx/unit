@@ -11,8 +11,8 @@ const {
     ServerResponse,
 } = require('./http_server');
 
-function createServer (requestHandler) {
-    return new Server(requestHandler);
+function createServer (options, requestHandler) {
+    return new Server(options, requestHandler);
 }
 
 const http = require("http")

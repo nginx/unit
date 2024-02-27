@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 
 from unit.applications.lang.go import ApplicationGo
 from unit.applications.lang.java import ApplicationJava
@@ -145,11 +145,12 @@ def check_isolation():
 
     isolation = {'user': userns}
 
-    unp_clone_path = '/proc/sys/kernel/unprivileged_userns_clone'
-    if os.path.exists(unp_clone_path):
-        with open(unp_clone_path, 'r') as f:
-            if str(f.read()).rstrip() == '1':
-                isolation['unprivileged_userns_clone'] = True
+    path_clone = Path('/proc/sys/kernel/unprivileged_userns_clone')
+    if (
+        path_clone.exists()
+        and path_clone.read_text(encoding='utf-8').rstrip() == '1'
+    ):
+        isolation['unprivileged_userns_clone'] = True
 
     for ns in allns:
         ns_value = getns(ns)

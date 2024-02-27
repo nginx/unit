@@ -177,6 +177,8 @@ NXT_EXPORT nxt_int_t nxt_file_info(nxt_file_t *file, nxt_file_info_t *fi);
 NXT_EXPORT nxt_int_t nxt_file_delete(nxt_file_name_t *name);
 NXT_EXPORT nxt_int_t nxt_file_set_access(nxt_file_name_t *name,
     nxt_file_access_t access);
+NXT_EXPORT nxt_int_t nxt_file_chown(nxt_file_name_t *name, const char *owner,
+    const char *group);
 NXT_EXPORT nxt_int_t nxt_file_rename(nxt_file_name_t *old_name,
     nxt_file_name_t *new_name);
 

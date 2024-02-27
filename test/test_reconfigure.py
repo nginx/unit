@@ -1,6 +1,7 @@
 import time
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()

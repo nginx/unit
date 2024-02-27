@@ -2,8 +2,10 @@ import io
 import ssl
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 from unit.option import option
 
@@ -53,9 +55,8 @@ def context_cert_req(cert='root'):
 
 
 def generate_ca_conf():
-    with open(f'{option.temp_dir}/ca.conf', 'w') as f:
-        f.write(
-            f"""[ ca ]
+    Path(f'{option.temp_dir}/ca.conf').write_text(
+        f"""[ ca ]
 default_ca = myca
 
 [ myca ]
@@ -72,17 +73,13 @@ copy_extensions = copy
 commonName = optional
 
 [ myca_extensions ]
-basicConstraints = critical,CA:TRUE"""
-        )
+basicConstraints = critical,CA:TRUE""",
+        encoding='utf-8',
+    )
 
-    with open(f'{option.temp_dir}/certserial', 'w') as f:
-        f.write('1000')
-
-    with open(f'{option.temp_dir}/certindex', 'w') as f:
-        f.write('')
-
-    with open(f'{option.temp_dir}/certindex.attr', 'w') as f:
-        f.write('')
+    Path(f'{option.temp_dir}/certserial').write_text('1000', encoding='utf-8')
+    Path(f'{option.temp_dir}/certindex').touch()
+    Path(f'{option.temp_dir}/certindex.attr').touch()
 
 
 def remove_tls(application='empty', port=8080):
@@ -322,8 +319,8 @@ def test_tls_certificate_chain(temp_dir):
 
     with open(crt_path, 'wb') as crt, open(end_path, 'rb') as end, open(
         int_path, 'rb'
-    ) as int:
-        crt.write(end.read() + int.read())
+    ) as inter:
+        crt.write(end.read() + inter.read())
 
     # incomplete chain
 
@@ -428,7 +425,9 @@ def test_tls_certificate_chain_long(temp_dir):
             else f'{temp_dir}/int{i}.crt'
         )
 
-        with open(f'{temp_dir}/all.crt', 'a') as chain, open(path) as cert:
+        with open(f'{temp_dir}/all.crt', 'a', encoding='utf-8') as chain, open(
+            path, encoding='utf-8'
+        ) as cert:
             chain.write(cert.read())
 
     assert 'success' in client.certificate_load(

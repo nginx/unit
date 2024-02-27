@@ -2,6 +2,7 @@ import ssl
 import subprocess
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 from unit.option import option
 
@@ -104,7 +105,7 @@ def config_bundles(bundles):
 
 
 def generate_ca_conf():
-    with open(f'{option.temp_dir}/ca.conf', 'w') as f:
+    with open(f'{option.temp_dir}/ca.conf', 'w', encoding='utf-8') as f:
         f.write(
             f"""[ ca ]
 default_ca = myca
@@ -126,10 +127,10 @@ commonName = optional
 basicConstraints = critical,CA:TRUE"""
         )
 
-    with open(f'{option.temp_dir}/certserial', 'w') as f:
+    with open(f'{option.temp_dir}/certserial', 'w', encoding='utf-8') as f:
         f.write('1000')
 
-    with open(f'{option.temp_dir}/certindex', 'w') as f:
+    with open(f'{option.temp_dir}/certindex', 'w', encoding='utf-8') as f:
         f.write('')
 
 

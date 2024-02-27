@@ -9,10 +9,12 @@
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
+typedef int64_t                 nxt_cred_t;
+
 typedef struct {
-    nxt_int_t                   container;
-    nxt_int_t                   host;
-    nxt_int_t                   size;
+    nxt_cred_t                  container;
+    nxt_cred_t                  host;
+    nxt_cred_t                  size;
 } nxt_clone_map_entry_t;
 
 typedef struct {

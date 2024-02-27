@@ -1,6 +1,7 @@
 import ssl
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 
 prerequisites = {'modules': {'openssl': 'any'}}

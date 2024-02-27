@@ -1,11 +1,11 @@
-import os
-from pathlib import Path
 import re
 import time
+from pathlib import Path
 
 import pytest
-from unit.applications.proto import ApplicationProto
+
 from unit.applications.lang.python import ApplicationPython
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 client = ApplicationProto()
@@ -22,11 +22,11 @@ def setup_method_fixture():
     ), 'configure routes'
 
 
-def set_format(format):
+def set_format(log_format):
     assert 'success' in client.conf(
         {
             'path': f'{option.temp_dir}/access.log',
-            'format': format,
+            'format': log_format,
         },
         'access_log',
     ), 'access_log format'
@@ -127,8 +127,8 @@ def test_variables_uri(search_in_file, wait_for_record):
 
 
 def test_variables_uri_no_cache(temp_dir):
-    os.makedirs(f'{temp_dir}/foo/bar')
-    Path(f'{temp_dir}/foo/bar/index.html').write_text('index')
+    Path(f'{temp_dir}/foo/bar').mkdir(parents=True)
+    Path(f'{temp_dir}/foo/bar/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
@@ -443,7 +443,7 @@ def test_variables_response_header(temp_dir, wait_for_record):
     # share
 
     Path(f'{temp_dir}/foo').mkdir()
-    Path(f'{temp_dir}/foo/index.html').write_text('index')
+    Path(f'{temp_dir}/foo/index.html').write_text('index', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
@@ -514,11 +514,11 @@ def test_variables_response_header_application(require, wait_for_record):
 
 
 def test_variables_invalid(temp_dir):
-    def check_variables(format):
+    def check_variables(log_format):
         assert 'error' in client.conf(
             {
                 'path': f'{temp_dir}/access.log',
-                'format': format,
+                'format': log_format,
             },
             'access_log',
         ), 'access_log format'

@@ -1,7 +1,7 @@
 #!/bin/bash
 # unitc - a curl wrapper for configuring NGINX Unit
-# https://github.com/nginx/unit/tree/master/tools
-# NGINX, Inc. (c) 2023
+# https://github.com/nginx/unit/tree/master/tools
+# NGINX, Inc. (c) 2024
 
 # Defaults
 #
@@ -186,9 +186,9 @@ if [ $REMOTE -eq 0 ]; then
 			echo "${0##*/}: WARNING: unable to identify unitd command line parameters for PID $PID, assuming unitd defaults from \$PATH"
 			PARAMS=unitd
 		fi
-		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control' | cut -f2 -d' ')
+		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control ' | cut -f2 -d' ')
 		if [ "$CTRL_ADDR" = "" ]; then
-			CTRL_ADDR=$($(echo "$PARAMS") --help | grep -A1 '\--control' | tail -1 | cut -f2 -d\")
+			CTRL_ADDR=$($(echo "$PARAMS") --help | grep -A1 '\--control ADDRESS' | tail -1 | cut -f2 -d\")
 		fi
 		if [ "$CTRL_ADDR" = "" ]; then
 			echo "${0##*/}: ERROR: cannot detect control socket. Did you start unitd with a relative path? Try starting unitd with --control option."
@@ -292,7 +292,7 @@ else
 			exit 1
 		fi
 		NEW_ELEMENT=$(cat ${CONF_FILES[@]})
-		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
+		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
 		OLD_ARRAY=$($RPC_CMD curl -s $UNIT_CTRL$URI)
 		if [ "$(echo $OLD_ARRAY | jq -r type)" = "array" ]; then
 			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT

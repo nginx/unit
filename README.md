@@ -175,7 +175,7 @@ usability.
 ## Community
 
 - The go-to place to start asking questions and share your thoughts is
-  our [Slack channel](https://community.nginx.org/joinslack).
+ [GitHub Discussions](https://github.com/nginx/unit/discussions).
 
 - Our [GitHub issues page](https://github.com/nginx/unit/issues) offers
   space for a more technical discussion at your own pace.

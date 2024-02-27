@@ -50,11 +50,12 @@ struct nxt_var_query_s {
 static nxt_int_t nxt_var_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_var_decl_t *nxt_var_hash_find(nxt_str_t *name);
 
-static nxt_var_ref_t *nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name);
+static nxt_var_ref_t *nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name,
+    nxt_mp_t *mp);
 
 static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, uint32_t index, void *ctx);
+    nxt_var_cache_t *cache, nxt_var_ref_t *ref, void *ctx);
 
 static u_char *nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part);
 
@@ -109,7 +110,7 @@ nxt_var_hash_find(nxt_str_t *name)
 
 
 static nxt_var_ref_t *
-nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name)
+nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name, nxt_mp_t *mp)
 {
     nxt_int_t       ret;
     nxt_uint_t      i;
@@ -125,16 +126,21 @@ nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name)
         }
     }
 
-    ref = nxt_array_add(state->var_refs);
-    if (nxt_slow_path(ref == NULL)) {
-        return NULL;
-    }
+    if (mp != NULL) {
+        ref = nxt_mp_alloc(mp, sizeof(nxt_var_ref_t));
+        if (nxt_slow_path(ref == NULL)) {
+            return NULL;
+        }
 
-    ref->index = state->var_refs->nelts - 1;
+    } else {
+        ref = nxt_array_add(state->var_refs);
+        if (nxt_slow_path(ref == NULL)) {
+            return NULL;
+        }
 
-    ref->name = nxt_str_dup(state->pool, NULL, name);
-    if (nxt_slow_path(ref->name == NULL)) {
-        return NULL;
+        ref->index = state->var_refs->nelts - 1;
+
+        mp = state->pool;
     }
 
     decl = nxt_var_hash_find(name);
@@ -143,11 +149,18 @@ nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name)
         ref->handler = decl->handler;
         ref->cacheable = decl->cacheable;
 
-        return ref;
+        goto done;
     }
 
-    ret = nxt_http_unknown_var_ref(state, ref, name);
+    ret = nxt_http_unknown_var_ref(mp, ref, name);
     if (nxt_slow_path(ret != NXT_OK)) {
+        return NULL;
+    }
+
+done:
+
+    ref->name = nxt_str_dup(mp, NULL, name);
+    if (nxt_slow_path(ref->name == NULL)) {
         return NULL;
     }
 
@@ -203,15 +216,11 @@ nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 static nxt_str_t *
 nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, uint32_t index, void *ctx)
+    nxt_var_cache_t *cache, nxt_var_ref_t *ref, void *ctx)
 {
     nxt_int_t           ret;
     nxt_str_t           *value;
-    nxt_var_ref_t       *ref;
     nxt_lvlhsh_query_t  lhq;
-
-    ref = state->var_refs->elts;
-    ref = &ref[index];
 
     value = cache->spare;
 
@@ -228,10 +237,10 @@ nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
         goto not_cached;
     }
 
-    lhq.key_hash = nxt_murmur_hash2_uint32(&index);
+    lhq.key_hash = nxt_murmur_hash2_uint32(&ref->index);
     lhq.replace = 0;
     lhq.key.length = sizeof(uint32_t);
-    lhq.key.start = (u_char *) &index;
+    lhq.key.start = (u_char *) &ref->index;
     lhq.value = value;
     lhq.proto = &nxt_var_cache_proto;
     lhq.pool = cache->pool;
@@ -357,7 +366,7 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
         next = nxt_var_next_part(p, end, &part);
 
         if (part.start != NULL) {
-            ref = nxt_var_ref_get(state, &part);
+            ref = nxt_var_ref_get(state, &part, NULL);
             if (nxt_slow_path(ref == NULL)) {
                 return NULL;
             }
@@ -397,7 +406,7 @@ nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
         }
 
         if (part.start != NULL) {
-            ref = nxt_var_ref_get(state, &part);
+            ref = nxt_var_ref_get(state, &part, NULL);
 
             if (ref == NULL) {
                 nxt_sprintf(error, error + NXT_MAX_ERROR_STR,
@@ -491,20 +500,24 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
 {
     u_char         *p, *src;
     size_t         length, last, next;
+    uint32_t       index;
     nxt_str_t      *value, **part;
     nxt_uint_t     i;
     nxt_array_t    parts;
+    nxt_var_ref_t  *ref;
     nxt_var_sub_t  *subs;
 
     nxt_memzero(&parts, sizeof(nxt_array_t));
     nxt_array_init(&parts, cache->pool, sizeof(nxt_str_t *));
 
+    ref = state->var_refs->elts;
     subs = nxt_var_subs(var);
 
     length = var->length;
 
     for (i = 0; i < var->vars; i++) {
-        value = nxt_var_cache_value(task, state, cache, subs[i].index, ctx);
+        index = subs[i].index;
+        value = nxt_var_cache_value(task, state, cache, &ref[index], ctx);
         if (nxt_slow_path(value == NULL)) {
             return NXT_ERROR;
         }
@@ -557,4 +570,19 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     }
 
     return NXT_OK;
+}
+
+
+nxt_str_t *
+nxt_var_get(nxt_task_t *task, nxt_tstr_state_t *state, nxt_var_cache_t *cache,
+    nxt_str_t *name, void *ctx)
+{
+    nxt_var_ref_t  *ref;
+
+    ref = nxt_var_ref_get(state, name, cache->pool);
+    if (nxt_slow_path(ref == NULL)) {
+        return NULL;
+    }
+
+    return nxt_var_cache_value(task, state, cache, ref, ctx);
 }

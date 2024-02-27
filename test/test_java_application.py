@@ -1,7 +1,7 @@
 import io
-import os
 import re
 import time
+from pathlib import Path
 
 from unit.applications.lang.java import ApplicationJava
 from unit.option import option
@@ -875,6 +875,7 @@ def test_java_application_get_headers():
     assert headers['X-Reply-0'] == 'blah', 'get headers'
     assert headers['X-Reply-1'] == 'blah', 'get headers 2'
 
+
 def test_java_application_many_headers():
     client.load('get_headers')
 
@@ -956,7 +957,7 @@ def test_java_application_multipart(search_in_file, temp_dir):
 
     reldst = '/uploads'
     fulldst = f'{temp_dir}{reldst}'
-    os.mkdir(fulldst)
+    Path(fulldst).mkdir(parents=True)
     public_dir(fulldst)
 
     fields = {
