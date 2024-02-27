@@ -82,7 +82,7 @@ fi
 $echo " + $NXT_WCM_MODULE module: $NXT_WCM_MOD_NAME"
 
 
-NXT_OS=$(uname -o)
+NXT_OS=$(uname -s)
 
 if [ $NXT_OS = "Darwin" ]; then
 	NXT_CARGO_CMD="cargo rustc --release --manifest-path src/wasm-wasi-component/Cargo.toml -- --emit link=target/release/libwasm_wasi_component.so -C link-args='-undefined dynamic_lookup'"
