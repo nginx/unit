@@ -1441,7 +1441,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         goto error;
     }
 
-    if (nxt_fast_path((ch - '0') <= 9)) {
+    if (nxt_fast_path((u_char)(ch - '0') <= 9)) {
         p = nxt_conf_json_parse_number(mp, value, start, end, error);
 
         if (nxt_slow_path(p == NULL)) {
