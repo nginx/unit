@@ -1041,7 +1041,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             break;
 
         case sw_quoted:
-            //rp->quoted_target = 1;
+            rp->quoted_target = 1;
 
             if (ch >= '0' && ch <= '9') {
                 high = (u_char) (ch - '0');

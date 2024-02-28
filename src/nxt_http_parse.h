@@ -61,9 +61,9 @@ struct nxt_http_request_parse_s {
 
     /* target with "/." */
     uint8_t                   complex_target;         /* 1 bit */
-#if 0
     /* target with "%" */
     uint8_t                   quoted_target;          /* 1 bit */
+#if 0
     /* target with " " */
     uint8_t                   space_in_target;        /* 1 bit */
 #endif
