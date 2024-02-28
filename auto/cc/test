@@ -70,7 +70,7 @@ case $NXT_CC_NAME in
 
         NXT_CFLAGS="$NXT_CFLAGS -O"
         #NXT_CFLAGS="$NXT_CFLAGS -O0"
-        NXT_CFLAGS="$NXT_CFLAGS -W -Wall -Wextra"
+        NXT_CFLAGS="$NXT_CFLAGS -Wall -Wextra"
 
         #NXT_CFLAGS="$NXT_CFLAGS -Wunused-result"
         NXT_CFLAGS="$NXT_CFLAGS -Wno-unused-parameter"
@@ -107,7 +107,7 @@ case $NXT_CC_NAME in
 
         NXT_CFLAGS="$NXT_CFLAGS -O"
         #NXT_CFLAGS="$NXT_CFLAGS -O0"
-        NXT_CFLAGS="$NXT_CFLAGS -W -Wall -Wextra"
+        NXT_CFLAGS="$NXT_CFLAGS -Wall -Wextra"
 
         #NXT_CFLAGS="$NXT_CFLAGS -Wunused-result"
         NXT_CFLAGS="$NXT_CFLAGS -Wno-unused-parameter"
