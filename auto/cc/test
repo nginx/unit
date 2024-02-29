@@ -84,7 +84,9 @@ case $NXT_CC_NAME in
         #NXT_CFLAGS="$NXT_CFLAGS -fomit-frame-pointer"
         #NXT_CFLAGS="$NXT_CFLAGS -momit-leaf-frame-pointer"
 
-        # -Wstrict-overflow is supported by GCC 4.2+.
+        # While -Wstrict-overflow is supported by GCC 4.2+,
+        # at level 3 and above it is prone to give false
+        # positives.
         #NXT_CFLAGS="$NXT_CFLAGS -Wstrict-overflow=5"
 
         NXT_CFLAGS="$NXT_CFLAGS -Wmissing-prototypes"
