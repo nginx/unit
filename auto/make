@@ -104,8 +104,10 @@ cat << END >> $NXT_MAKEFILE
 include version
 
 $NXT_VERSION_H: version
-	$echo '#define NXT_VERSION "\$(NXT_VERSION)"' > $NXT_VERSION_H
-	$echo '#define NXT_VERNUM  \$(NXT_VERNUM)' >> $NXT_VERSION_H
+	\$(PP_VER) \$@ \(NXT_VERSION\)
+	\$(v)$echo '#define NXT_VERSION "\$(NXT_VERSION)"' > $NXT_VERSION_H
+	\$(PP_VER) \$@ \(NXT_VERNUM\)
+	\$(v)$echo '#define NXT_VERNUM  \$(NXT_VERNUM)' >> $NXT_VERSION_H
 
 END
 
@@ -117,16 +119,19 @@ cat << END >> $NXT_MAKEFILE
 libnxt:	$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
 
 $NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS)
-	\$(NXT_SHARED_LOCAL_LINK) -o \$@ \$(NXT_LIB_OBJS) \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_SHARED_LOCAL_LINK) -o \$@ \$(NXT_LIB_OBJS) \\
 		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS)
-	$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS)
+	\$(PP_AR) \$@
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS)
 
 $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC: \$(NXT_LIB_UNIT_OBJS) \\
 		$NXT_BUILD_DIR/share/pkgconfig/unit.pc \\
 		$NXT_BUILD_DIR/share/pkgconfig/unit-uninstalled.pc
-	$NXT_STATIC_LINK \$@ \$(NXT_LIB_UNIT_OBJS)
+	\$(PP_AR) \$@
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_UNIT_OBJS)
 
 END
 
@@ -145,7 +150,8 @@ do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 	-o $NXT_BUILD_DIR/$nxt_obj \\
 	$nxt_dep_flags \\
 	$nxt_src
@@ -165,7 +171,8 @@ nxt_dep_post=`nxt_gen_dep_post`
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=1 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=1 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 	-o $NXT_BUILD_DIR/$nxt_obj \\
 	$nxt_dep_flags \\
 	$nxt_src
@@ -183,7 +190,8 @@ nxt_dep_post=`nxt_gen_dep_post`
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=0 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=0 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 	-o $NXT_BUILD_DIR/$nxt_obj \\
 	$nxt_dep_flags \\
 	$nxt_src
@@ -221,14 +229,16 @@ tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
 
 $NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
 			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
 		\$(CFLAGS) \$(NXT_TEST_OBJS) \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
 			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
-	\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	\$(PP_LD) \$@
+	\$(v)\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/utf8_file_name_test \\
 		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
@@ -236,21 +246,24 @@ $NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
 
 $NXT_BUILD_DIR/ncq_test: $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
 			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/ncq_test \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/ncq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/vbcq_test: $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
 			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/vbcq_test \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/vbcq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_app_test \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_app_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
@@ -258,7 +271,8 @@ $NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
 $NXT_BUILD_DIR/unit_websocket_chat: \\
 		$NXT_BUILD_DIR/src/test/nxt_unit_websocket_chat.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_chat \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_chat \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_websocket_chat.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
@@ -266,7 +280,8 @@ $NXT_BUILD_DIR/unit_websocket_chat: \\
 $NXT_BUILD_DIR/unit_websocket_echo: \\
 		$NXT_BUILD_DIR/src/test/nxt_unit_websocket_echo.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
-	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_echo \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_echo \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_websocket_echo.o \\
 		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
@@ -325,7 +340,8 @@ cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/sbin/$NXT_DAEMON:	$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
 				\$(NXT_OBJS)
-	\$(NXT_EXEC_LINK) -o \$@ \$(CFLAGS) \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o \$@ \$(CFLAGS) \\
 		\$(NXT_OBJS) $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
 		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
@@ -338,7 +354,8 @@ cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/share/man/man8/unitd.8: docs/man/man8/unitd.8.in \\
 				$NXT_BUILD_DIR/include/nxt_auto_config.h
-	sed -e "s|%%ERROR_LOG_PATH%%|$NXT_LOG|" \\
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|%%ERROR_LOG_PATH%%|$NXT_LOG|" \\
 		-e "s|%%PID_PATH%%|$NXT_PID|" \\
 		-e "s|%%SOCKET_PATH%%|$NXT_CONTROL|" \\
 		< docs/man/man8/unitd.8.in > \$@
@@ -357,7 +374,8 @@ do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
 		$NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/$nxt_obj \\
 		$nxt_dep_flags \\
@@ -470,7 +488,8 @@ END
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/share/pkgconfig/unit.pc: src/unit.pc.in
-	sed -e "s|@PREFIX@|$NXT_PREFIX|" \\
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|@PREFIX@|$NXT_PREFIX|" \\
 		-e "s|@LIBDIR@|$NXT_LIBDIR|" \\
 		-e "s|@CFLAGS@|-I$NXT_INCLUDEDIR|" \\
 		-e "s|@VERSION@|\$(NXT_VERSION)|" \\
@@ -480,7 +499,8 @@ $NXT_BUILD_DIR/share/pkgconfig/unit.pc: src/unit.pc.in
 	< src/unit.pc.in > \$@
 
 $NXT_BUILD_DIR/share/pkgconfig/unit-uninstalled.pc: src/unit.pc.in
-	sed -e "s|@PREFIX@|$(pwd)/$NXT_BUILD_DIR|" \\
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|@PREFIX@|$(pwd)/$NXT_BUILD_DIR|" \\
 		-e "s|@LIBDIR@|$(pwd)/$NXT_BUILD_DIR/lib|" \\
 		-e "s|@CFLAGS@|-I$(pwd)/src -I$(pwd)$NXT_BUILD_DIR/include|" \\
 		-e "s|@VERSION@|\$(NXT_VERSION)|" \\
