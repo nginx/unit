@@ -161,8 +161,9 @@ for nxt_src in $NXT_WASM_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	mkdir -p $NXT_BUILD_DIR/src/wasm
-	\$(CC) -c \$(CFLAGS) $NXT_WASM_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/wasm
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_WASM_ADDITIONAL_FLAGS \$(NXT_INCS) \\
 	    -I$NXT_WASM_INCLUDE_PATH \\
 	    $nxt_dep_flags \\
 	    -o $NXT_BUILD_DIR/$nxt_obj $nxt_src
@@ -186,7 +187,8 @@ all: ${NXT_WASM_MODULE}
 ${NXT_WASM_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_WASM_MODULE}.unit.so
 
 $NXT_BUILD_DIR/lib/unit/modules/${NXT_WASM_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o \$@ \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ \\
 	    $nxt_objs -L${NXT_WASM_LIB_PATH} ${NXT_WASM_LDFLAGS} $NXT_LD_OPT
 
 
