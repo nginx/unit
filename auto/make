@@ -10,6 +10,13 @@ $echo "creating $NXT_MAKEFILE"
 
 cat << END > $NXT_MAKEFILE
 
+# Pretty print compiler etc actions...
+PP_CC		:= @echo '  CC    '
+PP_AR		:= @echo '  AR    '
+PP_LD		:= @echo '  LD    '
+PP_VER		:= @echo '  VER   '
+PP_SED		:= @echo '  SED   '
+
 CC =			$CC
 AR =			$AR
 
@@ -26,6 +33,28 @@ $NXT_DAEMON: $NXT_BUILD_DIR/sbin/$NXT_DAEMON
 manpage: $NXT_BUILD_DIR/share/man/man8/unitd.8
 
 END
+
+
+NXT_OS=$(uname -s)
+NXT_GNU_MAKE=$(make --version | grep GNU || true)
+
+# Requires GNU make. On OpenIndiana at least we have to use gmake
+if [ -n "$NXT_GNU_MAKE" ] || [ $NXT_OS = "SunOS" ]; then
+
+	cat << END >> $NXT_MAKEFILE
+# By default compiler etc output is hidden, use
+#   make V=1 ...
+# to show it.
+V := 0
+
+v := @
+ifeq (\$V,1)
+        v :=
+endif
+
+END
+
+fi
 
 
 # The include paths list.
