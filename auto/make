@@ -52,6 +52,17 @@ ifeq (\$V,1)
         v :=
 endif
 
+# Optionally enable debugging builds with
+#   make D=1 ...
+# -g is always used, this just changes the optimisation level.
+# On GCC this would be -Og, however according to the clang(1)
+# man page, -O0 'generates the most debuggable code'.
+D := 0
+
+ifeq (\$D,1)
+        CFLAGS += -O0
+endif
+
 END
 
 fi
