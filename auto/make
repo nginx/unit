@@ -63,6 +63,14 @@ ifeq (\$D,1)
         CFLAGS += -O0
 endif
 
+# Optionally disable -Werror with
+#   make E=0 ...
+E := 1
+
+ifeq (\$E,0)
+        CFLAGS += -Wno-error
+endif
+
 END
 
 fi
