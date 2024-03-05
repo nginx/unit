@@ -540,4 +540,14 @@ include $NXT_MAKEFILE
 clean:
 		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
 
+.PHONY: help
+help:
+	@echo "Variables to control make/build behaviour:"
+	@echo
+	@echo "  make V=1 ...           - Enables verbose output"
+	@echo "  make D=1 ...           - Enables debug builds (-O0)"
+	@echo "  make E=0 ...           - Disables -Werror"
+	@echo
+	@echo "  Variables can be combined."
+
 END
