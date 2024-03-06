@@ -65,55 +65,6 @@ if [ $nxt_found = no ]; then
 fi
 
 
-# AIX xlC builtin atomic operations.
-
-if [ $nxt_found = no ]; then
-
-    if [ $NXT_64BIT = 1 ]; then
-        nxt_feature_test="int main(void) {
-                              long  n = 0;
-                              long  o = 0;
-
-                              if (!__compare_and_swaplp(&n, &o, 3))
-                                  return 1;
-                              if (__fetch_and_addlp(&n, 1) != 3)
-                                  return 1;
-                              if (__fetch_and_swaplp(&n, 5) != 4)
-                                  return 1;
-                              if (n != 5)
-                                  return 1;
-                              __isync();
-                              __lwsync();
-                              return 0;
-                          }"
-    else
-        nxt_feature_test="int main(void) {
-                              int  n = 0;
-                              int  o = 0;
-
-                              if (!__compare_and_swap(&n, &o, 3))
-                                  return 1;
-                              if (__fetch_and_add(&n, 1) != 3)
-                                  return 1;
-                              if (__fetch_and_swap(&n, 5) != 4)
-                                  return 1;
-                              if (n != 5)
-                                  return 1;
-                              __isync();
-                              __lwsync();
-                              return 0;
-                          }"
-    fi
-
-    nxt_feature="xlC builtin atomic operations"
-    nxt_feature_name=NXT_HAVE_XLC_ATOMIC
-    nxt_feature_run=yes
-    nxt_feature_incs=
-    nxt_feature_libs=
-    . auto/feature
-fi
-
-
 if [ $nxt_found = no ]; then
     $echo
     $echo $0: error: no atomic operations found.
