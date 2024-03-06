@@ -147,7 +147,7 @@ nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name, nxt_mp_t *mp)
 
     if (decl != NULL) {
         ref->handler = decl->handler;
-        ref->cacheable = decl->cacheable;
+        ref->cacheable = (mp == state->pool) ? decl->cacheable : 0;
 
         goto done;
     }
