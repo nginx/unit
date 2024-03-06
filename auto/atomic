@@ -33,38 +33,6 @@ nxt_feature_test="int main(void) {
 . auto/feature
 
 
-# Solaris 10 builtin atomic operations.
-
-if [ $nxt_found = no ]; then
-
-    nxt_feature="Solaris builtin atomic operations"
-    nxt_feature_name=NXT_HAVE_SOLARIS_ATOMIC
-    nxt_feature_run=yes
-    nxt_feature_incs=
-    nxt_feature_libs=
-    nxt_feature_test="#include <atomic.h>
-
-                      int main(void) {
-                          ulong_t  n = 0;
-
-                          if (atomic_cas_ulong(&n, 0, 3) != 0)
-                              return 1;
-                          if (atomic_add_long_nv(&n, 1) != 4)
-                              return 1;
-                          if (atomic_swap_ulong(&n, 5) != 4)
-                              return 1;
-                          if (n != 5)
-                              return 1;
-                          if (atomic_or_ulong_nv(&n, 2) != 7)
-                              return 1;
-                          if (atomic_and_ulong_nv(&n, 5) != 5)
-                              return 1;
-                          return 0;
-                      }"
-    . auto/feature
-fi
-
-
 if [ $nxt_found = no ]; then
     $echo
     $echo $0: error: no atomic operations found.
