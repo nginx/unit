@@ -63,17 +63,9 @@ then
     $echo " + $NXT_CC_VERSION"
 
 else
-if `/bin/sh -c "($CC -V)" 2>&1 | grep "Intel(R) C" >> $NXT_AUTOCONF_ERR 2>&1`
-then
-    NXT_CC_NAME=ICC
-    $echo " + using Intel C++ compiler"
-    NXT_CC_VERSION=ICC
-
-else
     NXT_CC_NAME=cc
     NXT_CC_VERSION=cc
 
-fi # ICC
 fi # xlC
 fi # SunC
 fi # Apple LLVM clang
@@ -183,9 +175,6 @@ case $NXT_CC_NAME in
         #    1506-159 (E) Bit field type specified for XXX is not valid.
         #    Type unsigned assumed.
         NXT_CFLAGS="$NXT_CFLAGS -qsuppress=1506-159"
-    ;;
-
-    ICC)
     ;;
 
     *)
