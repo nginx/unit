@@ -49,6 +49,8 @@ jobs:
             os: ubuntu-latest
           - build: wasm
             os: ubuntu-latest
+          - build: wasm-wasi-component
+            os: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -57,8 +59,12 @@ jobs:
       - name: Output build metadata
         id: metadata
         run: |
-          # Split the build name by '-' into module and version
-          IFS='-' read -r module version <<< "${{ matrix.build }}"
+          if [ "${{ matrix.build }}" = "wasm-wasi-component" ]; then
+            module="wasm-wasi-component"
+          else
+            # Split the build name by '-' into module and version
+            IFS='-' read -r module version <<< "${{ matrix.build }}"
+          fi
 
           testpath="test/test_${module}*"
 
@@ -293,6 +299,27 @@ jobs:
         if: steps.metadata.outputs.module == 'wasm'
 
       ##
+      ## wasm-wasi-component
+      ##
+
+      - name: Setup rust
+        run: |
+          curl https://sh.rustup.rs | sh -s -- -y
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Configure wasm-wasi-component
+        run: |
+          ./configure wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Make wasm-wasi-component
+        run: |
+          CLANG_PATH=/usr/bin/clang-15 \
+          BINDGEN_EXTRA_CLANG_ARGS="-I../../njs/src -I../../njs/build" \
+          make wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      ##
       ## Tests
       ##
 
@@ -307,15 +334,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3'
-        if: steps.metadata.outputs.module != 'wasm'
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'
 
       - name: Install pytest
         run: |
           sudo -H pip install pytest
-        if: steps.metadata.outputs.module != 'wasm'
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'
 
       - name: Run ${{ steps.metadata.outputs.module }} tests
         run: |
           sudo -E pytest --print-log ${{ steps.metadata.outputs.testpath }}
         # Skip pytest if wasm build, as there are no tests yet
-        if: steps.metadata.outputs.module != 'wasm'
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'
