@@ -51,7 +51,6 @@ typedef off_t                nxt_off_t;
  *   64-bit on 32-bit NetBSD 6.0;
  *   32-bit on 64-bit OpenBSD;
  *   64-bit in Linux x32 ABI;
- *   64-bit in 32-bit Visual Studio C++ 2005.
  */
 #if (NXT_QNX)
 /*
