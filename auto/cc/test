@@ -65,6 +65,8 @@ case $NXT_CC_NAME in
         # Do not export symbols except explicitly marked with NXT_EXPORT.
         NXT_CFLAGS="$NXT_CFLAGS -fvisibility=hidden"
 
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
+
         # c99/gnu99 conflict with Solaris XOPEN.
         #NXT_CFLAGS="$NXT_CFLAGS -std=gnu99"
 
@@ -106,6 +108,8 @@ case $NXT_CC_NAME in
 
         # Do not export symbols except explicitly marked with NXT_EXPORT.
         NXT_CFLAGS="$NXT_CFLAGS -fvisibility=hidden"
+
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
 
         NXT_CFLAGS="$NXT_CFLAGS -O"
         #NXT_CFLAGS="$NXT_CFLAGS -O0"
