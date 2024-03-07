@@ -4,6 +4,7 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
 use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
+use std::process::exit;
 use std::ptr;
 use std::sync::OnceLock;
 use tokio::sync::mpsc;
@@ -101,7 +102,9 @@ unsafe extern "C" fn start(
     task: *mut bindings::nxt_task_t,
     data: *mut bindings::nxt_process_data_t,
 ) -> bindings::nxt_int_t {
-    handle_result(task, || {
+    let mut rc: i32 = 0;
+
+    let result = handle_result(task, || {
         let config = GLOBAL_CONFIG.get().unwrap();
         let state = GlobalState::new(&config)
             .context("failed to create initial state")?;
@@ -123,11 +126,17 @@ unsafe extern "C" fn start(
             bail!("nxt_unit_init() failed");
         }
 
-        bindings::nxt_unit_run(unit_ctx);
+        rc = bindings::nxt_unit_run(unit_ctx);
         bindings::nxt_unit_done(unit_ctx);
 
         Ok(())
-    })
+    });
+
+    if result != bindings::NXT_OK as bindings::nxt_int_t {
+        return result;
+    }
+
+    exit(rc);
 }
 
 unsafe fn handle_result(
