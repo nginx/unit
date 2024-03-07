@@ -91,6 +91,13 @@ else
 fi
 
 
+NXT_WCM_DEPS=" \
+    build/src/nxt_unit.o \
+    src/wasm-wasi-component/build.rs \
+    src/wasm-wasi-component/wrapper.h \
+    src/wasm-wasi-component/src/lib.rs \
+"
+
 cat << END >> $NXT_MAKEFILE
 
 .PHONY: ${NXT_WCM_MODULE}
@@ -101,7 +108,7 @@ all: ${NXT_WCM_MODULE}
 
 ${NXT_WCM_MODULE}:	${NXT_WCM_MOD_CARGO}
 
-${NXT_WCM_MOD_CARGO}: build/src/nxt_unit.o
+${NXT_WCM_MOD_CARGO}: ${NXT_WCM_DEPS}
 	$NXT_CARGO_CMD
 
 install: ${NXT_WCM_MODULE}-install
