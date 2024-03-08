@@ -20,7 +20,8 @@ PP_SED		:= @echo '  SED   '
 CC =			$CC
 AR =			$AR
 
-CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS
+EXTRA_CFLAGS =
+CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS \$(EXTRA_CFLAGS)
 
 NXT_EXEC_LINK =		$NXT_EXEC_LINK $NXT_LD_OPT
 NXT_SHARED_LOCAL_LINK =	$NXT_SHARED_LOCAL_LINK $NXT_LD_OPT
@@ -547,6 +548,8 @@ help:
 	@echo "  make V=1 ...           - Enables verbose output"
 	@echo "  make D=1 ...           - Enables debug builds (-O0)"
 	@echo "  make E=0 ...           - Disables -Werror"
+	@echo
+	@echo "  make EXTRA_CFLAGS= ... - Add extra compiler options"
 	@echo
 	@echo "  Variables can be combined."
 
