@@ -1,6 +1,7 @@
 # NGINX Unit
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![CI](https://github.com/nginx/unit/actions/workflows/ci.yml/badge.svg)](https://github.com/nginx/unit/actions/workflows/ci.yml "GitHub workflow CI")
 
 ## Universal Web App Server
 
