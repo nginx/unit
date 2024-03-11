@@ -192,7 +192,7 @@ usability.
 - To reach the team directly, subscribe to the
   [mailing list](https://mailman.nginx.org/mailman/listinfo/unit).
 
-- For security issues, [email us](security-alert@nginx.org), mentioning
-  NGINX Unit in the subject and following the [CVSS
+- For security issues, [email us](mailto:security-alert@nginx.org),
+  mentioning NGINX Unit in the subject and following the [CVSS
   v3.1](https://www.first.org/cvss/v3.1/specification-document) spec.
 
