@@ -35,6 +35,18 @@ NGINX Unit updated to 1.32.1.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="bugfix">
+<para>
+NJS variables in templates may have incorrect values due to improper caching.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Wasm application process hangs after receiving restart signal from the control.
+</para>
+</change>
+
 </changes>
 
 
