@@ -2572,6 +2572,7 @@ static nxt_int_t
 nxt_conf_vldt_response_header(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
+    nxt_str_t   str;
     nxt_uint_t  type;
 
     static nxt_str_t  content_length = nxt_string("Content-Length");
@@ -2588,7 +2589,17 @@ nxt_conf_vldt_response_header(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     type = nxt_conf_type(value);
 
-    if (type == NXT_CONF_STRING || type == NXT_CONF_NULL) {
+    if (type == NXT_CONF_NULL) {
+        return NXT_OK;
+    }
+
+    if (type == NXT_CONF_STRING) {
+        nxt_conf_get_string(value, &str);
+
+        if (nxt_is_tstr(&str)) {
+            return nxt_conf_vldt_var(vldt, name, &str);
+        }
+
         return NXT_OK;
     }
 
