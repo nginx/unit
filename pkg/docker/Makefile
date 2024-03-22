@@ -10,7 +10,7 @@ PATCHLEVEL ?= 1
 
 MODULES ?= go jsc node perl php python ruby wasm
 
-VARIANT ?= bullseye
+VARIANT ?= bookworm
 
 VERSIONS_minimal ?=
 CONTAINER_minimal ?= debian:$(VARIANT)-slim
