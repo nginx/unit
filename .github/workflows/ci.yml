@@ -349,3 +349,34 @@ jobs:
         # Skip pytest if wasm build, as there are no tests yet
         if: steps.metadata.outputs.module != 'wasm' &&
             steps.metadata.outputs.module != 'wasm-wasi-component'
+
+  deb-packaging:
+    runs-on: [ self-hosted, "${{ matrix.os }}-${{ matrix.arch }}" ]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-22.04 ]
+        arch: [ amd64, arm64 ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          cd pkg/deb
+          BUILD_DEPENDS=$(make --eval='print-build-depends: ; @echo $(BUILD_DEPENDS)' print-build-depends)
+          sudo apt-get install -y --no-install-suggests --no-install-recommends ${BUILD_DEPENDS}
+
+      - name: Setup rust
+        run: |
+          curl https://sh.rustup.rs | sh -s -- -y
+
+      - name: Build Unit package
+        run: |
+          cd pkg/deb
+          make unit
+
+      - name: Build Unit modules
+        run: |
+          cd pkg/deb
+          make modules
