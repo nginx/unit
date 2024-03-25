@@ -93,7 +93,7 @@ def test_variables_method(search_in_file, wait_for_record):
     assert wait_for_record(reg, 'access.log') is not None, 'method POST'
 
 
-def test_variables_request_uri(search_in_file, wait_for_record):
+def test_variables_request_uri(search_in_file, temp_dir, wait_for_record):
     set_format('$request_uri')
 
     def check_request_uri(req_uri):
@@ -107,6 +107,48 @@ def test_variables_request_uri(search_in_file, wait_for_record):
     check_request_uri('/4*')
     check_request_uri('/4%2A')
     check_request_uri('/9?q#a')
+
+    # $request_uri should not be changed by rewrite
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:8080": {"pass": "routes/a"},
+                "*:8081": {"pass": "routes/b"},
+            },
+            "routes": {
+                "a": [
+                    {
+                        "action": {
+                            "rewrite": "/foo",
+                            "proxy": "http://127.0.0.1:8081",
+                        }
+                    }
+                ],
+                "b": [
+                    {
+                        "action": {
+                            "rewrite": "/bar",
+                            "return": 200,
+                        }
+                    }
+                ],
+            },
+            "access_log": {
+                "path": f'{temp_dir}/access.log',
+                "format": "$uri $request_uri",
+            },
+        }
+    )
+
+    assert search_in_file(r'/foo', 'access.log') is None
+
+    assert client.get()['status'] == 200
+
+    assert wait_for_record(fr'^/foo /$', 'access.log') is not None, 'req 8080'
+    assert (
+        search_in_file(fr'^/bar /foo$', 'access.log') is not None
+    ), 'req 8081 (proxy)'
 
 
 def test_variables_uri(search_in_file, wait_for_record):
