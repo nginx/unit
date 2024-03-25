@@ -10,6 +10,7 @@ import pytest
 from packaging import version
 
 from unit.applications.lang.python import ApplicationPython
+from unit.option import option
 
 prerequisites = {'modules': {'python': 'all'}}
 
@@ -63,6 +64,45 @@ custom-header: BLAH
         'Wsgi-Run-Once': 'False',
     }, 'headers'
     assert resp['body'] == body, 'body'
+
+    # REQUEST_URI unchanged
+
+    path = f'{option.test_dir}/python/variables'
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:8080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "action": {
+                        "rewrite": "/foo",
+                        "pass": "applications/variables",
+                    }
+                }
+            ],
+            "applications": {
+                "variables": {
+                    "type": client.get_application_type(),
+                    "processes": {'spare': 0},
+                    "path": path,
+                    "working_directory": path,
+                    "module": "wsgi",
+                }
+            },
+        }
+    )
+
+    resp = client.http(
+        f"""POST /bar HTTP/1.1
+Host: localhost
+Content-Length: 1
+Custom-Header: blah
+Content-Type: text/html
+Connection: close
+
+a""".encode(),
+        raw=True,
+    )
+    assert resp['headers']['Request-Uri'] == '/bar', 'REQUEST_URI unchanged'
 
 
 def test_python_application_query_string():
