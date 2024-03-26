@@ -116,6 +116,24 @@ def test_njs_variables_cacheable(temp_dir):
     check_rewrite('/str', '${vars.uri}')
 
 
+def test_njs_variables_cacheable_access_log(findall, temp_dir):
+    assert 'success' in client.conf({"return": 200}, 'routes/0/action')
+
+    assert 'success' in client.conf(
+        {
+            'path': f'{temp_dir}/access.log',
+            'format': '`${vars.host}, ${vars.status}\n`',
+        },
+        'access_log'
+    ), 'access_log configure'
+
+    reqs = 50
+    for _ in range(reqs):
+        client.get()
+
+    assert len(findall(r'localhost, 200', 'access.log')) == reqs
+
+
 def test_njs_invalid(skip_alert):
     skip_alert(r'js exception:')
 
