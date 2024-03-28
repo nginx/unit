@@ -1,4 +1,13 @@
 
+Changes with Unit 1.32.1                                         26 Mar 2024
+
+    *) Bugfix: NJS variables in templates may have incorrect values due to
+       improper caching.
+
+    *) Bugfix: Wasm application process hangs after receiving restart signal
+       from the control.
+
+
 Changes with Unit 1.32.0                                         27 Feb 2024
 
     *) Feature: WebAssembly Components using WASI interfaces defined in
