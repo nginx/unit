@@ -299,13 +299,6 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 }
 
 
-nxt_bool_t
-nxt_tstr_query_failed(nxt_tstr_query_t *query)
-{
-    return query->failed;
-}
-
-
 void
 nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query, void *data,
     nxt_work_handler_t ready, nxt_work_handler_t error)
@@ -315,20 +308,6 @@ nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query, void *data,
     query->error = error;
 
     if (query->waiting == 0) {
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           query->failed ? query->error : query->ready,
-                           task, query->ctx, query->data);
-    }
-}
-
-
-void
-nxt_tstr_query_handle(nxt_task_t *task, nxt_tstr_query_t *query,
-    nxt_bool_t failed)
-{
-    query->failed |= failed;
-
-    if (--query->waiting == 0) {
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            query->failed ? query->error : query->ready,
                            task, query->ctx, query->data);
