@@ -26,10 +26,8 @@ typedef struct {
 static void nxt_router_access_log_writer(nxt_task_t *task,
     nxt_http_request_t *r, nxt_router_access_log_t *access_log,
     nxt_tstr_t *format);
-static void nxt_router_access_log_write_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_router_access_log_write_error(nxt_task_t *task, void *obj,
-    void *data);
+static void nxt_router_access_log_write(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_access_log_ctx_t *ctx);
 static void nxt_router_access_log_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_error(nxt_task_t *task,
@@ -180,8 +178,6 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_tstr_is_const(format)) {
         nxt_tstr_str(format, &ctx->text);
 
-        nxt_router_access_log_write_ready(task, r, ctx);
-
     } else {
         rtcf = r->conf->socket_conf->router_conf;
 
@@ -191,33 +187,23 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
             return;
         }
 
-        nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
-        nxt_tstr_query_resolve(task, r->tstr_query, ctx,
-                               nxt_router_access_log_write_ready,
-                               nxt_router_access_log_write_error);
-     }
+        ret = nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return;
+        }
+    }
+
+    nxt_router_access_log_write(task, r, ctx);
 }
 
 
 static void
-nxt_router_access_log_write_ready(nxt_task_t *task, void *obj, void *data)
+nxt_router_access_log_write(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_access_log_ctx_t *ctx)
 {
-    nxt_http_request_t           *r;
-    nxt_router_access_log_ctx_t  *ctx;
-
-    r = obj;
-    ctx = data;
-
     nxt_fd_write(ctx->access_log->fd, ctx->text.start, ctx->text.length);
 
     nxt_http_request_close_handler(task, r, r->proto.any);
-}
-
-
-static void
-nxt_router_access_log_write_error(nxt_task_t *task, void *obj, void *data)
-{
-
 }
 
 
