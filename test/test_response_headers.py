@@ -163,12 +163,11 @@ def test_response_headers_remove():
 
 
 def test_response_headers_invalid(skip_alert):
-    skip_alert(r'failed to apply new conf')
-
     def check_invalid(conf):
-        assert 'error' in client.conf(
-            conf,
-            'routes/0/action/response_headers',
-        )
+        resp = client.conf(conf, 'routes/0/action/response_headers')
+        assert 'error' in resp
 
-    check_invalid({"X-Foo": "$u"})
+        return resp
+
+    resp = check_invalid({"X-Foo": "$u"})
+    assert 'detail' in resp and 'Unknown variable' in resp['detail']
