@@ -93,7 +93,9 @@ def test_variables_method(search_in_file, wait_for_record):
     assert wait_for_record(reg, 'access.log') is not None, 'method POST'
 
 
-def test_variables_request_uri(search_in_file, wait_for_record):
+def test_variables_request_uri(
+    findall, search_in_file, temp_dir, wait_for_record
+):
     set_format('$request_uri')
 
     def check_request_uri(req_uri):
@@ -107,6 +109,103 @@ def test_variables_request_uri(search_in_file, wait_for_record):
     check_request_uri('/4*')
     check_request_uri('/4%2A')
     check_request_uri('/9?q#a')
+
+    # $request_uri + proxy
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:8080": {"pass": "routes/a"},
+                "[::1]:8081": {"pass": "routes/b"},
+            },
+            "routes": {
+                "a": [
+                    {
+                        "action": {
+                            "proxy": "http://[::1]:8081",
+                        }
+                    }
+                ],
+                "b": [
+                    {
+                        "action": {
+                            "return": 200,
+                        }
+                    }
+                ],
+            },
+            "access_log": {
+                "path": f'{temp_dir}/access.log',
+                "format": "$remote_addr $uri $request_uri",
+            },
+        }
+    )
+
+    assert search_in_file(r'::1', 'access.log') is None
+
+    assert client.get(url='/blah%25blah?a=b')['status'] == 200
+
+    assert (
+        wait_for_record(fr'^::1 /blah%blah /blah%25blah\?a=b$', 'access.log')
+        is not None
+    ), 'req 8081 (proxy)'
+    assert (
+        search_in_file(
+            fr'^127\.0\.0\.1 /blah%blah /blah%25blah\?a=b$', 'access.log'
+        )
+        is not None
+    ), 'req 8080'
+
+    # rewrite set $request_uri before proxy
+
+    assert 'success' in client.conf(
+        {
+            "a": [
+                {
+                    "action": {
+                        "rewrite": "/foo",
+                        "proxy": "http://[::1]:8081",
+                    }
+                }
+            ],
+            "b": [
+                {
+                    "action": {
+                        "rewrite": "/bar",
+                        "return": 200,
+                    }
+                }
+            ],
+        },
+        'routes',
+    )
+
+    assert len(findall(r'::1', 'access.log')) == 1
+
+    assert client.get(url='/blah%2Fblah?a=b')['status'] == 200
+
+    assert (
+        wait_for_record(fr'^::1 /bar /bar\?a=b$', 'access.log') is not None
+    ), 'req 8081 (proxy) rewrite'
+    assert (
+        search_in_file(fr'^127\.0\.0\.1 /foo /foo\?a=b$', 'access.log')
+        is not None
+    ), 'req 8080 rewrite'
+
+    # percent-encoded rewrite
+
+    assert len(findall(r'::1', 'access.log')) == 2
+
+    assert 'success' in client.conf('"/foo%2Ffoo"', 'routes/a/0/action/rewrite')
+    assert client.get(url='/blah%2Fblah?a=b')['status'] == 200
+
+    assert (
+        wait_for_record(
+            fr'^127\.0\.0\.1 /foo/foo /foo%2Ffoo\?a=b$', 'access.log'
+        )
+        is not None
+    ), 'req 8080 percent'
+    assert len(findall(fr'^::1 /bar /bar\?a=b$', 'access.log')) == 2
 
 
 def test_variables_uri(search_in_file, wait_for_record):
