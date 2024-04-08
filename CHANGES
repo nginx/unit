@@ -6,7 +6,7 @@ Changes with Unit 1.32.0                                         27 Feb 2024
 
     *) Feature: conditional access logging.
 
-    *) Feature: NJS variables access.
+    *) Feature: njs variables access.
 
     *) Feature: $request_id variable contains a string that is formed using
        random data and can be used as a unique request identifier.
@@ -105,13 +105,13 @@ Changes with Unit 1.30.0                                         10 May 2023
 
     *) Feature: basic URI rewrite support.
 
-    *) Feature: NJS loadable modules support.
+    *) Feature: njs loadable modules support.
 
     *) Feature: per-application logging.
 
     *) Feature: conditional logging of route selection.
 
-    *) Feature: support the keys API on the request objects in NJS.
+    *) Feature: support the keys API on the request objects in njs.
 
     *) Feature: default values for 'make install' pathnames such as prefix;
        this allows to './configure && make && sudo make install'.
@@ -131,7 +131,7 @@ Changes with Unit 1.29.1                                         28 Feb 2023
 
     *) Bugfix: stop creating world-writeable directories.
 
-    *) Bugfix: memory leak related to NJS.
+    *) Bugfix: memory leak related to njs.
 
     *) Bugfix: path parsing in PHP applications.
 
