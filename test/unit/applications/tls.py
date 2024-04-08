@@ -85,9 +85,13 @@ subjectAltName = @alt_names
 default_bits = 2048
 encrypt_key = no
 distinguished_name = req_distinguished_name
+x509_extensions = myca_extensions
 
 {a_sec if alt_names else ""}
-[ req_distinguished_name ]'''
+[ req_distinguished_name ]
+
+[ myca_extensions ]
+basicConstraints = critical,CA:TRUE'''
             )
 
     def load(self, script, name=None):
