@@ -36,7 +36,7 @@ NGINX Unit updated to 1.33.0.
 
 <change type="change">
 <para>
-if building with NJS, version 0.8.3 or later is now required.
+if building with njs, version 0.8.3 or later is now required.
 </para>
 </change>
 
@@ -113,7 +113,7 @@ conditional access logging.
 
 <change type="feature">
 <para>
-NJS variables access.
+njs variables access.
 </para>
 </change>
 
@@ -450,7 +450,7 @@ basic URI rewrite support.
 
 <change type="feature">
 <para>
-NJS loadable modules support.
+njs loadable modules support.
 </para>
 </change>
 
@@ -468,7 +468,7 @@ conditional logging of route selection.
 
 <change type="feature">
 <para>
-support the keys API on the request objects in NJS.
+support the keys API on the request objects in njs.
 </para>
 </change>
 
@@ -542,7 +542,7 @@ stop creating world-writeable directories.
 
 <change type="bugfix">
 <para>
-memory leak related to NJS.
+memory leak related to njs.
 </para>
 </change>
 
