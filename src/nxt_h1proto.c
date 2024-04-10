@@ -90,6 +90,8 @@ static void nxt_h1p_peer_connect(nxt_task_t *task, nxt_http_peer_t *peer);
 static void nxt_h1p_peer_connected(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_refused(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer);
+static nxt_int_t nxt_h1p_peer_request_target(nxt_http_request_t *r,
+    nxt_str_t *target);
 static void nxt_h1p_peer_header_sent(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_header_read(nxt_task_t *task, nxt_http_peer_t *peer);
 static ssize_t nxt_h1p_peer_io_read_handler(nxt_task_t *task, nxt_conn_t *c);
@@ -653,6 +655,8 @@ nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
 
     r->target.start = h1p->parser.target_start;
     r->target.length = h1p->parser.target_end - h1p->parser.target_start;
+
+    r->quoted_target = h1p->parser.quoted_target;
 
     if (h1p->parser.version.ui64 != 0) {
         r->version.start = h1p->parser.version.str;
@@ -2263,6 +2267,8 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 {
     u_char              *p;
     size_t              size;
+    nxt_int_t           ret;
+    nxt_str_t           target;
     nxt_buf_t           *header, *body;
     nxt_conn_t          *c;
     nxt_http_field_t    *field;
@@ -2272,7 +2278,12 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 
     r = peer->request;
 
-    size = r->method->length + sizeof(" ") + r->target.length
+    ret = nxt_h1p_peer_request_target(r, &target);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    size = r->method->length + sizeof(" ") + target.length
            + sizeof(" HTTP/1.1\r\n")
            + sizeof("Connection: close\r\n")
            + sizeof("\r\n");
@@ -2288,8 +2299,7 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 
     header = nxt_http_buf_mem(task, r, size);
     if (nxt_slow_path(header == NULL)) {
-        r->state->error_handler(task, r, peer);
-        return;
+        goto fail;
     }
 
     p = header->mem.free;
@@ -2328,8 +2338,7 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
         }
 
         if (nxt_slow_path(body == NULL)) {
-            r->state->error_handler(task, r, peer);
-            return;
+            goto fail;
         }
 
         header->next = body;
@@ -2353,6 +2362,61 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
     }
 
     nxt_conn_write(task->thread->engine, c);
+
+    return;
+
+fail:
+
+    r->state->error_handler(task, r, peer);
+}
+
+
+static nxt_int_t
+nxt_h1p_peer_request_target(nxt_http_request_t *r, nxt_str_t *target)
+{
+    u_char  *p;
+    size_t  size, encode;
+
+    if (!r->uri_changed) {
+        *target = r->target;
+        return NXT_OK;
+    }
+
+    if (!r->quoted_target && r->args->length == 0) {
+        *target = *r->path;
+        return NXT_OK;
+    }
+
+    if (r->quoted_target) {
+        encode = nxt_encode_complex_uri(NULL, r->path->start,
+                                        r->path->length);
+    } else {
+        encode = 0;
+    }
+
+    size = r->path->length + encode * 2 + 1 + r->args->length;
+
+    target->start = nxt_mp_nget(r->mem_pool, size);
+    if (target->start == NULL) {
+        return NXT_ERROR;
+    }
+
+    if (r->quoted_target) {
+        p = (u_char *) nxt_encode_complex_uri(target->start, r->path->start,
+                                              r->path->length);
+
+    } else {
+        p = nxt_cpymem(target->start, r->path->start, r->path->length);
+    }
+
+    if (r->args->length > 0) {
+        *p++ = '?';
+        p = nxt_cpymem(p, r->args->start, r->args->length);
+    }
+
+    target->length = p - target->start;
+
+    return NXT_OK;
 }
 
 
