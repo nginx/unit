@@ -377,9 +377,9 @@ nxt_php_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_conf_value_t    *value;
     nxt_php_app_conf_t  *c;
 
-    static nxt_str_t  file_str = nxt_string("file");
-    static nxt_str_t  user_str = nxt_string("user");
-    static nxt_str_t  admin_str = nxt_string("admin");
+    static const nxt_str_t  file_str = nxt_string("file");
+    static const nxt_str_t  user_str = nxt_string("user");
+    static const nxt_str_t  admin_str = nxt_string("admin");
 
     c = &conf->u.php;
 
@@ -529,9 +529,9 @@ nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
     nxt_int_t         ret;
     nxt_conf_value_t  *value;
 
-    static nxt_str_t  root_str = nxt_string("root");
-    static nxt_str_t  script_str = nxt_string("script");
-    static nxt_str_t  index_str = nxt_string("index");
+    static const nxt_str_t  root_str = nxt_string("root");
+    static const nxt_str_t  script_str = nxt_string("script");
+    static const nxt_str_t  index_str = nxt_string("index");
 
     value = nxt_conf_get_object_member(conf, &root_str, NULL);
 
