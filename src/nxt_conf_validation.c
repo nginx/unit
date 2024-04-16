@@ -73,11 +73,11 @@ struct nxt_conf_vldt_object_s {
 
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
+    const nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
-static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_str_t *value);
+static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt,
+    const nxt_str_t *name, nxt_str_t *value);
 static nxt_int_t nxt_conf_vldt_if(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
@@ -1436,7 +1436,7 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 
 
 static nxt_int_t
-nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
+nxt_conf_vldt_type(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_conf_value_t *value, nxt_conf_vldt_type_t type)
 {
     u_char      *p;
@@ -1548,7 +1548,7 @@ nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 
 static nxt_int_t
-nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
+nxt_conf_vldt_var(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_str_t *value)
 {
     u_char  error[NXT_MAX_ERROR_STR];
