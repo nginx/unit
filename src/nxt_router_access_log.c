@@ -75,7 +75,7 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_router_access_log_t       *access_log;
     nxt_router_access_log_conf_t  alcf;
 
-    static nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
+    static const nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
         "[$time_local] \"$request_line\" $status $body_bytes_sent "
         "\"$header_referer\" \"$header_user_agent\"");
 

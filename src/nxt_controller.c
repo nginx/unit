@@ -1912,8 +1912,8 @@ nxt_controller_cert_in_use(nxt_str_t *name)
     nxt_str_t         str;
     nxt_conf_value_t  *listeners, *listener, *value;
 
-    static nxt_str_t  listeners_path = nxt_string("/listeners");
-    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static const nxt_str_t  listeners_path = nxt_string("/listeners");
+    static const nxt_str_t  certificate_path = nxt_string("/tls/certificate");
 
     listeners = nxt_conf_get_path(nxt_controller_conf.root, &listeners_path);
 
@@ -2178,7 +2178,7 @@ nxt_controller_script_in_use(nxt_str_t *name)
     nxt_str_t         str;
     nxt_conf_value_t  *js_module, *element;
 
-    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
+    static const nxt_str_t  js_module_path = nxt_string("/settings/js_module");
 
     js_module = nxt_conf_get_path(nxt_controller_conf.root,
                                     &js_module_path);
@@ -2486,13 +2486,13 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
     nxt_conf_value_t        *value, *location;
     nxt_conf_json_pretty_t  pretty;
 
-    static nxt_str_t  success_str = nxt_string("success");
-    static nxt_str_t  error_str = nxt_string("error");
-    static nxt_str_t  detail_str = nxt_string("detail");
-    static nxt_str_t  location_str = nxt_string("location");
-    static nxt_str_t  offset_str = nxt_string("offset");
-    static nxt_str_t  line_str = nxt_string("line");
-    static nxt_str_t  column_str = nxt_string("column");
+    static const nxt_str_t  success_str = nxt_string("success");
+    static const nxt_str_t  error_str = nxt_string("error");
+    static const nxt_str_t  detail_str = nxt_string("detail");
+    static const nxt_str_t  location_str = nxt_string("location");
+    static const nxt_str_t  offset_str = nxt_string("offset");
+    static const nxt_str_t  line_str = nxt_string("line");
+    static const nxt_str_t  column_str = nxt_string("column");
 
     static nxt_time_string_t  date_cache = {
         (nxt_atomic_uint_t) -1,

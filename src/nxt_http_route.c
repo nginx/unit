@@ -405,8 +405,8 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_route_addr_rule_t   *addr_rule;
     nxt_http_route_match_conf_t  mtcf;
 
-    static nxt_str_t  match_path = nxt_string("/match");
-    static nxt_str_t  action_path = nxt_string("/action");
+    static const nxt_str_t  match_path = nxt_string("/match");
+    static const nxt_str_t  action_path = nxt_string("/action");
 
     match_conf = nxt_conf_get_path(cv, &match_path);
 

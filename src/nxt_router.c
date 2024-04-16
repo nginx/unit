@@ -1634,25 +1634,29 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_app_conf_t       apcf;
     nxt_router_listener_conf_t  lscf;
 
-    static nxt_str_t  http_path = nxt_string("/settings/http");
-    static nxt_str_t  applications_path = nxt_string("/applications");
-    static nxt_str_t  listeners_path = nxt_string("/listeners");
-    static nxt_str_t  routes_path = nxt_string("/routes");
-    static nxt_str_t  access_log_path = nxt_string("/access_log");
+    static const nxt_str_t  http_path = nxt_string("/settings/http");
+    static const nxt_str_t  applications_path = nxt_string("/applications");
+    static const nxt_str_t  listeners_path = nxt_string("/listeners");
+    static const nxt_str_t  routes_path = nxt_string("/routes");
+    static const nxt_str_t  access_log_path = nxt_string("/access_log");
 #if (NXT_TLS)
-    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
-    static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
-    static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
-    static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
-    static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
+    static const nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static const nxt_str_t  conf_commands_path =
+                                nxt_string("/tls/conf_commands");
+    static const nxt_str_t  conf_cache_path =
+                                nxt_string("/tls/session/cache_size");
+    static const nxt_str_t  conf_timeout_path =
+                                nxt_string("/tls/session/timeout");
+    static const nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
 #endif
 #if (NXT_HAVE_NJS)
-    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
+    static const nxt_str_t  js_module_path = nxt_string("/settings/js_module");
 #endif
-    static nxt_str_t  static_path = nxt_string("/settings/http/static");
-    static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
-    static nxt_str_t  forwarded_path = nxt_string("/forwarded");
-    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
+    static const nxt_str_t  static_path = nxt_string("/settings/http/static");
+    static const nxt_str_t  websocket_path =
+                                nxt_string("/settings/http/websocket");
+    static const nxt_str_t  forwarded_path = nxt_string("/forwarded");
+    static const nxt_str_t  client_ip_path = nxt_string("/client_ip");
 
     root = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (root == NULL) {
@@ -2283,7 +2287,7 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_uint_t        exts;
     nxt_conf_value_t  *mtypes_conf, *ext_conf, *value;
 
-    static nxt_str_t  mtypes_path = nxt_string("/mime_types");
+    static const nxt_str_t  mtypes_path = nxt_string("/mime_types");
 
     mp = rtcf->mem_pool;
 
@@ -2360,11 +2364,11 @@ nxt_router_conf_forward(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf)
     nxt_http_forward_t          *forward;
     nxt_http_route_addr_rule_t  *source;
 
-    static nxt_str_t  header_path = nxt_string("/header");
-    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
-    static nxt_str_t  protocol_path = nxt_string("/protocol");
-    static nxt_str_t  source_path = nxt_string("/source");
-    static nxt_str_t  recursive_path = nxt_string("/recursive");
+    static const nxt_str_t  header_path = nxt_string("/header");
+    static const nxt_str_t  client_ip_path = nxt_string("/client_ip");
+    static const nxt_str_t  protocol_path = nxt_string("/protocol");
+    static const nxt_str_t  source_path = nxt_string("/source");
+    static const nxt_str_t  recursive_path = nxt_string("/recursive");
 
     header_conf = nxt_conf_get_path(conf, &header_path);
 

@@ -124,9 +124,9 @@ nxt_js_vm_create(nxt_js_conf_t *jcf)
     njs_vm_opt_t     opts;
     nxt_js_module_t  *module, *mod;
 
-    static nxt_str_t  import_str = nxt_string("import");
-    static nxt_str_t  from_str = nxt_string("from");
-    static nxt_str_t  global_str = nxt_string("globalThis");
+    static const nxt_str_t  import_str = nxt_string("import");
+    static const nxt_str_t  from_str = nxt_string("from");
+    static const nxt_str_t  global_str = nxt_string("globalThis");
 
     njs_vm_opt_init(&opts);
 
@@ -237,14 +237,15 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
     nxt_js_t   *js;
     nxt_str_t  *func;
 
-    static nxt_str_t  func_str = nxt_string("function(uri, host, remoteAddr, "
-                                            "args, headers, cookies, vars) {"
-                                            "    return ");
+    static const nxt_str_t  func_str =
+                                nxt_string("function(uri, host, remoteAddr, "
+                                           "args, headers, cookies, vars) {"
+                                           "    return ");
 
     /*
      * Appending a terminating null character if strz is true.
      */
-    static nxt_str_t  strz_str = nxt_string(" + '\\x00'");
+    static const nxt_str_t  strz_str = nxt_string(" + '\\x00'");
 
     size = func_str.length + str->length + 1;
 

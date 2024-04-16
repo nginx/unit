@@ -224,8 +224,8 @@ nxt_isolation_set_cgroup(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_str_t         str;
     nxt_conf_value_t  *obj;
 
-    static nxt_str_t  cgname = nxt_string("cgroup");
-    static nxt_str_t  path = nxt_string("path");
+    static const nxt_str_t  cgname = nxt_string("cgroup");
+    static const nxt_str_t  path = nxt_string("path");
 
     obj = nxt_conf_get_object_member(isolation, &cgname, NULL);
     if (obj == NULL) {
@@ -260,7 +260,7 @@ nxt_isolation_set_namespaces(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_int_t         ret;
     nxt_conf_value_t  *obj;
 
-    static nxt_str_t  nsname = nxt_string("namespaces");
+    static const nxt_str_t  nsname = nxt_string("namespaces");
 
     obj = nxt_conf_get_object_member(isolation, &nsname, NULL);
     if (obj != NULL) {
@@ -286,8 +286,8 @@ nxt_isolation_set_creds(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_clone_t       *clone;
     nxt_conf_value_t  *array;
 
-    static nxt_str_t uidname = nxt_string("uidmap");
-    static nxt_str_t gidname = nxt_string("gidmap");
+    static const nxt_str_t uidname = nxt_string("uidmap");
+    static const nxt_str_t gidname = nxt_string("gidmap");
 
     clone = &process->isolation.clone;
 
@@ -323,7 +323,7 @@ nxt_isolation_credential_map(nxt_task_t *task, nxt_mp_t *mp,
     nxt_uint_t        i;
     nxt_conf_value_t  *obj;
 
-    static nxt_conf_map_t  nxt_clone_map_entry_conf[] = {
+    static const nxt_conf_map_t  nxt_clone_map_entry_conf[] = {
         {
             nxt_string("container"),
             NXT_CONF_MAP_INT64,
@@ -496,7 +496,7 @@ nxt_isolation_set_rootfs(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_str_t         str;
     nxt_conf_value_t  *obj;
 
-    static nxt_str_t  rootfs_name = nxt_string("rootfs");
+    static const nxt_str_t  rootfs_name = nxt_string("rootfs");
 
     obj = nxt_conf_get_object_member(isolation, &rootfs_name, NULL);
     if (obj != NULL) {
@@ -536,10 +536,10 @@ nxt_isolation_set_automount(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_conf_value_t         *conf, *value;
     nxt_process_automount_t  *automount;
 
-    static nxt_str_t  automount_name = nxt_string("automount");
-    static nxt_str_t  langdeps_name = nxt_string("language_deps");
-    static nxt_str_t  tmp_name = nxt_string("tmpfs");
-    static nxt_str_t  proc_name = nxt_string("procfs");
+    static const nxt_str_t  automount_name = nxt_string("automount");
+    static const nxt_str_t  langdeps_name = nxt_string("language_deps");
+    static const nxt_str_t  tmp_name = nxt_string("tmpfs");
+    static const nxt_str_t  proc_name = nxt_string("procfs");
 
     automount = &process->isolation.automount;
 
@@ -1110,7 +1110,7 @@ nxt_isolation_set_new_privs(nxt_task_t *task, nxt_conf_value_t *isolation,
 {
     nxt_conf_value_t  *obj;
 
-    static nxt_str_t  new_privs_name = nxt_string("new_privs");
+    static const nxt_str_t  new_privs_name = nxt_string("new_privs");
 
     obj = nxt_conf_get_object_member(isolation, &new_privs_name, NULL);
     if (obj != NULL) {

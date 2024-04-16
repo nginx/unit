@@ -1948,9 +1948,9 @@ nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
     nxt_unit_field_t    *fields, f;
     nxt_unit_request_t  *r;
 
-    static nxt_str_t  content_length = nxt_string("content-length");
-    static nxt_str_t  content_type = nxt_string("content-type");
-    static nxt_str_t  cookie = nxt_string("cookie");
+    static const nxt_str_t  content_length = nxt_string("content-length");
+    static const nxt_str_t  content_type = nxt_string("content-type");
+    static const nxt_str_t  cookie = nxt_string("cookie");
 
     nxt_unit_req_debug(req, "group_dup_fields");
 
