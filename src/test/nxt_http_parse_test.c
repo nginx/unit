@@ -762,7 +762,7 @@ nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
         return NXT_ERROR;
     }
 
-    if (rp->complex_target != (test->complex_target | test->quoted_target)) {
+    if (rp->complex_target != test->complex_target) {
         nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - complex_target: %d (expected: %d)",
@@ -770,7 +770,6 @@ nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
         return NXT_ERROR;
     }
 
-#if 0
     if (rp->quoted_target != test->quoted_target) {
         nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
@@ -779,6 +778,7 @@ nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
         return NXT_ERROR;
     }
 
+#if 0
     if (rp->space_in_target != test->space_in_target) {
         nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
