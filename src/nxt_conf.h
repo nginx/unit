@@ -108,17 +108,18 @@ nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 #define nxt_conf_json_parse_str(mp, str)                                      \
     nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length, NULL)
 
-size_t nxt_conf_json_length(nxt_conf_value_t *value,
+size_t nxt_conf_json_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
+u_char *nxt_conf_json_print(u_char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 void nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
     nxt_uint_t *column);
 
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
-NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
-NXT_EXPORT nxt_str_t *nxt_conf_get_string_dup(nxt_conf_value_t *value,
+NXT_EXPORT void nxt_conf_get_string(const nxt_conf_value_t *value,
+    nxt_str_t *str);
+NXT_EXPORT nxt_str_t *nxt_conf_get_string_dup(const nxt_conf_value_t *value,
     nxt_mp_t *mp, nxt_str_t *str);
 NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value,
     const nxt_str_t *str);

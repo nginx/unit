@@ -130,16 +130,17 @@ static nxt_int_t nxt_conf_copy_array(nxt_mp_t *mp, const nxt_conf_op_t *op,
 static nxt_int_t nxt_conf_copy_object(nxt_mp_t *mp, const nxt_conf_op_t *op,
     nxt_conf_value_t *dst, const nxt_conf_value_t *src);
 
-static size_t nxt_conf_json_string_length(nxt_conf_value_t *value);
-static u_char *nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value);
-static size_t nxt_conf_json_array_length(nxt_conf_value_t *value,
+static size_t nxt_conf_json_string_length(const nxt_conf_value_t *value);
+static u_char *nxt_conf_json_print_string(u_char *p,
+    const nxt_conf_value_t *value);
+static size_t nxt_conf_json_array_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_print_array(u_char *p, nxt_conf_value_t *value,
+static u_char *nxt_conf_json_print_array(u_char *p,
+    const nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty);
+static size_t nxt_conf_json_object_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static size_t nxt_conf_json_object_length(nxt_conf_value_t *value,
-    nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_print_object(u_char *p, nxt_conf_value_t *value,
-    nxt_conf_json_pretty_t *pretty);
+static u_char *nxt_conf_json_print_object(u_char *p,
+    const nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty);
 
 static size_t nxt_conf_json_escape_length(u_char *p, size_t size);
 static u_char *nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
@@ -162,21 +163,22 @@ nxt_conf_json_indentation(u_char *p, uint32_t level)
 
 
 void
-nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
+nxt_conf_get_string(const nxt_conf_value_t *value, nxt_str_t *str)
 {
     if (value->type == NXT_CONF_VALUE_SHORT_STRING) {
         str->length = value->u.str.length;
-        str->start = value->u.str.start;
+        str->start = (u_char *) value->u.str.start;
 
     } else {
         str->length = value->u.string.length;
-        str->start = value->u.string.start;
+        str->start = (u_char *) value->u.string.start;
     }
 }
 
 
 nxt_str_t *
-nxt_conf_get_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+nxt_conf_get_string_dup(const nxt_conf_value_t *value, nxt_mp_t *mp,
+    nxt_str_t *str)
 {
     nxt_str_t  s;
 
@@ -2233,7 +2235,8 @@ nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
 
 
 size_t
-nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
+nxt_conf_json_length(const nxt_conf_value_t *value,
+    nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
@@ -2265,7 +2268,7 @@ nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
 
 
 u_char *
-nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
+nxt_conf_json_print(u_char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
@@ -2299,7 +2302,7 @@ nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
 
 
 static size_t
-nxt_conf_json_string_length(nxt_conf_value_t *value)
+nxt_conf_json_string_length(const nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 
@@ -2310,7 +2313,7 @@ nxt_conf_json_string_length(nxt_conf_value_t *value)
 
 
 static u_char *
-nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value)
+nxt_conf_json_print_string(u_char *p, const nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 
@@ -2327,7 +2330,7 @@ nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value)
 
 
 static size_t
-nxt_conf_json_array_length(nxt_conf_value_t *value,
+nxt_conf_json_array_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     size_t            len;
@@ -2369,7 +2372,7 @@ nxt_conf_json_array_length(nxt_conf_value_t *value,
 
 
 static u_char *
-nxt_conf_json_print_array(u_char *p, nxt_conf_value_t *value,
+nxt_conf_json_print_array(u_char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     nxt_uint_t        n;
@@ -2421,7 +2424,7 @@ nxt_conf_json_print_array(u_char *p, nxt_conf_value_t *value,
 
 
 static size_t
-nxt_conf_json_object_length(nxt_conf_value_t *value,
+nxt_conf_json_object_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     size_t                    len;
@@ -2465,7 +2468,7 @@ nxt_conf_json_object_length(nxt_conf_value_t *value,
 
 
 static u_char *
-nxt_conf_json_print_object(u_char *p, nxt_conf_value_t *value,
+nxt_conf_json_print_object(u_char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     nxt_uint_t                n;
