@@ -246,7 +246,7 @@ nxt_tstr_query_init(nxt_tstr_query_t **query_p, nxt_tstr_state_t *state,
 }
 
 
-void
+nxt_int_t
 nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
     nxt_str_t *val)
 {
@@ -254,11 +254,11 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
     if (nxt_tstr_is_const(tstr)) {
         nxt_tstr_str(tstr, val);
-        return;
+        return NXT_OK;
     }
 
     if (nxt_slow_path(query->failed)) {
-        return;
+        return NXT_ERROR;
     }
 
     if (tstr->type == NXT_TSTR_VAR) {
@@ -268,7 +268,7 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
         if (nxt_slow_path(ret != NXT_OK)) {
             query->failed = 1;
-            return;
+            return NXT_ERROR;
         }
 
     } else {
@@ -278,7 +278,7 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
         if (nxt_slow_path(ret != NXT_OK)) {
             query->failed = 1;
-            return;
+            return NXT_ERROR;
         }
 #endif
     }
@@ -294,6 +294,8 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
     nxt_debug(task, "tstr query: \"%V\", result: \"%V\"", &str, val);
 #endif
+
+    return NXT_OK;
 }
 
 
