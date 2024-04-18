@@ -52,9 +52,8 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
             return NXT_ERROR;
         }
 
-        nxt_tstr_query(task, r->tstr_query, action->rewrite, &str);
-
-        if (nxt_slow_path(nxt_tstr_query_failed(r->tstr_query))) {
+        ret = nxt_tstr_query(task, r->tstr_query, action->rewrite, &str);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NXT_ERROR;
         }
     }
