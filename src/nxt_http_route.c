@@ -193,8 +193,8 @@ static nxt_int_t nxt_http_action_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_action_t *action);
 static nxt_http_action_t *nxt_http_pass_var(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
-static void nxt_http_pass_query_ready(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_pass_query_error(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_pass_query(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action);
 static nxt_int_t nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf,
     nxt_str_t *pass, nxt_http_action_t *action);
 static nxt_int_t nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
@@ -1344,10 +1344,13 @@ nxt_http_pass_var(nxt_task_t *task, nxt_http_request_t *r,
 
     action->u.pass = nxt_pointer_to(action, sizeof(nxt_http_action_t));
 
-    nxt_tstr_query(task, r->tstr_query, tstr, action->u.pass);
-    nxt_tstr_query_resolve(task, r->tstr_query, action,
-                           nxt_http_pass_query_ready,
-                           nxt_http_pass_query_error);
+    ret = nxt_tstr_query(task, r->tstr_query, tstr, action->u.pass);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    nxt_http_pass_query(task, r, action);
+
     return NULL;
 
 fail:
@@ -1358,16 +1361,13 @@ fail:
 
 
 static void
-nxt_http_pass_query_ready(nxt_task_t *task, void *obj, void *data)
+nxt_http_pass_query(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action)
 {
-    nxt_int_t           ret;
-    nxt_router_conf_t   *rtcf;
-    nxt_http_action_t   *action;
-    nxt_http_status_t   status;
-    nxt_http_request_t  *r;
+    nxt_int_t          ret;
+    nxt_router_conf_t  *rtcf;
+    nxt_http_status_t  status;
 
-    r = obj;
-    action = data;
     rtcf = r->conf->socket_conf->router_conf;
 
     nxt_debug(task, "http pass lookup: %V", action->u.pass);
@@ -1383,17 +1383,6 @@ nxt_http_pass_query_ready(nxt_task_t *task, void *obj, void *data)
     }
 
     nxt_http_request_action(task, r, action);
-}
-
-
-static void
-nxt_http_pass_query_error(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_http_request_t  *r;
-
-    r = obj;
-
-    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
 }
 
 
