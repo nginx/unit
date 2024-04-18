@@ -52,11 +52,6 @@ nxt_int_t nxt_tstr_query_init(nxt_tstr_query_t **query_p,
     nxt_mp_t *mp);
 nxt_int_t nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query,
     nxt_tstr_t *tstr, nxt_str_t *val);
-nxt_bool_t nxt_tstr_query_failed(nxt_tstr_query_t *query);
-void nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query,
-    void *data, nxt_work_handler_t ready, nxt_work_handler_t error);
-void nxt_tstr_query_handle(nxt_task_t *task, nxt_tstr_query_t *query,
-    nxt_bool_t failed);
 void nxt_tstr_query_release(nxt_tstr_query_t *query);
 
 

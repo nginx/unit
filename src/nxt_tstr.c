@@ -36,14 +36,8 @@ struct nxt_tstr_query_s {
     nxt_tstr_state_t    *state;
     nxt_tstr_cache_t    *cache;
 
-    nxt_uint_t          waiting;
-    nxt_uint_t          failed;   /* 1 bit */
-
     void                *ctx;
     void                *data;
-
-    nxt_work_handler_t  ready;
-    nxt_work_handler_t  error;
 };
 
 
@@ -257,17 +251,12 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
         return NXT_OK;
     }
 
-    if (nxt_slow_path(query->failed)) {
-        return NXT_ERROR;
-    }
-
     if (tstr->type == NXT_TSTR_VAR) {
         ret = nxt_var_interpreter(task, query->state, &query->cache->var,
                                   tstr->u.var, val, query->ctx,
                                   tstr->flags & NXT_TSTR_LOGGING);
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            query->failed = 1;
             return NXT_ERROR;
         }
 
@@ -277,7 +266,6 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
                           tstr->u.js, val, query->ctx);
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            query->failed = 1;
             return NXT_ERROR;
         }
 #endif
@@ -296,43 +284,6 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 #endif
 
     return NXT_OK;
-}
-
-
-nxt_bool_t
-nxt_tstr_query_failed(nxt_tstr_query_t *query)
-{
-    return query->failed;
-}
-
-
-void
-nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query, void *data,
-    nxt_work_handler_t ready, nxt_work_handler_t error)
-{
-    query->data = data;
-    query->ready = ready;
-    query->error = error;
-
-    if (query->waiting == 0) {
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           query->failed ? query->error : query->ready,
-                           task, query->ctx, query->data);
-    }
-}
-
-
-void
-nxt_tstr_query_handle(nxt_task_t *task, nxt_tstr_query_t *query,
-    nxt_bool_t failed)
-{
-    query->failed |= failed;
-
-    if (--query->waiting == 0) {
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           query->failed ? query->error : query->ready,
-                           task, query->ctx, query->data);
-    }
 }
 
 
