@@ -41,7 +41,7 @@ For details and available language packages, see the
 ### Docker
 
 ``` console
-$ docker pull unit
+$ docker pull unit:<TAG>
 $ mkdir /tmp/unit-control # customize as needed.
 $ docker run -d \
       --mount type=bind,src=/tmp/unit-control,dst=/var/run \
@@ -53,6 +53,8 @@ $ docker run -d \
 For a description of image tags, see the
 [docs](https://unit.nginx.org/installation/#docker-images).
 
+WARNING: latest image tag may not provide support for specific language modules,
+*do* check the available image tags from the link above before pulling your image.
 
 Your current working directory will now be mounted to the Unit image at `/www`.
 You can reach its socket at `/tmp/unit-control/control.unit.sock` assuming no 
