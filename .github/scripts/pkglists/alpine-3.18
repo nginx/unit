@@ -1,0 +1,6 @@
+curl-dev
+libssh2-dev
+openjdk11
+py3-pip
+php82-dev
+php82-embed
