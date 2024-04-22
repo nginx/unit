@@ -434,8 +434,6 @@ ${NXT_DAEMON}-install: $NXT_DAEMON install-check
 		|| install -d \$(DESTDIR)$NXT_STATEDIR
 	test -d \$(DESTDIR)$NXT_LOGDIR \
 		|| install -d \$(DESTDIR)$NXT_LOGDIR
-	test -d \$(DESTDIR)$NXT_RUNSTATEDIR \
-		|| install -d \$(DESTDIR)$NXT_RUNSTATEDIR
 
 manpage-install: manpage install-check
 	test -d \$(DESTDIR)$NXT_MANDIR/man8 \
