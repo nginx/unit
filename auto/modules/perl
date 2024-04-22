@@ -67,6 +67,12 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
                          | sed -e 's/-arch i386//' -e 's/-arch x86_64//'`
     fi
 
+    if [ "$NXT_CC_NAME" = "clang" ]; then
+        # Perl's CFLAGS has -fwrapv which under clang discards our
+        # -fno-strict-overflow resulting in an unused argument error
+        NXT_PERL_CFLAGS="$NXT_PERL_CFLAGS -Qunused-arguments"
+    fi
+
     nxt_feature="Perl"
     nxt_feature_name=""
     nxt_feature_run=no
