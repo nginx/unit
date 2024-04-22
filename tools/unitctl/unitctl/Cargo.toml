@@ -1,0 +1,56 @@
+[package]
+name = "unitctl"
+description = "CLI interface to the NGINX UNIT Control API"
+version = "0.4.0-beta"
+authors = ["Elijah Zupancic"]
+edition = "2021"
+license = "Apache-2.0"
+
+[[bin]]
+name = "unitctl"
+path = "src/main.rs"
+
+[features]
+
+[dependencies]
+clap = { version = "4.4", features = ["default", "derive", "cargo"] }
+custom_error = "1.9"
+serde = "1.0"
+json5 = "0.4"
+nu-json = "0.89"
+serde_json = { version = "1.0", optional = false }
+serde_yaml = "0.9"
+rustls-pemfile = "2.0.0"
+unit-client-rs = { path = "../unit-client-rs" }
+colored_json = "4.1"
+tempfile = "3.8"
+which = "5.0"
+walkdir = "2.4"
+
+hyper = { version = "0.14", features = ["http1", "server", "client"] }
+hyperlocal = "0.8"
+hyper-tls = "0.5"
+tokio = { version = "1.35", features = ["macros"] }
+futures = "0.3"
+
+[package.metadata.deb]
+copyright = "2022, F5"
+license-file = ["../LICENSE.txt", "0"]
+extended-description = """\
+A utility for controlling NGINX UNIT."""
+section = "utility"
+priority = "optional"
+assets = [
+    ["../target/release/unitctl", "usr/bin/", "755"],
+    ["../target/man/unitctl.1.gz", "usr/share/man/man1/", "644"]
+]
+
+[package.metadata.generate-rpm]
+summary = """\
+A utility for controlling NGINX UNIT."""
+section = "utility"
+priority = "optional"
+assets = [
+    { source = "../target/release/unitctl", dest = "/usr/bin/unitctl", mode = "755" },
+    { source = "../target/man/unitctl.1.gz", dest = "/usr/share/man/man1/unitctl.1.gz", mode = "644" },
+]

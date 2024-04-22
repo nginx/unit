@@ -1,0 +1,6 @@
+{
+  "packageName": "unit-openapi",
+  "packageVersion": "0.4.0-beta",
+  "library": "hyper",
+  "preferUnsignedInt": true
+}
