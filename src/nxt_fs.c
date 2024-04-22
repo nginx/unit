@@ -1,5 +1,6 @@
 /*
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_main.h>
@@ -58,7 +59,7 @@ nxt_fs_mkdir_dirname(const u_char *path, mode_t mode)
     ret = NXT_OK;
 
     ptr = strrchr(dir, '/');
-    if (nxt_slow_path(ptr == NULL)) {
+    if (ptr == dir || nxt_slow_path(ptr == NULL)) {
         goto out_free;
     }
 
