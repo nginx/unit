@@ -46,7 +46,7 @@ nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
 
 
 nxt_int_t
-nxt_fs_mkdir_dirname(const u_char *path, mode_t mode)
+nxt_fs_mkdir_p_dirname(const u_char *path, mode_t mode)
 {
     char       *ptr, *dir;
     nxt_int_t  ret;
@@ -64,7 +64,7 @@ nxt_fs_mkdir_dirname(const u_char *path, mode_t mode)
     }
 
     *ptr = '\0';
-    ret = nxt_fs_mkdir((const u_char *) dir, mode);
+    ret = nxt_fs_mkdir_p((const u_char *) dir, mode);
 
 out_free:
     nxt_free(dir);
