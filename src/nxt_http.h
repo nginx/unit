@@ -305,11 +305,12 @@ struct nxt_http_forward_s {
 nxt_inline u_char *
 nxt_http_date(u_char *buf, struct tm *tm)
 {
-    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
-                                   "Sat" };
+    static const char * const  week[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
+                                          "Fri", "Sat" };
 
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    static const char * const  month[] = { "Jan", "Feb", "Mar", "Apr", "May",
+                                           "Jun", "Jul", "Aug", "Sep", "Oct",
+                                           "Nov", "Dec" };
 
     return nxt_sprintf(buf, buf + NXT_HTTP_DATE_LEN,
                        "%s, %02d %s %4d %02d:%02d:%02d GMT",
