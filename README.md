@@ -53,11 +53,12 @@ $ docker run -d \
 For a description of image tags, see the
 [docs](https://unit.nginx.org/installation/#docker-images).
 
-WARNING: latest image tag may not provide support for specific language modules,
-*do* check the available image tags from the link above before pulling your image.
+WARNING: latest image tag may not provide support for specific language
+modules, *do* check the available image tags from the link above before
+pulling your image.
 
 Your current working directory will now be mounted to the Unit image at `/www`.
-You can reach its socket at `/tmp/unit-control/control.unit.sock` assuming no 
+You can reach its socket at `/tmp/unit-control/control.unit.sock` assuming no
 further customizations have been made.
 
 ### Amazon Linux, Fedora, Red Hat
