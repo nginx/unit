@@ -58,11 +58,14 @@ nxt_fs_mkdir_dirname(const u_char *path, mode_t mode)
     ret = NXT_OK;
 
     ptr = strrchr(dir, '/');
-    if (nxt_fast_path(ptr != NULL)) {
-        *ptr = '\0';
-        ret = nxt_fs_mkdir((const u_char *) dir, mode);
+    if (nxt_slow_path(ptr == NULL)) {
+        goto out_free;
     }
 
+    *ptr = '\0';
+    ret = nxt_fs_mkdir((const u_char *) dir, mode);
+
+out_free:
     nxt_free(dir);
 
     return ret;
