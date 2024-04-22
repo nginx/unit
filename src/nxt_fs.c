@@ -5,6 +5,8 @@
 
 #include <nxt_main.h>
 
+#include <errno.h>
+
 
 static nxt_int_t nxt_fs_mkdir(const u_char *dir, mode_t mode);
 
@@ -50,7 +52,7 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
 
 
 nxt_int_t
-nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
+nxt_fs_mkdir_parents_dirname(const u_char *path, mode_t mode)
 {
     char       *ptr, *dir;
     nxt_int_t  ret;
@@ -63,12 +65,23 @@ nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
     ret = NXT_OK;
 
     ptr = strrchr(dir, '/');
-    if (nxt_slow_path(ptr == NULL || ptr == dir)) {
+    if (ptr == dir || nxt_slow_path(ptr == NULL)) {
         goto out_free;
     }
 
     *ptr = '\0';
+    if (strcmp(dir, (const char *) path) != 0)
+    {
+        ret = nxt_fs_mkdir_parents_dirname((const u_char *) dir, mode);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            goto out_free;
+        }
+    }
+
     ret = nxt_fs_mkdir((const u_char *) dir, mode);
+    if (ret == NXT_ERROR && errno == EEXIST) {
+        ret = NXT_OK;
+    }
 
 out_free:
     nxt_free(dir);
