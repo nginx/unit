@@ -23,11 +23,7 @@ nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
     start = (char *) dir;
 
     while (*start != '\0') {
-        if (*start == '/') {
-            *dst++ = *start++;
-        }
-
-        end = strchr(start, '/');
+        end = strchr(start + 1, '/');
         if (end == NULL) {
             end = ((char *)dir + dirlen);
         }
