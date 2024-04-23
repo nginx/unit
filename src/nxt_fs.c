@@ -11,9 +11,10 @@ static nxt_int_t nxt_fs_mkdir(const u_char *dir, mode_t mode);
 nxt_int_t
 nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
 {
-    char    *start, *end, *dst;
-    size_t  dirlen;
-    char    path[PATH_MAX];
+    char       *start, *end, *dst;
+    size_t     dirlen;
+    nxt_int_t  ret;
+    char       path[PATH_MAX];
 
     dirlen = nxt_strlen(dir);
 
@@ -35,9 +36,8 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
         dst = nxt_cpymem(dst, start, end - start);
         *dst = '\0';
 
-        if (nxt_slow_path(nxt_fs_mkdir((u_char *) path, mode) != NXT_OK
-                          && nxt_errno != EEXIST))
-        {
+        ret = nxt_fs_mkdir((u_char *) path, mode);
+        if (nxt_slow_path(ret != NXT_OK && nxt_errno != EEXIST)) {
             return NXT_ERROR;
         }
 
