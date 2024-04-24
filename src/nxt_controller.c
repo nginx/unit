@@ -695,7 +695,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     if (ls->sockaddr->u.sockaddr.sa_family == AF_UNIX) {
         const char *path = ls->sockaddr->u.sockaddr_un.sun_path;
 
-        nxt_fs_mkdir_parent((const u_char *) path, 0755);
+        nxt_fs_mkdir_dirname((const u_char *) path, 0755);
     }
 #endif
 
