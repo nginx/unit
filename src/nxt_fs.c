@@ -49,7 +49,7 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
 
 
 nxt_int_t
-nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
+nxt_fs_mkdir_dirname(const u_char *path, mode_t mode)
 {
     char       *ptr, *dir;
     nxt_int_t  ret;
