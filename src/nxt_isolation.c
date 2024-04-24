@@ -780,7 +780,7 @@ nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
             continue;
         }
 
-        ret = nxt_fs_mkdir_all(dst, S_IRWXU | S_IRWXG | S_IRWXO);
+        ret = nxt_fs_mkdir_p(dst, S_IRWXU | S_IRWXG | S_IRWXO);
         if (nxt_slow_path(ret != NXT_OK)) {
             nxt_alert(task, "mkdir(%s) %E", dst, nxt_errno);
             goto undo;
