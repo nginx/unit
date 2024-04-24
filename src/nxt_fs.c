@@ -9,7 +9,7 @@ static nxt_int_t nxt_fs_mkdir(const u_char *dir, mode_t mode);
 
 
 nxt_int_t
-nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
+nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
 {
     char    *start, *end, *dst;
     size_t  dirlen;
