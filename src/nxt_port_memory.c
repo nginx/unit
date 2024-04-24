@@ -393,8 +393,7 @@ nxt_shm_open(nxt_task_t *task, size_t size)
 
 #elif (NXT_HAVE_SHM_OPEN_ANON)
 
-    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
-
+    fd = shm_open(SHM_ANON, O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_alert(task, "shm_open(SHM_ANON) failed %E", nxt_errno);
 
@@ -408,8 +407,7 @@ nxt_shm_open(nxt_task_t *task, size_t size)
     /* Just in case. */
     shm_unlink((char *) name);
 
-    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
-
+    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_alert(task, "shm_open(%s) failed %E", name, nxt_errno);
 

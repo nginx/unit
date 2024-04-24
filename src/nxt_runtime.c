@@ -895,8 +895,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    ret = mkdir((char *) file_name.start, S_IRWXU);
-
+    ret = mkdir((char *) file_name.start, 0700);
     if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
         rt->certs.length = file_name.len;
         rt->certs.start = file_name.start;
@@ -912,8 +911,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    ret = mkdir((char *) file_name.start, S_IRWXU);
-
+    ret = mkdir((char *) file_name.start, 0700);
     if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
         rt->scripts.length = file_name.len;
         rt->scripts.start = file_name.start;

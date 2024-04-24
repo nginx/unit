@@ -3857,7 +3857,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
 
 #elif (NXT_HAVE_SHM_OPEN_ANON)
 
-    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+    fd = shm_open(SHM_ANON, O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_unit_alert(ctx, "shm_open(SHM_ANON) failed: %s (%d)",
                        strerror(errno), errno);
@@ -3870,7 +3870,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
     /* Just in case. */
     shm_unlink(name);
 
-    fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
+    fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_unit_alert(ctx, "shm_open(%s) failed: %s (%d)", name,
                        strerror(errno), errno);
