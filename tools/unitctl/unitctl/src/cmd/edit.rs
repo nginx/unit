@@ -18,11 +18,11 @@ const EDITOR_KNOWN_LIST: [&str; 8] = [
     "emacs",
 ];
 
-pub(crate) fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<(), UnitctlError> {
-    let control_socket = wait::wait_for_socket(cli)?;
+pub(crate) async fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<(), UnitctlError> {
+    let control_socket = wait::wait_for_socket(cli).await?;
     let client = UnitClient::new(control_socket);
     // Get latest configuration
-    let current_config = send_empty_body_deserialize_response(&client, "GET", "/config")?;
+    let current_config = send_empty_body_deserialize_response(&client, "GET", "/config").await?;
 
     // Write JSON to temporary file - this file will automatically be deleted by the OS when
     // the last file handle to it is removed.
@@ -54,6 +54,7 @@ pub(crate) fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<(), Unit
 
     // Send edited file to UNIT to overwrite current configuration
     send_and_validate_config_deserialize_response(&client, "PUT", "/config", Some(&inputfile))
+        .await
         .and_then(|status| output_format.write_to_stdout(&status))
 }
 

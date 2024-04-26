@@ -12,7 +12,7 @@ use unit_client_rs::unit_client::UnitClientError;
 
 /// Send the contents of a file to the unit server
 /// We assume that the file is valid and can be sent to the server
-pub fn send_and_validate_config_deserialize_response(
+pub async fn send_and_validate_config_deserialize_response(
     client: &UnitClient,
     method: &str,
     path: &str,
@@ -35,20 +35,21 @@ pub fn send_and_validate_config_deserialize_response(
     let reader = KnownSize::String(json.to_string());
 
     streaming_upload_deserialize_response(client, method, path, mime_type, reader)
+        .await
         .map_err(|e| UnitctlError::UnitClientError { source: e })
 }
 
 /// Send an empty body to the unit server
-pub fn send_empty_body_deserialize_response(
+pub async fn send_empty_body_deserialize_response(
     client: &UnitClient,
     method: &str,
     path: &str,
 ) -> Result<UnitSerializableMap, UnitctlError> {
-    send_body_deserialize_response(client, method, path, None)
+    send_body_deserialize_response(client, method, path, None).await
 }
 
 /// Send the contents of a PEM file to the unit server
-pub fn send_and_validate_pem_data_deserialize_response(
+pub async fn send_and_validate_pem_data_deserialize_response(
     client: &UnitClient,
     method: &str,
     path: &str,
@@ -65,6 +66,7 @@ pub fn send_and_validate_pem_data_deserialize_response(
     let known_size = KnownSize::Vec((*bytes).to_owned());
 
     streaming_upload_deserialize_response(client, method, path, Some(input_file.mime_type()), known_size)
+        .await
         .map_err(|e| UnitctlError::UnitClientError { source: e })
 }
 
@@ -131,7 +133,7 @@ fn validate_pem_items(pem_items: Vec<Result<Item, UnitctlError>>) -> Result<(), 
     Ok(())
 }
 
-pub fn send_body_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>>(
+pub async fn send_body_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>>(
     client: &UnitClient,
     method: &str,
     path: &str,
@@ -143,10 +145,11 @@ pub fn send_body_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>
         }
         None => streaming_upload_deserialize_response(client, method, path, None, KnownSize::Empty),
     }
+    .await
     .map_err(|e| UnitctlError::UnitClientError { source: e })
 }
 
-fn streaming_upload_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>>(
+async fn streaming_upload_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>>(
     client: &UnitClient,
     method: &str,
     path: &str,
@@ -171,5 +174,5 @@ fn streaming_upload_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'
             .insert("Content-Type", content_type.parse().unwrap());
     }
 
-    client.send_request_and_deserialize_response(request)
+    client.send_request_and_deserialize_response(request).await
 }

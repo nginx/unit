@@ -27,6 +27,8 @@ which = "5.0"
 
 unit-openapi = { path = "../unit-openapi" }
 rustls = "0.23.5"
+bollard = "0.16.1"
+regex = "1.10.4"
 
 [dev-dependencies]
 rand = "0.8.5"

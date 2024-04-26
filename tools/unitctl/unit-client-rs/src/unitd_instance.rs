@@ -1,4 +1,5 @@
 use crate::unit_client::UnitClientError;
+use crate::unitd_docker::UnitdContainer;
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
 use std::error::Error as StdError;
@@ -25,7 +26,7 @@ impl Serialize for UnitdInstance {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_map(Some(15))?;
+        let mut state = serializer.serialize_map(Some(11))?;
         let runtime_flags = self
             .process
             .cmd()
@@ -34,13 +35,9 @@ impl Serialize for UnitdInstance {
 
         let configure_flags = self.configure_options.as_ref().map(|opts| opts.all_flags.clone());
 
-        state.serialize_entry("pid", &self.process.process_id)?;
+        state.serialize_entry("process", &self.process)?;
         state.serialize_entry("version", &self.version())?;
-        state.serialize_entry("user", &self.process.user)?;
-        state.serialize_entry("effective_user", &self.process.effective_user)?;
-        state.serialize_entry("executable", &self.process.executable_path())?;
         state.serialize_entry("control_socket", &self.control_api_socket_address())?;
-        state.serialize_entry("child_pids", &self.process.child_pids)?;
         state.serialize_entry("log_path", &self.log_path())?;
         state.serialize_entry("pid_path", &self.pid_path())?;
         state.serialize_entry("modules_directory", &self.modules_directory())?;
@@ -56,8 +53,19 @@ impl Serialize for UnitdInstance {
 }
 
 impl UnitdInstance {
-    pub fn running_unitd_instances() -> Vec<UnitdInstance> {
-        Self::collect_unitd_processes(UnitdProcess::find_unitd_processes())
+    pub async fn running_unitd_instances() -> Vec<UnitdInstance> {
+        Self::collect_unitd_processes(
+            UnitdProcess::find_unitd_processes()
+                .into_iter()
+                .chain(
+                    UnitdContainer::find_unitd_containers()
+                        .await
+                        .into_iter()
+                        .map(|x| UnitdProcess::from(&x))
+                        .collect::<Vec<_>>(),
+                )
+                .collect(),
+        )
     }
 
     /// Find all running unitd processes and convert them into UnitdInstances and filter
@@ -91,11 +99,14 @@ impl UnitdInstance {
                                 pid: process.process_id,
                             })?;
                         Ok(new_path)
-                    } else {
+                    } else if process.container.is_none() {
                         Err(UnitClientError::UnitdProcessParseError {
                             message: "Unable to get absolute unitd executable path from process".to_string(),
                             pid: process.process_id,
                         })
+                    } else {
+                        // container case
+                        Ok(PathBuf::from("/").into_boxed_path())
                     }
                 }
                 None => Err(UnitClientError::UnitdProcessParseError {
@@ -107,7 +118,30 @@ impl UnitdInstance {
 
         fn map_process_to_unitd_instance(process: &UnitdProcess) -> UnitdInstance {
             match unitd_path_from_process(process) {
-                Ok(unitd_path) => match UnitdConfigureOptions::new(&unitd_path.clone().into_path_buf()) {
+                Ok(_) if process.container.is_some() => {
+                    let mut err = vec![];
+                    // double check that it is running
+                    let running = process.container
+                        .as_ref()
+                        .unwrap()
+                        .container_is_running();
+
+                    if running.is_none() || !running.unwrap() {
+                        err.push(UnitClientError::UnitdProcessParseError{
+                            message: "process container is not running".to_string(),
+                            pid: process.process_id,
+                        });
+                    }
+
+                    UnitdInstance {
+                        process: process.to_owned(),
+                        configure_options: None,
+                        errors: err,
+                    }
+                },
+                Ok(unitd_path) => match UnitdConfigureOptions::new(
+                    &unitd_path.clone()
+                        .into_path_buf()) {
                     Ok(configure_options) => UnitdInstance {
                         process: process.to_owned(),
                         configure_options: Some(configure_options),
@@ -250,10 +284,22 @@ impl fmt::Display for UnitdInstance {
         writeln!(f, "  API control unix socket: {}", socket_address)?;
         writeln!(f, "  Child processes ids: {}", child_pids)?;
         writeln!(f, "  Runtime flags: {}", runtime_flags)?;
-        write!(f, "  Configure options: {}", configure_flags)?;
+        writeln!(f, "  Configure options: {}", configure_flags)?;
+
+        if let Some(ctr) = &self.process.container {
+            writeln!(f, "  Container:")?;
+            writeln!(f, "    Platform: {}", ctr.platform)?;
+            if let Some(id) = ctr.container_id.clone() {
+                writeln!(f, "    Container ID: {}", id)?;
+            }
+            writeln!(f, "    Mounts:")?;
+            for (k, v) in &ctr.mounts {
+                writeln!(f, "      {} => {}", k.to_string_lossy(), v.to_string_lossy())?;
+            }
+        }
 
         if !self.errors.is_empty() {
-            write!(f, "\n  Errors:")?;
+            write!(f, "  Errors:")?;
             for error in &self.errors {
                 write!(f, "\n    {}", error)?;
             }
@@ -302,9 +348,9 @@ mod tests {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
         30, 31,
     ];
-    #[test]
-    fn can_find_unitd_instances() {
-        UnitdInstance::running_unitd_instances().iter().for_each(|p| {
+    #[tokio::test]
+    async fn can_find_unitd_instances() {
+        UnitdInstance::running_unitd_instances().await.iter().for_each(|p| {
             println!("{:?}", p);
             println!("Runtime Flags: {:?}", p.process.cmd().map(|c| c.flags));
             println!("Temp directory: {:?}", p.tmp_directory());
@@ -326,6 +372,7 @@ mod tests {
             child_pids: vec![],
             user: None,
             effective_user: None,
+            container: None,
         }
     }
 
