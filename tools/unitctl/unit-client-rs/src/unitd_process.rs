@@ -1,6 +1,9 @@
 use crate::unitd_cmd::UnitdCmd;
+use crate::unitd_docker::{pid_is_dockerized, UnitdContainer};
 use crate::unitd_instance::UNITD_BINARY_NAMES;
 use crate::unitd_process_user::UnitdProcessUser;
+use serde::ser::SerializeMap;
+use serde::{Serialize, Serializer};
 use std::collections::HashMap;
 use std::path::Path;
 use sysinfo::{Pid, Process, ProcessRefreshKind, System, UpdateKind, Users};
@@ -16,6 +19,23 @@ pub struct UnitdProcess {
     pub child_pids: Vec<u64>,
     pub user: Option<UnitdProcessUser>,
     pub effective_user: Option<UnitdProcessUser>,
+    pub container: Option<UnitdContainer>,
+}
+
+impl Serialize for UnitdProcess {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_map(Some(6))?;
+        state.serialize_entry("pid", &self.process_id)?;
+        state.serialize_entry("user", &self.user)?;
+        state.serialize_entry("effective_user", &self.effective_user)?;
+        state.serialize_entry("executable", &self.executable_path())?;
+        state.serialize_entry("child_pids", &self.child_pids)?;
+        state.serialize_entry("container", &self.container)?;
+        state.end()
+    }
 }
 
 impl UnitdProcess {
@@ -41,10 +61,15 @@ impl UnitdProcess {
             .iter()
             // Filter out child processes
             .filter(|p| {
-                let parent_pid = p.1.parent();
-                match parent_pid {
-                    Some(pid) => !unitd_processes.contains_key(&pid),
-                    None => false,
+                #[cfg(target_os = "linux")]
+                if pid_is_dockerized(p.0.as_u32().into()) {
+                    false
+                } else {
+                    let parent_pid = p.1.parent();
+                    match parent_pid {
+                        Some(pid) => !unitd_processes.contains_key(&pid),
+                        None => false,
+                    }
                 }
             })
             .map(|p| {
@@ -85,6 +110,7 @@ impl UnitdProcess {
                     child_pids,
                     user,
                     effective_user,
+                    container: None,
                 }
             })
             .collect::<Vec<UnitdProcess>>()

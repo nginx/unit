@@ -28,11 +28,13 @@ impl UnitdCmd {
             .expect("Unable to parse cmd")
             .splitn(2, " [")
             .collect::<Vec<&str>>();
+
         if parts.len() != 2 {
             let msg = format!("cmd does not have the expected format: {}", process_cmd);
             return Err(IoError::new(ErrorKind::InvalidInput, msg).into());
         }
-        let version: Option<String> = Some(parts[0].to_string());
+
+        let version = Some(parts[0].to_string());
         let executable_path = UnitdCmd::parse_executable_path_from_cmd(parts[1], binary_name);
         let flags = UnitdCmd::parse_runtime_flags_from_cmd(parts[1]);
 
@@ -69,6 +71,7 @@ impl UnitdCmd {
         if cmd.is_empty() {
             return None;
         }
+
         // Split out everything in between the brackets [ and ]
         let split = cmd.trim_end_matches(']').splitn(2, '[').collect::<Vec<&str>>();
         if split.is_empty() {

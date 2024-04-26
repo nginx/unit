@@ -8,10 +8,10 @@ use unit_client_rs::unitd_instance::UnitdInstance;
 /// Waits for a socket to become available. Availability is tested by attempting to access the
 /// status endpoint via the control socket. When socket is available, ControlSocket instance
 /// is returned.
-pub fn wait_for_socket(cli: &UnitCtl) -> Result<ControlSocket, UnitctlError> {
+pub async fn wait_for_socket(cli: &UnitCtl) -> Result<ControlSocket, UnitctlError> {
     // Don't wait, if wait_time is not specified
     if cli.wait_time_seconds.is_none() {
-        return cli.control_socket_address.instance_value_if_none().and_validate();
+        return cli.control_socket_address.instance_value_if_none().await.and_validate();
     }
 
     let wait_time =
@@ -33,7 +33,7 @@ pub fn wait_for_socket(cli: &UnitCtl) -> Result<ControlSocket, UnitctlError> {
 
         attempt += 1;
 
-        let result = cli.control_socket_address.instance_value_if_none().and_validate();
+        let result = cli.control_socket_address.instance_value_if_none().await.and_validate();
 
         if let Err(error) = result {
             if error.retryable() {
@@ -46,7 +46,7 @@ pub fn wait_for_socket(cli: &UnitCtl) -> Result<ControlSocket, UnitctlError> {
         control_socket = result.unwrap();
         let client = UnitClient::new(control_socket.clone());
 
-        match client.status() {
+        match client.status().await {
             Ok(_) => {
                 return Ok(control_socket.to_owned());
             }
@@ -65,15 +65,15 @@ pub fn wait_for_socket(cli: &UnitCtl) -> Result<ControlSocket, UnitctlError> {
 }
 
 trait OptionControlSocket {
-    fn instance_value_if_none(&self) -> Result<ControlSocket, UnitctlError>;
+    async fn instance_value_if_none(&self) -> Result<ControlSocket, UnitctlError>;
 }
 
 impl OptionControlSocket for Option<ControlSocket> {
-    fn instance_value_if_none(&self) -> Result<ControlSocket, UnitctlError> {
+    async fn instance_value_if_none(&self) -> Result<ControlSocket, UnitctlError> {
         if let Some(control_socket) = self {
             Ok(control_socket.to_owned())
         } else {
-            find_socket_address_from_instance()
+            find_socket_address_from_instance().await
         }
     }
 }
@@ -109,8 +109,8 @@ impl ResultControlSocket<ControlSocket, UnitctlError> for Result<ControlSocket, 
     }
 }
 
-fn find_socket_address_from_instance() -> Result<ControlSocket, UnitctlError> {
-    let instances = UnitdInstance::running_unitd_instances();
+async fn find_socket_address_from_instance() -> Result<ControlSocket, UnitctlError> {
+    let instances = UnitdInstance::running_unitd_instances().await;
     if instances.is_empty() {
         return Err(UnitctlError::NoUnitInstancesError);
     } else if instances.len() > 1 {
@@ -127,8 +127,8 @@ fn find_socket_address_from_instance() -> Result<ControlSocket, UnitctlError> {
     }
 }
 
-#[test]
-fn wait_for_unavailable_unix_socket() {
+#[tokio::test]
+async fn wait_for_unavailable_unix_socket() {
     let control_socket = ControlSocket::try_from("unix:/tmp/this_socket_does_not_exist.sock");
     let cli = UnitCtl {
         control_socket_address: Some(control_socket.unwrap()),
@@ -138,15 +138,17 @@ fn wait_for_unavailable_unix_socket() {
             output_format: crate::output_format::OutputFormat::JsonPretty,
         },
     };
-    let error = wait_for_socket(&cli).expect_err("Expected error, but no error received");
+    let error = wait_for_socket(&cli)
+        .await
+        .expect_err("Expected error, but no error received");
     match error {
         UnitctlError::WaitTimeoutError => {}
         _ => panic!("Expected WaitTimeoutError: {}", error),
     }
 }
 
-#[test]
-fn wait_for_unavailable_tcp_socket() {
+#[tokio::test]
+async fn wait_for_unavailable_tcp_socket() {
     let control_socket = ControlSocket::try_from("http://127.0.0.1:9783456");
     let cli = UnitCtl {
         control_socket_address: Some(control_socket.unwrap()),
@@ -157,7 +159,9 @@ fn wait_for_unavailable_tcp_socket() {
         },
     };
 
-    let error = wait_for_socket(&cli).expect_err("Expected error, but no error received");
+    let error = wait_for_socket(&cli)
+        .await
+        .expect_err("Expected error, but no error received");
     match error {
         UnitctlError::WaitTimeoutError => {}
         _ => panic!("Expected WaitTimeoutError"),

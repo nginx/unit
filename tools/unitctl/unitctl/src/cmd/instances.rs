@@ -1,8 +1,8 @@
 use crate::{OutputFormat, UnitctlError};
 use unit_client_rs::unitd_instance::UnitdInstance;
 
-pub(crate) fn cmd(output_format: OutputFormat) -> Result<(), UnitctlError> {
-    let instances = UnitdInstance::running_unitd_instances();
+pub(crate) async fn cmd(output_format: OutputFormat) -> Result<(), UnitctlError> {
+    let instances = UnitdInstance::running_unitd_instances().await;
     if instances.is_empty() {
         Err(UnitctlError::NoUnitInstancesError)
     } else if output_format.eq(&OutputFormat::Text) {

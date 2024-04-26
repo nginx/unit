@@ -43,24 +43,25 @@ impl UploadFormat {
     }
 }
 
-pub fn cmd(cli: &UnitCtl, directory: &PathBuf) -> Result<(), UnitctlError> {
+pub async fn cmd(cli: &UnitCtl, directory: &PathBuf) -> Result<(), UnitctlError> {
     if !directory.exists() {
         return Err(UnitctlError::PathNotFound {
             path: directory.to_string_lossy().into(),
         });
     }
 
-    let control_socket = wait::wait_for_socket(cli)?;
+    let control_socket = wait::wait_for_socket(cli).await?;
     let client = UnitClient::new(control_socket);
-
-    let results: Vec<Result<(), UnitctlError>> = WalkDir::new(directory)
+    let mut results = vec![];
+    for i in WalkDir::new(directory)
         .follow_links(true)
         .sort_by_file_name()
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| !e.path().is_dir())
-        .map(|pe| process_entry(pe, &client))
-        .collect();
+    {
+        results.push(process_entry(i, &client).await);
+    }
 
     if results.iter().filter(|r| r.is_err()).count() == results.len() {
         Err(UnitctlError::NoFilesImported)
@@ -70,7 +71,7 @@ pub fn cmd(cli: &UnitCtl, directory: &PathBuf) -> Result<(), UnitctlError> {
     }
 }
 
-fn process_entry(entry: DirEntry, client: &UnitClient) -> Result<(), UnitctlError> {
+async fn process_entry(entry: DirEntry, client: &UnitClient) -> Result<(), UnitctlError> {
     let input_file = InputFile::from(entry.path());
     if input_file.format() == InputFormat::Unknown {
         println!(
@@ -86,25 +87,34 @@ fn process_entry(entry: DirEntry, client: &UnitClient) -> Result<(), UnitctlErro
 
     // We can't overwrite JS or PEM files, so we delete them first
     if !upload_format.can_be_overwritten() {
-        let _ = requests::send_empty_body_deserialize_response(client, "DELETE", upload_path.as_str()).ok();
+        let _ = requests::send_empty_body_deserialize_response(client, "DELETE", upload_path.as_str())
+            .await
+            .ok();
     }
 
     let result = match upload_format {
-        UploadFormat::Config => requests::send_and_validate_config_deserialize_response(
-            client,
-            "PUT",
-            upload_path.as_str(),
-            Some(&input_file),
-        ),
+        UploadFormat::Config => {
+            requests::send_and_validate_config_deserialize_response(
+                client,
+                "PUT",
+                upload_path.as_str(),
+                Some(&input_file),
+            )
+            .await
+        }
         UploadFormat::PemBundle => {
             requests::send_and_validate_pem_data_deserialize_response(client, "PUT", upload_path.as_str(), &input_file)
+                .await
         }
-        UploadFormat::Javascript => requests::send_body_deserialize_response::<UnitSerializableMap>(
-            client,
-            "PUT",
-            upload_path.as_str(),
-            Some(&input_file),
-        ),
+        UploadFormat::Javascript => {
+            requests::send_body_deserialize_response::<UnitSerializableMap>(
+                client,
+                "PUT",
+                upload_path.as_str(),
+                Some(&input_file),
+            )
+            .await
+        }
     };
 
     match result {
