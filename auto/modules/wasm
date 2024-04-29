@@ -63,8 +63,7 @@ NXT_WASM_LDFLAGS=
 if [ "$NXT_WASM_RUNTIME" = "wasmtime" ]; then
     NXT_WASM_LDFLAGS=-lwasmtime
 fi
-NXT_WASM_ADDITIONAL_FLAGS="-fno-strict-aliasing \
- -Wno-missing-field-initializers \
+NXT_WASM_ADDITIONAL_FLAGS="-Wno-missing-field-initializers \
  -DNXT_HAVE_WASM_$(echo ${NXT_WASM_RUNTIME} | tr 'a-z' 'A-Z') \
 "
 
