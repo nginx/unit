@@ -28,9 +28,8 @@ nxt_http_rewrite_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
 nxt_int_t
 nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
 {
-    u_char                    *p;
     nxt_int_t                 ret;
-    nxt_str_t                 str, encoded_path, target;
+    nxt_str_t                 str;
     nxt_router_conf_t         *rtcf;
     nxt_http_action_t         *action;
     nxt_http_request_parse_t  rp;
@@ -72,30 +71,6 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
         return NXT_ERROR;
     }
 
-    p = (rp.args.length > 0) ? rp.args.start - 1 : rp.target_end;
-
-    encoded_path.start = rp.target_start;
-    encoded_path.length = p - encoded_path.start;
-
-    if (r->args->length == 0) {
-        r->target = encoded_path;
-
-    } else {
-        target.length = encoded_path.length + 1 + r->args->length;
-
-        target.start = nxt_mp_alloc(r->mem_pool, target.length);
-        if (target.start == NULL) {
-            return NXT_ERROR;
-        }
-
-        p = nxt_cpymem(target.start, encoded_path.start, encoded_path.length);
-        *p++ = '?';
-        nxt_memcpy(p, r->args->start, r->args->length);
-
-        r->target = target;
-        r->args->start = p;
-    }
-
     r->path = nxt_mp_alloc(r->mem_pool, sizeof(nxt_str_t));
     if (nxt_slow_path(r->path == NULL)) {
         return NXT_ERROR;
@@ -107,7 +82,7 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
     r->quoted_target = rp.quoted_target;
 
     if (nxt_slow_path(r->log_route)) {
-        nxt_log(task, NXT_LOG_NOTICE, "URI rewritten to \"%V\"", &r->target);
+        nxt_log(task, NXT_LOG_NOTICE, "URI rewritten to \"%V\"", r->path);
     }
 
     return NXT_OK;
