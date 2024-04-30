@@ -185,10 +185,10 @@ def test_variables_request_uri(
     assert client.get(url='/blah%2Fblah?a=b')['status'] == 200
 
     assert (
-        wait_for_record(fr'^::1 /bar /bar\?a=b$', 'access.log') is not None
+        wait_for_record(fr'^::1 /bar /foo\?a=b$', 'access.log') is not None
     ), 'req 8081 (proxy) rewrite'
     assert (
-        search_in_file(fr'^127\.0\.0\.1 /foo /foo\?a=b$', 'access.log')
+        search_in_file(fr'^127\.0\.0\.1 /foo /blah%2Fblah\?a=b$', 'access.log')
         is not None
     ), 'req 8080 rewrite'
 
@@ -201,11 +201,11 @@ def test_variables_request_uri(
 
     assert (
         wait_for_record(
-            fr'^127\.0\.0\.1 /foo/foo /foo%2Ffoo\?a=b$', 'access.log'
+            fr'^127\.0\.0\.1 /foo/foo /blah%2Fblah\?a=b$', 'access.log'
         )
         is not None
     ), 'req 8080 percent'
-    assert len(findall(fr'^::1 /bar /bar\?a=b$', 'access.log')) == 2
+    assert len(findall(fr'^::1 /bar /foo/foo\?a=b$', 'access.log')) == 1
 
 
 def test_variables_uri(search_in_file, wait_for_record):
