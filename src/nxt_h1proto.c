@@ -2306,7 +2306,7 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 
     p = nxt_cpymem(p, r->method->start, r->method->length);
     *p++ = ' ';
-    p = nxt_cpymem(p, r->target.start, r->target.length);
+    p = nxt_cpymem(p, target.start, target.length);
     p = nxt_cpymem(p, " HTTP/1.1\r\n", 11);
     p = nxt_cpymem(p, "Connection: close\r\n", 19);
 
