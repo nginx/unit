@@ -2,7 +2,7 @@ extern crate clap;
 
 use crate::output_format::OutputFormat;
 use clap::error::ErrorKind::ValueValidation;
-use clap::{Error as ClapError, Parser, Subcommand};
+use clap::{Error as ClapError, Parser, Subcommand, Args};
 use std::path::PathBuf;
 use unit_client_rs::control_socket_address::ControlSocket;
 
@@ -42,17 +42,7 @@ pub(crate) struct UnitCtl {
 #[derive(Debug, Subcommand)]
 pub(crate) enum Commands {
     #[command(about = "List all running UNIT processes")]
-    Instances {
-        #[arg(
-            required = false,
-            global = true,
-            short = 't',
-            long = "output-format",
-            default_value = "text",
-            help = "Output format: text, yaml, json, json-pretty (default)"
-        )]
-        output_format: OutputFormat,
-    },
+    Instances(InstanceArgs),
     #[command(about = "Open current UNIT configuration in editor")]
     Edit {
         #[arg(
@@ -124,6 +114,47 @@ pub(crate) enum Commands {
         )]
         output_format: OutputFormat,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct InstanceArgs {
+    #[arg(
+        required = false,
+        global = true,
+        short = 't',
+        long = "output-format",
+        default_value = "text",
+        help = "Output format: text, yaml, json, json-pretty (default)"
+    )]
+    pub output_format: OutputFormat,
+
+    #[command(subcommand)]
+    pub command: Option<InstanceCommands>,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(args_conflicts_with_subcommands = true)]
+pub enum InstanceCommands {
+    #[command(about = "deploy a new docker instance of unitd")]
+    New {
+        #[arg(
+            required = true,
+            help = "Path to mount control socket to host",
+        )]
+        socket: String,
+
+        #[arg(
+            required = true,
+            help = "Path to mount application into container",
+        )]
+        application: String,
+
+        #[arg(
+            help = "Unitd Image to deploy",
+            default_value = env!("CARGO_PKG_VERSION"),
+        )]
+        image: String,
+    }
 }
 
 fn parse_control_socket_address(s: &str) -> Result<ControlSocket, ClapError> {

@@ -3,6 +3,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use crate::unitd_process::UnitdProcess;
+use crate::unit_client::UnitClientError;
 
 use bollard::secret::ContainerInspectResponse;
 use regex::Regex;
@@ -210,6 +211,17 @@ impl UnitdContainer {
             .as_ref()
             .and_then(|details| details.state.as_ref().and_then(|state| state.running))
     }
+}
+
+/* deploys a new docker image of tag $image_tag.
+ * mounts $socket to /var/run in the new container.
+ * mounts $application to /www in the new container. */
+pub fn deploy_new_container(
+    _socket: &String,
+    _application: &String,
+    _image: &String
+) -> Result<(), UnitClientError> {
+    todo!()
 }
 
 /* Returns either 64 char docker container ID or None */
