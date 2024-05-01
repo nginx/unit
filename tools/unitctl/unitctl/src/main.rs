@@ -28,11 +28,11 @@ async fn main() -> Result<(), UnitctlError> {
     let cli = UnitCtl::parse();
 
     match cli.command {
-        Commands::Instances { output_format } => instances::cmd(output_format).await,
+        Commands::Instances(args) => instances::cmd(args).await,
 
-        Commands::Edit { output_format } => edit::cmd(&cli, output_format).await,
+        Commands::Edit{output_format} => edit::cmd(&cli, output_format).await,
 
-        Commands::Import { ref directory } => import::cmd(&cli, directory).await,
+        Commands::Import{ref directory} => import::cmd(&cli, directory).await,
 
         Commands::Execute {
             ref output_format,
@@ -41,9 +41,9 @@ async fn main() -> Result<(), UnitctlError> {
             ref path,
         } => execute_cmd::cmd(&cli, output_format, input_file, method, path).await,
 
-        Commands::Status { output_format } => status::cmd(&cli, output_format).await,
+        Commands::Status{output_format} => status::cmd(&cli, output_format).await,
 
-        Commands::Listeners { output_format } => listeners::cmd(&cli, output_format).await,
+        Commands::Listeners{output_format}=> listeners::cmd(&cli, output_format).await,
     }
     .map_err(|error| {
         eprint_error(&error);
