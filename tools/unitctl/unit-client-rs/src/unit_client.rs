@@ -66,6 +66,9 @@ custom_error! {pub UnitClientError
         executable_path: String,
         pid: u64
     } = "{message} for [pid={pid}, executable_path={executable_path}]: {source}",
+    UnitdDockerError {
+        message: String
+    } = "Failed to communicate with docker daemon: {message}",
 }
 
 impl UnitClientError {
