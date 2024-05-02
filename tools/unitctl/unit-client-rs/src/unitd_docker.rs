@@ -4,13 +4,16 @@ use std::path::PathBuf;
 
 use crate::unitd_process::UnitdProcess;
 use crate::unit_client::UnitClientError;
-
+use bollard::{models::ContainerSummary, Docker};
+use bollard::container::{Config, StartContainerOptions, ListContainersOptions};
+use bollard::image::CreateImageOptions;
 use bollard::secret::ContainerInspectResponse;
+use bollard::models::{HostConfig, MountTypeEnum, Mount, ContainerCreateResponse};
 use regex::Regex;
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
+use crate::futures::StreamExt;
 
-use bollard::{models::ContainerSummary, Docker};
 
 #[derive(Clone, Debug)]
 pub struct UnitdContainer {
@@ -215,13 +218,94 @@ impl UnitdContainer {
 
 /* deploys a new docker image of tag $image_tag.
  * mounts $socket to /var/run in the new container.
- * mounts $application to /www in the new container. */
-pub fn deploy_new_container(
-    _socket: &String,
-    _application: &String,
-    _image: &String
-) -> Result<(), UnitClientError> {
-    todo!()
+ * mounts $application read only to /www.
+ * new container is on host network.
+ *
+ * ON SUCCESS returns vector of warnings from Docker API
+ * ON FAILURE returns wrapped error from Docker API
+ */
+pub async fn deploy_new_container(
+    socket: &String,
+    application: &String,
+    image: &String
+) -> Result<Vec<String>, UnitClientError> {
+    match Docker::connect_with_local_defaults() {
+        Ok(docker) => {
+            let mut mounts = vec![];
+            mounts.push(Mount{
+                typ: Some(MountTypeEnum::BIND),
+                source: Some(socket.clone()),
+                target: Some("/var/run".to_string()),
+                ..Default::default()
+            });
+            mounts.push(Mount{
+                typ: Some(MountTypeEnum::BIND),
+                source: Some(application.clone()),
+                target: Some("/www".to_string()),
+                read_only: Some(true),
+                ..Default::default()
+            });
+
+            let _ = docker.create_image(
+                Some(CreateImageOptions {
+                    from_image: image.as_str(),
+                    ..Default::default()
+                }), None, None)
+                .next()
+                .await
+                .unwrap()
+                .or_else(|err| Err(UnitClientError::UnitdDockerError{message: err.to_string()}));
+
+            let resp: ContainerCreateResponse;
+            match docker.create_container::<String, String>(
+                None, Config {
+                    image: Some(image.clone()),
+                    host_config: Some(HostConfig {
+                        network_mode: Some("host".to_string()),
+                        mounts: Some(mounts),
+                        ..Default::default()
+                    }), ..Default::default()})
+                .await {
+                    Err(err) => return Err(UnitClientError::UnitdDockerError{message: err.to_string()}),
+                    Ok(response) => resp = response,
+                }
+
+            let mut list_container_filters = HashMap::new();
+            list_container_filters.insert("id".to_string(), vec![resp.id]);
+            match docker.list_containers::<String>(
+                Some(ListContainersOptions{
+                    all: true,
+                    limit: None,
+                    size: false,
+                    filters: list_container_filters,
+                }))
+                .await {
+                    Err(e) => Err(UnitClientError::UnitdDockerError{message: e.to_string()}),
+                    Ok(info) => {
+                        if info.len() < 1 {
+                            return Err(UnitClientError::UnitdDockerError{message: "couldnt find new container".to_string()});
+                        }
+                        if info[0].names.is_none() || info[0].names.clone().unwrap().len() < 1 {
+                            return Err(UnitClientError::UnitdDockerError{message: "new container has no name".to_string()});
+                        }
+
+                        match docker.start_container(
+                            info[0]
+                                .names
+                                .clone()
+                                .unwrap()[0]
+                                .strip_prefix("/")
+                                .unwrap(),
+                            None::<StartContainerOptions<String>>
+                        ).await {
+                            Err(err) => Err(UnitClientError::UnitdDockerError{message: err.to_string()}),
+                            Ok(_) => Ok(resp.warnings)
+                        }
+                    }
+                }
+        },
+        Err(e) => Err(UnitClientError::UnitdDockerError{message: e.to_string()})
+    }
 }
 
 /* Returns either 64 char docker container ID or None */

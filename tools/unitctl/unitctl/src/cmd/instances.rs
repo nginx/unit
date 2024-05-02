@@ -12,12 +12,23 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
                 ref application,
                 ref image
             } => {
+                println!("Pulling and starting a container from {}", image);
+                println!("Will mount {} to /var/run for socket access", socket);
+                println!("Will READ ONLY mount {} to /www for application access", application);
+                println!("Note: Container will be on host network");
                 if !PathBuf::from(socket).is_dir() || !PathBuf::from(application).is_dir() {
                     eprintln!("application and socket paths must be directories");
                     Err(UnitctlError::NoFilesImported)
                 } else {
                     deploy_new_container(socket, application, image)
-                        .or_else(|e| Err(UnitctlError::UnitClientError{source: e}))
+                        .await
+                        .map_or_else(|e| Err(UnitctlError::UnitClientError{source: e}),
+                                     |warn| {
+                                         for i in warn {
+                                             println!("warning from docker: {}", i);
+                                         }
+                                         Ok(())
+                                     })
                 }
             }
         }
