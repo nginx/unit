@@ -121,13 +121,10 @@ impl UnitdInstance {
                 Ok(_) if process.container.is_some() => {
                     let mut err = vec![];
                     // double check that it is running
-                    let running = process.container
-                        .as_ref()
-                        .unwrap()
-                        .container_is_running();
+                    let running = process.container.as_ref().unwrap().container_is_running();
 
                     if running.is_none() || !running.unwrap() {
-                        err.push(UnitClientError::UnitdProcessParseError{
+                        err.push(UnitClientError::UnitdProcessParseError {
                             message: "process container is not running".to_string(),
                             pid: process.process_id,
                         });
@@ -138,10 +135,8 @@ impl UnitdInstance {
                         configure_options: None,
                         errors: err,
                     }
-                },
-                Ok(unitd_path) => match UnitdConfigureOptions::new(
-                    &unitd_path.clone()
-                        .into_path_buf()) {
+                }
+                Ok(unitd_path) => match UnitdConfigureOptions::new(&unitd_path.clone().into_path_buf()) {
                     Ok(configure_options) => UnitdInstance {
                         process: process.to_owned(),
                         configure_options: Some(configure_options),

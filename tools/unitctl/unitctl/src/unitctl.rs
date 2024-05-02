@@ -2,7 +2,7 @@ extern crate clap;
 
 use crate::output_format::OutputFormat;
 use clap::error::ErrorKind::ValueValidation;
-use clap::{Error as ClapError, Parser, Subcommand, Args};
+use clap::{Args, Error as ClapError, Parser, Subcommand};
 use std::path::PathBuf;
 use unit_client_rs::control_socket_address::ControlSocket;
 
@@ -137,16 +137,10 @@ pub struct InstanceArgs {
 pub enum InstanceCommands {
     #[command(about = "deploy a new docker instance of unitd")]
     New {
-        #[arg(
-            required = true,
-            help = "Path to mount control socket to host",
-        )]
+        #[arg(required = true, help = "Path to mount control socket to host")]
         socket: String,
 
-        #[arg(
-            required = true,
-            help = "Path to mount application into container",
-        )]
+        #[arg(required = true, help = "Path to mount application into container")]
         application: String,
 
         #[arg(
@@ -154,7 +148,7 @@ pub enum InstanceCommands {
             default_value = env!("CARGO_PKG_VERSION"),
         )]
         image: String,
-    }
+    },
 }
 
 fn parse_control_socket_address(s: &str) -> Result<ControlSocket, ClapError> {
