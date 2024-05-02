@@ -1,16 +1,16 @@
-use crate::{OutputFormat, UnitctlError};
 use crate::unitctl::{InstanceArgs, InstanceCommands};
-use unit_client_rs::unitd_instance::UnitdInstance;
-use unit_client_rs::unitd_docker::deploy_new_container;
+use crate::{OutputFormat, UnitctlError};
 use std::path::PathBuf;
+use unit_client_rs::unitd_docker::deploy_new_container;
+use unit_client_rs::unitd_instance::UnitdInstance;
 
 pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
     if let Some(cmd) = args.command {
         match cmd {
-            InstanceCommands::New{
+            InstanceCommands::New {
                 ref socket,
                 ref application,
-                ref image
+                ref image,
             } => {
                 println!("Pulling and starting a container from {}", image);
                 println!("Will mount {} to /var/run for socket access", socket);
@@ -20,15 +20,15 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
                     eprintln!("application and socket paths must be directories");
                     Err(UnitctlError::NoFilesImported)
                 } else {
-                    deploy_new_container(socket, application, image)
-                        .await
-                        .map_or_else(|e| Err(UnitctlError::UnitClientError{source: e}),
-                                     |warn| {
-                                         for i in warn {
-                                             println!("warning from docker: {}", i);
-                                         }
-                                         Ok(())
-                                     })
+                    deploy_new_container(socket, application, image).await.map_or_else(
+                        |e| Err(UnitctlError::UnitClientError { source: e }),
+                        |warn| {
+                            for i in warn {
+                                println!("warning from docker: {}", i);
+                            }
+                            Ok(())
+                        },
+                    )
                 }
             }
         }
