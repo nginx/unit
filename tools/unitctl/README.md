@@ -6,10 +6,23 @@ This project provides a Rust SDK interface to the
 and a CLI (`unitctl`) that exposes the functionality provided by the SDK.
 
 ## Installation and Use
-In order to build and use `unitctl` one needs a working installation of Maven
-and Cargo. It is recommended to procure Cargo with Rustup. Rustup is packaged
+In order to build and use `unitctl` one needs a working installation of
+Cargo. It is recommended to procure Cargo with Rustup. Rustup is packaged
 for use in many systems, but you can also find it at its
-[Official Site](https://rustup.rs/).
+[Official Site](https://rustup.rs/). Additionally, Macintosh users will
+need to install GNU core utilities using brew (see the following command)
+
+```
+$ brew install make gnu-sed grep gawk maven
+```
+
+After installing a modern distribution of Make, Macintosh users can invoke
+the makefile commands using `gmake`. For example: `gmake clean` or `gmake all`.
+
+Finally, in order to run the OpenAPI code generation tooling, Users will
+need a working
+[Java runtime](https://www.java.com/en/)
+as well as Maven. Macintosh users can install Maven from Brew.
 
 With a working installation of Cargo it is advised to build unitctl with the
 provided makefile. The `list-targets` target will inform the user of what
@@ -20,8 +33,10 @@ built with `make all`. See the below example for illustration:
 ```
 [ava@calliope cli]$ make list-targets
 x86_64-unknown-linux-gnu
+
 [ava@calliope cli]$ make x86_64-unknown-linux-gnu
 ▶ building unitctl with flags [--quiet --release --bin unitctl --target x86_64-unknown-linux-gnu]
+
 [ava@calliope cli]$ file ./target/x86_64-unknown-linux-gnu/release/unitctl
 ./target/x86_64-unknown-linux-gnu/release/unitctl: ELF 64-bit LSB pie executable,
 x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,

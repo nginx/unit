@@ -64,12 +64,11 @@ impl UnitdProcess {
                 #[cfg(target_os = "linux")]
                 if pid_is_dockerized(p.0.as_u32().into()) {
                     false
-                } else {
-                    let parent_pid = p.1.parent();
-                    match parent_pid {
-                        Some(pid) => !unitd_processes.contains_key(&pid),
-                        None => false,
-                    }
+                }
+                let parent_pid = p.1.parent();
+                match parent_pid {
+                    Some(pid) => !unitd_processes.contains_key(&pid),
+                    None => false,
                 }
             })
             .map(|p| {
