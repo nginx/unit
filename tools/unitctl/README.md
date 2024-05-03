@@ -1,7 +1,7 @@
-# NGINX UNIT Rust SDK and CLI
+# NGINX Unit Rust SDK and CLI
 
 This project provides a Rust SDK interface to the
-[NGINX UNIT](https://unit.nginx.org/)
+[NGINX Unit](https://unit.nginx.org/)
 [control API](https://unit.nginx.org/howto/source/#source-startup)
 and a CLI (`unitctl`) that exposes the functionality provided by the SDK.
 
@@ -38,9 +38,9 @@ desired.
 
 - Consumes alternative configuration formats Like YAML and converts them
 - Syntactic highlighting of JSON output
-- Interpretation of UNIT errors with (arguably more) useful error messages
+- Interpretation of Unit errors with (arguably more) useful error messages
 
-### Lists all running UNIT processes and provides details about each process.
+### Lists all running Unit processes and provides details about each process.
 ```
 $ unitctl instances
 No socket path provided - attempting to detect from running instance
@@ -52,7 +52,7 @@ unitd instance [pid: 79489, version: 1.32.0]:
   Configure options: --prefix=/opt/unit --user=elijah --group=elijah --openssl
 ```
 
-### Start a new UNIT process via docker
+### Start a new Unit process via docker
 ```
 $ unitctl instances new /tmp/2 $(pwd) 'unit:wasm'
 Pulling and starting a container from unit:wasm
@@ -64,19 +64,19 @@ Note: Container will be on host network
 
 To the subcommand `unitctl instances new` the user must provide three things:
 1. **A directory such as `/tmp/2`.**
-   The UNIT container will mount this to `/var/run` internally.
+   The Unit container will mount this to `/var/run` internally.
    Thus, the control socket and pid file will be accessible from the host.
 2. **A path to an application.**
-   In the example, `$(pwd)` is provided. The UNIT container will mount
+   In the example, `$(pwd)` is provided. The Unit container will mount
    this READ ONLY to `/www/`. This will allow the user to configure
-   their UNIT container to expose an application stored on the host.
+   their Unit container to expose an application stored on the host.
 3. **An image tag.**
    In the example, `unit:wasm` is used. This will be the image that unitctl
    will deploy. Custom repos and images can be deployed in this manner.
 
-After deployment the user will have one UNIT container running on the host network.
+After deployment the user will have one Unit container running on the host network.
 
-### Lists active listeners from running UNIT processes
+### Lists active listeners from running Unit processes
 ```
 unitctl listeners
 No socket path provided - attempting to detect from running instance
@@ -87,7 +87,7 @@ No socket path provided - attempting to detect from running instance
 }
 ```
 
-### Get the current status of NGINX UNIT processes
+### Get the current status of NGINX Unit processes
 ```
 $ unitctl status -t yaml
 No socket path provided - attempting to detect from running instance
@@ -101,7 +101,7 @@ requests:
 applications: {}
 ```
 
-### Send arbitrary configuration payloads to UNIT
+### Send arbitrary configuration payloads to Unit
 ```
 $ echo '{
     "listeners": {
