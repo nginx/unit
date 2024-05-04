@@ -63,7 +63,7 @@ impl UnitdProcess {
             .filter(|p| {
                 #[cfg(target_os = "linux")]
                 if pid_is_dockerized(p.0.as_u32().into()) {
-                    false
+                    return false;
                 }
                 let parent_pid = p.1.parent();
                 match parent_pid {

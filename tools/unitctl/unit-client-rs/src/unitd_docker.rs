@@ -166,7 +166,6 @@ impl UnitdContainer {
 
     pub fn host_path(&self, container_path: String) -> String {
         let cp = PathBuf::from(container_path);
-
         // get only possible mount points
         // sort to deepest mountpoint first
         // assumed deepest possible mount point takes precedence
@@ -180,14 +179,26 @@ impl UnitdContainer {
 
         // either return translated path or original prefixed with "container"
         if keys.len() > 0 {
-            self.mounts[&keys[0]]
+            let mut matches = self.mounts[&keys[0]]
                 .clone()
-                .join(
-                    cp.as_path()
-                        .strip_prefix(keys[0].clone())
-                        .expect("error checking path prefix"),
-                )
-                .to_string_lossy()
+                .join(cp.as_path()
+                      .strip_prefix(keys[0].clone())
+                      .expect("error checking path prefix"));
+            /* Observed on M1 Mac that Docker on OSX
+             * adds a bunch of garbage to the mount path
+             * converting it into a useless directory
+             * that doesnt actually exist
+             */
+            if cfg!(target_os = "macos") {
+                let mut abs = PathBuf::from("/");
+                let m = matches.strip_prefix("/host_mnt/private")
+                    .unwrap_or(matches.strip_prefix("/host_mnt")
+                               .unwrap_or(matches.as_path()));
+                // make it absolute again
+                abs.push(m);
+                matches = abs;
+            }
+            matches.to_string_lossy()
                 .to_string()
         } else {
             format!("<container>:{}", cp.display())
@@ -361,6 +372,8 @@ mod tests {
         mounts.insert("/root/mid/child".into(), "/3".into());
         mounts.insert("/mid/child".into(), "/4".into());
         mounts.insert("/child".into(), "/5".into());
+        mounts.insert("/var".into(), "/host_mnt/private/6".into());
+        mounts.insert("/var/var".into(), "/host_mnt/7".into());
 
         let ctr = UnitdContainer {
             container_id: None,
@@ -379,6 +392,16 @@ mod tests {
             "<container>:/path/to/conf".to_string(),
             ctr.host_path("/path/to/conf".to_string())
         );
+        if cfg!(target_os = "macos") {
+            assert_eq!(
+                "/6/test".to_string(),
+                ctr.host_path("/var/test".to_string())
+            );
+            assert_eq!(
+                "/7/test".to_string(),
+                ctr.host_path("/var/var/test".to_string())
+            );
+        }
     }
 
     #[test]
