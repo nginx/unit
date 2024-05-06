@@ -34,6 +34,92 @@ impl ControlSocketScheme {
     }
 }
 
+
+impl Display for ControlSocket {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnixLocalAbstractSocket(name) => f.write_fmt(format_args!("unix:@{}", name)),
+            UnixLocalSocket(path) => f.write_fmt(format_args!("unix:{}", path.to_string_lossy())),
+            TcpSocket(uri) => uri.fmt(f),
+        }
+    }
+}
+
+impl From<ControlSocket> for String {
+    fn from(val: ControlSocket) -> Self {
+        val.to_string()
+    }
+}
+
+impl From<ControlSocket> for PathBuf {
+    fn from(val: ControlSocket) -> Self {
+        match val {
+            UnixLocalAbstractSocket(socket_name) => PathBuf::from(format!("@{}", socket_name)),
+            UnixLocalSocket(socket_path) => socket_path,
+            TcpSocket(_) => PathBuf::default(),
+        }
+    }
+}
+
+impl From<ControlSocket> for Uri {
+    fn from(val: ControlSocket) -> Self {
+        val.create_uri_with_path("")
+    }
+}
+
+impl TryFrom<String> for ControlSocket {
+    type Error = UnitClientError;
+
+    fn try_from(socket_address: String) -> Result<Self, Self::Error> {
+        ControlSocket::parse_address(socket_address.as_str())
+    }
+}
+
+impl TryFrom<&str> for ControlSocket {
+    type Error = UnitClientError;
+
+    fn try_from(socket_address: &str) -> Result<Self, Self::Error> {
+        ControlSocket::parse_address(socket_address)
+    }
+}
+
+impl TryFrom<Uri> for ControlSocket {
+    type Error = UnitClientError;
+
+    fn try_from(socket_uri: Uri) -> Result<Self, Self::Error> {
+        match socket_uri.scheme_str() {
+            // URIs with the unix scheme will have a hostname that is a hex encoded string
+            // representing the path to the socket
+            Some("unix") => {
+                let host = match socket_uri.host() {
+                    Some(host) => host,
+                    None => {
+                        return Err(UnitClientError::TcpSocketAddressParseError {
+                            message: "No host found in socket address".to_string(),
+                            control_socket_address: socket_uri.to_string(),
+                        })
+                    }
+                };
+                let bytes = hex::decode(host).map_err(|error| UnitClientError::TcpSocketAddressParseError {
+                    message: error.to_string(),
+                    control_socket_address: socket_uri.to_string(),
+                })?;
+                let path = String::from_utf8_lossy(&bytes);
+                ControlSocket::parse_address(path)
+            }
+            Some("http") | Some("https") => Ok(TcpSocket(socket_uri)),
+            Some(unknown) => Err(UnitClientError::TcpSocketAddressParseError {
+                message: format!("Unsupported scheme found in socket address: {}", unknown).to_string(),
+                control_socket_address: socket_uri.to_string(),
+            }),
+            None => Err(UnitClientError::TcpSocketAddressParseError {
+                message: "No scheme found in socket address".to_string(),
+                control_socket_address: socket_uri.to_string(),
+            }),
+        }
+    }
+}
+
 impl ControlSocket {
     pub fn socket_scheme(&self) -> ControlSocketScheme {
         match self {
@@ -69,41 +155,7 @@ impl ControlSocket {
             }
         }
     }
-}
 
-impl Display for ControlSocket {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UnixLocalAbstractSocket(name) => f.write_fmt(format_args!("unix:@{}", name)),
-            UnixLocalSocket(path) => f.write_fmt(format_args!("unix:{}", path.to_string_lossy())),
-            TcpSocket(uri) => uri.fmt(f),
-        }
-    }
-}
-
-impl From<ControlSocket> for String {
-    fn from(val: ControlSocket) -> Self {
-        val.to_string()
-    }
-}
-
-impl From<ControlSocket> for PathBuf {
-    fn from(val: ControlSocket) -> Self {
-        match val {
-            UnixLocalAbstractSocket(socket_name) => PathBuf::from(format!("@{}", socket_name)),
-            UnixLocalSocket(socket_path) => socket_path,
-            TcpSocket(_) => PathBuf::default(),
-        }
-    }
-}
-
-impl From<ControlSocket> for Uri {
-    fn from(val: ControlSocket) -> Self {
-        val.create_uri_with_path("")
-    }
-}
-
-impl ControlSocket {
     pub fn validate_http_address(uri: Uri) -> Result<(), UnitClientError> {
         let http_address = uri.to_string();
         if uri.authority().is_none() {
@@ -202,7 +254,7 @@ impl ControlSocket {
     }
 
     /// Flexibly parse a textual representation of a socket address
-    fn parse_address<S: Into<String>>(socket_address: S) -> Result<Self, UnitClientError> {
+    pub fn parse_address<S: Into<String>>(socket_address: S) -> Result<Self, UnitClientError> {
         let full_socket_address: String = socket_address.into();
         let socket_prefix = "unix:";
         let socket_uri_prefix = "unix://";
@@ -260,58 +312,6 @@ impl ControlSocket {
     }
 }
 
-impl TryFrom<String> for ControlSocket {
-    type Error = UnitClientError;
-
-    fn try_from(socket_address: String) -> Result<Self, Self::Error> {
-        ControlSocket::parse_address(socket_address.as_str())
-    }
-}
-
-impl TryFrom<&str> for ControlSocket {
-    type Error = UnitClientError;
-
-    fn try_from(socket_address: &str) -> Result<Self, Self::Error> {
-        ControlSocket::parse_address(socket_address)
-    }
-}
-
-impl TryFrom<Uri> for ControlSocket {
-    type Error = UnitClientError;
-
-    fn try_from(socket_uri: Uri) -> Result<Self, Self::Error> {
-        match socket_uri.scheme_str() {
-            // URIs with the unix scheme will have a hostname that is a hex encoded string
-            // representing the path to the socket
-            Some("unix") => {
-                let host = match socket_uri.host() {
-                    Some(host) => host,
-                    None => {
-                        return Err(UnitClientError::TcpSocketAddressParseError {
-                            message: "No host found in socket address".to_string(),
-                            control_socket_address: socket_uri.to_string(),
-                        })
-                    }
-                };
-                let bytes = hex::decode(host).map_err(|error| UnitClientError::TcpSocketAddressParseError {
-                    message: error.to_string(),
-                    control_socket_address: socket_uri.to_string(),
-                })?;
-                let path = String::from_utf8_lossy(&bytes);
-                ControlSocket::parse_address(path)
-            }
-            Some("http") | Some("https") => Ok(TcpSocket(socket_uri)),
-            Some(unknown) => Err(UnitClientError::TcpSocketAddressParseError {
-                message: format!("Unsupported scheme found in socket address: {}", unknown).to_string(),
-                control_socket_address: socket_uri.to_string(),
-            }),
-            None => Err(UnitClientError::TcpSocketAddressParseError {
-                message: "No scheme found in socket address".to_string(),
-                control_socket_address: socket_uri.to_string(),
-            }),
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
