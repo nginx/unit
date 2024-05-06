@@ -26,6 +26,7 @@ impl Serialize for UnitdInstance {
     where
         S: Serializer,
     {
+        // 11 = fields to serialize
         let mut state = serializer.serialize_map(Some(11))?;
         let runtime_flags = self
             .process
