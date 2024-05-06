@@ -27,6 +27,7 @@ impl Serialize for UnitdProcess {
     where
         S: Serializer,
     {
+        // 6 = fields to serialize
         let mut state = serializer.serialize_map(Some(6))?;
         state.serialize_entry("pid", &self.process_id)?;
         state.serialize_entry("user", &self.user)?;

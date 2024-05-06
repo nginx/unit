@@ -250,7 +250,7 @@ impl UnitClient {
                 Err(Box::new(UnitClientError::new(
                     hyper_error,
                     self.control_socket.to_string(),
-                    "".to_string(),
+                    "/listeners".to_string(),
                 )))
             } else {
                 Err(Box::new(UnitClientError::OpenAPIError { source: err }))
@@ -268,7 +268,7 @@ impl UnitClient {
                 Err(Box::new(UnitClientError::new(
                     hyper_error,
                     self.control_socket.to_string(),
-                    "".to_string(),
+                    "/status".to_string(),
                 )))
             } else {
                 Err(Box::new(UnitClientError::OpenAPIError { source: err }))

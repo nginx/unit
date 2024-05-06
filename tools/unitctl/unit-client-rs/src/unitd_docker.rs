@@ -1,18 +1,28 @@
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::PathBuf;
+use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::io::stderr;
 
 use crate::futures::StreamExt;
 use crate::unit_client::UnitClientError;
 use crate::unitd_process::UnitdProcess;
+use crate::control_socket_address::ControlSocket;
+
 use bollard::container::{Config, ListContainersOptions, StartContainerOptions};
 use bollard::image::CreateImageOptions;
-use bollard::models::{ContainerCreateResponse, HostConfig, Mount, MountTypeEnum};
+use bollard::models::{
+    ContainerCreateResponse, HostConfig, Mount,
+    MountTypeEnum, ContainerSummary,
+};
 use bollard::secret::ContainerInspectResponse;
-use bollard::{models::ContainerSummary, Docker};
+use bollard::Docker;
+
 use regex::Regex;
+
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
+
+use pbr::ProgressBar;
 
 #[derive(Clone, Debug)]
 pub struct UnitdContainer {
@@ -121,6 +131,7 @@ impl Serialize for UnitdContainer {
     where
         S: Serializer,
     {
+        // 5 = fields to serialize
         let mut state = serializer.serialize_map(Some(5))?;
         state.serialize_entry("container_id", &self.container_id)?;
         state.serialize_entry("container_image", &self.container_image)?;
@@ -143,18 +154,23 @@ impl UnitdContainer {
                     // cant do this functionally because of the async call
                     let mut mapped = vec![];
                     for ctr in summary {
-                        if ctr.clone().image.or(Some(String::new())).unwrap().contains("unit") {
-                            let mut c = UnitdContainer::from(&ctr);
-                            if let Some(names) = ctr.names {
-                                if names.len() > 0 {
-                                    let name = names[0].strip_prefix("/").or(Some(names[0].as_str())).unwrap();
-                                    if let Ok(cir) = docker.inspect_container(name, None).await {
-                                        c.details = Some(cir);
+                        if ctr.clone().image
+                            .or(Some(String::new()))
+                            .unwrap()
+                            .contains("unit") {
+                                let mut c = UnitdContainer::from(&ctr);
+                                if let Some(names) = ctr.names {
+                                    if names.len() > 0 {
+                                        let name = names[0].strip_prefix("/")
+                                            .or(Some(names[0].as_str())).unwrap();
+                                        if let Ok(cir) = docker
+                                            .inspect_container(name, None).await {
+                                                c.details = Some(cir);
+                                            }
                                     }
                                 }
+                                mapped.push(c);
                             }
-                            mapped.push(c);
-                        }
                     }
                     mapped
                 }
@@ -190,7 +206,7 @@ impl UnitdContainer {
              * that doesnt actually exist
              */
             if cfg!(target_os = "macos") {
-                let mut abs = PathBuf::from("/");
+                let mut abs = PathBuf::from(String::from(MAIN_SEPARATOR));
                 let m = matches.strip_prefix("/host_mnt/private")
                     .unwrap_or(matches.strip_prefix("/host_mnt")
                                .unwrap_or(matches.as_path()));
@@ -238,19 +254,27 @@ impl UnitdContainer {
  * ON FAILURE returns wrapped error from Docker API
  */
 pub async fn deploy_new_container(
-    socket: &String,
+    socket: ControlSocket,
     application: &String,
     image: &String,
 ) -> Result<Vec<String>, UnitClientError> {
     match Docker::connect_with_local_defaults() {
         Ok(docker) => {
             let mut mounts = vec![];
-            mounts.push(Mount {
-                typ: Some(MountTypeEnum::BIND),
-                source: Some(socket.clone()),
-                target: Some("/var/run".to_string()),
-                ..Default::default()
-            });
+            // if a unix socket is specified, mounts its directory
+            if socket.is_local_socket() {
+                let mount_path = PathBuf::from(socket.clone())
+                    .as_path()
+                    .to_string_lossy()
+                    .to_string();
+                mounts.push(Mount {
+                    typ: Some(MountTypeEnum::BIND),
+                    source: Some(mount_path),
+                    target: Some("/var/run".to_string()),
+                    ..Default::default()
+                });
+            }
+            // mount application dir
             mounts.push(Mount {
                 typ: Some(MountTypeEnum::BIND),
                 source: Some(application.clone()),
@@ -259,40 +283,57 @@ pub async fn deploy_new_container(
                 ..Default::default()
             });
 
-            let _ = docker
-                .create_image(
-                    Some(CreateImageOptions {
-                        from_image: image.as_str(),
-                        ..Default::default()
-                    }),
-                    None,
-                    None,
-                )
-                .next()
-                .await
-                .unwrap()
-                .or_else(|err| {
-                    Err(UnitClientError::UnitdDockerError {
-                        message: err.to_string(),
-                    })
-                });
+            let mut pb = ProgressBar::on(stderr(), 10);
+            let mut totals = HashMap::new();
+            let mut stream = docker.create_image(
+                Some(CreateImageOptions {
+                    from_image: image.as_str(),
+                    ..Default::default()
+                }), None, None
+            );
+            while let Some(res) = stream.next().await {
+                if let Ok(info) = res {
+                    if let Some(id) = info.id {
+                        if let Some(_) = totals.get_mut(&id) {
+                            if let Some(delta) = info.progress_detail
+                                .and_then(|detail| detail.current) {
+                                    pb.add(delta as u64);
+                                }
+                        } else {
+                            if let Some(total) = info.progress_detail
+                                .and_then(|detail| detail.total) {
+                                    totals.insert(id, total);
+                                    pb.total += total as u64;
+                                }
+                        }
+                    }
+                }
+            }
+            pb.finish();
 
+            // create the new unit container
             let resp: ContainerCreateResponse;
-            match docker
-                .create_container::<String, String>(
-                    None,
-                    Config {
-                        image: Some(image.clone()),
-                        host_config: Some(HostConfig {
-                            network_mode: Some("host".to_string()),
-                            mounts: Some(mounts),
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    },
-                )
-                .await
-            {
+            let host_conf = HostConfig {
+                mounts: Some(mounts),
+                network_mode: Some("host".to_string()),
+                ..Default::default()
+            };
+            let mut container_conf = Config {
+                image: Some(image.clone()),
+                ..Default::default()
+            };
+            if let ControlSocket::TcpSocket(ref uri) = socket {
+                let port = uri.port_u16().or(Some(80)).unwrap();
+                // override port
+                container_conf.cmd = Some(vec![
+                    "unitd".to_string(),
+                    "--no-daemon".to_string(),
+                    "--control".to_string(),
+                    format!("{}:{}", uri.host().unwrap(), port),
+                ]);
+            }
+            container_conf.host_config = Some(host_conf);
+            match docker.create_container::<String, String>(None, container_conf).await {
                 Err(err) => {
                     return Err(UnitClientError::UnitdDockerError {
                         message: err.to_string(),
@@ -301,6 +342,8 @@ pub async fn deploy_new_container(
                 Ok(response) => resp = response,
             }
 
+            // create container gives us an ID
+            // but start container requires a name
             let mut list_container_filters = HashMap::new();
             list_container_filters.insert("id".to_string(), vec![resp.id]);
             match docker
@@ -312,26 +355,28 @@ pub async fn deploy_new_container(
                 }))
                 .await
             {
-                Err(e) => Err(UnitClientError::UnitdDockerError { message: e.to_string() }),
+                // somehow our container doesnt exist
+                Err(e) => Err(UnitClientError::UnitdDockerError{
+                    message: e.to_string()
+                }),
+                // here it is!
                 Ok(info) => {
                     if info.len() < 1 {
                         return Err(UnitClientError::UnitdDockerError {
                             message: "couldnt find new container".to_string(),
                         });
-                    }
-                    if info[0].names.is_none() || info[0].names.clone().unwrap().len() < 1 {
-                        return Err(UnitClientError::UnitdDockerError {
-                            message: "new container has no name".to_string(),
-                        });
-                    }
+                    } else if info[0].names.is_none() ||
+                        info[0].names.clone().unwrap().len() < 1 {
+                            return Err(UnitClientError::UnitdDockerError {
+                                message: "new container has no name".to_string(),
+                            });
+                        }
 
-                    match docker
-                        .start_container(
-                            info[0].names.clone().unwrap()[0].strip_prefix("/").unwrap(),
-                            None::<StartContainerOptions<String>>,
-                        )
-                        .await
-                    {
+                    // start our container
+                    match docker.start_container(
+                        info[0].names.clone().unwrap()[0].strip_prefix(MAIN_SEPARATOR).unwrap(),
+                        None::<StartContainerOptions<String>>,
+                    ).await {
                         Err(err) => Err(UnitClientError::UnitdDockerError {
                             message: err.to_string(),
                         }),
