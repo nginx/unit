@@ -10,11 +10,67 @@ on:
       - master
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: "Semver tag"
+        required: true
 
 permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: tools/unitctl
+    env:
+      MAKE: make
+      CARGO: cargo
+      VERSION:
+      SHORT_VERSION:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - build: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: rustup update stable
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Install macOS depedencies
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install make gnu-sed grep gawk
+          echo "MAKE=gmake" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: ${{ env.MAKE }} list-targets
+
+      - name: Generate openapi
+        run: ${{ env.MAKE }} openapi-generate
+      - name: Test ${{ matrix.os }}
+        run: ${{ env.MAKE }} test
+
   build:
     runs-on: ${{ matrix.os }}
     defaults:
@@ -60,7 +116,7 @@ jobs:
           workspaces: ./tools/unitctl -> target
           save-if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
 
-      - name: Configure linux arm depedencies
+      - name: Configure linux arm dependencies
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           cat <<EOF > Cross.toml
@@ -74,7 +130,7 @@ jobs:
           cat Cross.toml
           echo "CARGO=cross" >> $GITHUB_ENV
 
-      - name: Install macOS depedencies
+      - name: Install macOS dependencies
         if: startsWith(matrix.os, 'macos')
         run: |
           brew install make gnu-sed grep gawk
@@ -92,7 +148,7 @@ jobs:
 
       - name: Get the version from the tag
         run: |
-          version=${{ github.ref_name }}
+          version=${version:=${{ github.ref_name }}}
           short="${version#*/}"
           echo $version; echo $short
           echo "VERSION=$version" >> $GITHUB_ENV
@@ -117,7 +173,7 @@ jobs:
 
   release:
     # Create a draft release if a tag
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -129,4 +185,5 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "unitctl-*"
+          tag: ${{github.event_name == 'workflow_dispatch' && inputs.version}}
           allowUpdates: true

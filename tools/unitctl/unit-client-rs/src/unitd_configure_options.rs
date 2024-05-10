@@ -221,6 +221,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // run this one manually - not in CI
     fn can_run_unitd() {
         let specific_path = std::env::var(UNITD_PATH_ENV_KEY).map_err(|error| Box::new(error) as Box<dyn stdError>);
         let unitd_path = unitd_instance::find_executable_path(specific_path);
