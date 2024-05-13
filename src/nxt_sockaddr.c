@@ -667,7 +667,7 @@ nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
         p = NULL;
     }
 
-    port = 0;
+    port = 80;
 
     if (p != NULL) {
         length = (start + length) - p;
@@ -742,7 +742,7 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
         }
     }
 
-    port = 0;
+    port = 80;
 
     if (p != NULL) {
         p++;
