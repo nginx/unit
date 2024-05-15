@@ -185,5 +185,22 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "unitctl-*"
-          tag: ${{github.event_name == 'workflow_dispatch' && inputs.version}}
+          # false if triggered by a tag
+          prerelease: ${{github.event_name == 'workflow_dispatch' && true}}
+          tag: ${{(github.event_name == 'workflow_dispatch' && inputs.version) || github.ref_name}}
+          name: unitctl/${{(github.event_name=='workflow_dispatch' && inputs.version) || github.ref_name}}
+          body: >
+            ## Unitctl
+
+            This is a released binary of unitctl.
+
+            Unitctl is an official command line tool for managing Unit installations.
+
+
+            ## Unit
+
+            For the current release of the NGINX Unit application server check the
+            [Unit Installation Guide](https://unit.nginx.org/installation/) and the
+            [Unit Quickstart Guide](https://github.com/nginx/unit/).
+
           allowUpdates: true
