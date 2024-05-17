@@ -151,13 +151,14 @@ impl UnitdContainer {
                     vec![]
                 }
                 Ok(summary) => {
+                    let unitd_command_re = Regex::new(r"^(.* )?unitd( .*)?$").unwrap();
+
                     // cant do this functionally because of the async call
                     let mut mapped = vec![];
                     for ctr in summary {
-                        if ctr.clone().image
+                        if unitd_command_re.is_match(&ctr.clone().command
                             .or(Some(String::new()))
-                            .unwrap()
-                            .contains("unit") {
+                            .unwrap()) {
                                 let mut c = UnitdContainer::from(&ctr);
                                 if let Some(names) = ctr.names {
                                     if names.len() > 0 {
