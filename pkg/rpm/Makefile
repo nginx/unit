@@ -28,7 +28,7 @@ else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 39'`; echo $$?),0)
 OSVER = fedora39
 endif
 
-BUILD_DEPENDS_unit = gcc rpm-build rpmlint
+BUILD_DEPENDS_unit = gcc rpm-build rpmlint clang llvm
 
 ifeq ($(OSVER), centos7)
 BUILD_DEPENDS_unit += which
