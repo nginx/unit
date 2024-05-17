@@ -51,7 +51,7 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
                         if !sock_path.is_dir() {
                           return Err(UnitctlError::ControlSocketError{
                                 kind: ControlSocketErrorKind::General,
-                                message: format!("user must specify a directory of UNIX socket directory"),
+                                message: "user must specify a directory of UNIX socket directory".to_string(),
                             })
                         }
                     }
