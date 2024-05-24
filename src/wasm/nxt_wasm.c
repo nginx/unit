@@ -246,7 +246,7 @@ nxt_wasm_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_conf_value_t         *dirs = NULL;
     nxt_wasm_app_conf_t      *c;
     nxt_wasm_func_handler_t  *fh;
-    static nxt_str_t         filesystem_str = nxt_string("filesystem");
+    static const nxt_str_t   filesystem_str = nxt_string("filesystem");
 
     c = &conf->u.wasm;
 
