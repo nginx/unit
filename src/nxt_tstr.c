@@ -81,7 +81,7 @@ nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test)
 
 
 nxt_tstr_t *
-nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
+nxt_tstr_compile(nxt_tstr_state_t *state, const nxt_str_t *str,
     nxt_tstr_flags_t flags)
 {
     u_char      *p;
