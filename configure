@@ -57,6 +57,7 @@ esac
 
 mkdir -p $NXT_BUILD_DIR
 mkdir -p $NXT_BUILD_DIR/bin
+mkdir -p $NXT_BUILD_DIR/fuzzing
 mkdir -p $NXT_BUILD_DIR/include
 mkdir -p $NXT_BUILD_DIR/lib
 mkdir -p $NXT_BUILD_DIR/lib/unit/modules
@@ -179,4 +180,5 @@ if [ $NXT_NJS != NO ]; then
 fi
 
 . auto/make
+. auto/fuzzing
 . auto/summary

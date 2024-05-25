@@ -36,4 +36,6 @@ Unit configuration summary:
 
   debug logging: ............. $NXT_DEBUG
 
+  fuzz engine: ............... "$NXT_FUZZ"
+
 END

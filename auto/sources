@@ -307,6 +307,15 @@ if [ $NXT_TESTS = YES ]; then
 fi
 
 
+NXT_FUZZ_SRCS=" \
+    fuzzing/nxt_basic_fuzz.c \
+    fuzzing/nxt_http_controller_fuzz.c \
+    fuzzing/nxt_http_h1p_fuzz.c \
+    fuzzing/nxt_http_h1p_peer_fuzz.c \
+    fuzzing/nxt_json_fuzz.c \
+"
+
+
 NXT_SRCS=" \
     src/nxt_main.c \
 "

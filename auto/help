@@ -54,6 +54,8 @@ cat << END
 
   --debug              enable debug logging
 
+  --fuzz=ENGINE        enable fuzz testing
+
 
   python OPTIONS       configure Python module
                        run "./configure python --help" to see available options

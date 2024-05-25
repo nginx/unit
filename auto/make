@@ -158,7 +158,7 @@ END
 
 # Object files.
 
-for nxt_src in $NXT_LIB_SRCS $NXT_TEST_SRCS $NXT_LIB_UNIT_SRCS \
+for nxt_src in $NXT_LIB_SRCS $NXT_TEST_SRCS $NXT_FUZZ_SRCS $NXT_LIB_UNIT_SRCS \
                src/test/nxt_unit_app_test.c \
                src/test/nxt_unit_websocket_chat.c \
                src/test/nxt_unit_websocket_echo.c
