@@ -120,7 +120,8 @@ nxt_http_js_ext_uri(njs_vm_t *vm, njs_object_prop_t *prop,
         return NJS_DECLINED;
     }
 
-    return njs_vm_value_string_set(vm, retval, r->path->start, r->path->length);
+    return njs_vm_value_string_create(vm, retval, r->path->start,
+                                      r->path->length);
 }
 
 
@@ -136,7 +137,8 @@ nxt_http_js_ext_host(njs_vm_t *vm, njs_object_prop_t *prop,
         return NJS_DECLINED;
     }
 
-    return njs_vm_value_string_set(vm, retval, r->host.start, r->host.length);
+    return njs_vm_value_string_create(vm, retval, r->host.start,
+                                      r->host.length);
 }
 
 
@@ -152,9 +154,9 @@ nxt_http_js_ext_remote_addr(njs_vm_t *vm, njs_object_prop_t *prop,
         return NJS_DECLINED;
     }
 
-    return njs_vm_value_string_set(vm, retval,
-                                   nxt_sockaddr_address(r->remote),
-                                   r->remote->address_length);
+    return njs_vm_value_string_create(vm, retval,
+                                      nxt_sockaddr_address(r->remote),
+                                      r->remote->address_length);
 }
 
 
@@ -215,8 +217,8 @@ nxt_http_js_ext_get_header(njs_vm_t *vm, njs_object_prop_t *prop,
         if (key.length == f->name_length
             && memcmp(key.start, f->name, f->name_length) == 0)
         {
-            return njs_vm_value_string_set(vm, retval, f->value,
-                                           f->value_length);
+            return njs_vm_value_string_create(vm, retval, f->value,
+                                              f->value_length);
         }
 
     } nxt_list_loop;
@@ -251,7 +253,7 @@ nxt_http_js_ext_keys_header(njs_vm_t *vm, njs_value_t *value, njs_value_t *keys)
             return NJS_ERROR;
         }
 
-        rc = njs_vm_value_string_set(vm, value, f->name, f->name_length);
+        rc = njs_vm_value_string_create(vm, value, f->name, f->name_length);
         if (rc != NJS_OK) {
             return NJS_ERROR;
         }
@@ -297,8 +299,8 @@ nxt_http_js_ext_get_cookie(njs_vm_t *vm, njs_object_prop_t *prop,
         if (key.length == nv->name_length
             && memcmp(key.start, nv->name, nv->name_length) == 0)
         {
-            return njs_vm_value_string_set(vm, retval, nv->value,
-                                           nv->value_length);
+            return njs_vm_value_string_create(vm, retval, nv->value,
+                                              nv->value_length);
         }
     }
 
@@ -341,7 +343,7 @@ nxt_http_js_ext_keys_cookie(njs_vm_t *vm, njs_value_t *value, njs_value_t *keys)
             return NJS_ERROR;
         }
 
-        rc = njs_vm_value_string_set(vm, value, nv->name, nv->name_length);
+        rc = njs_vm_value_string_create(vm, value, nv->name, nv->name_length);
         if (rc != NJS_OK) {
             return NJS_ERROR;
         }
@@ -381,7 +383,7 @@ nxt_http_js_ext_get_var(njs_vm_t *vm, njs_object_prop_t *prop,
     vv = nxt_var_get(&r->task, rtcf->tstr_state, &r->tstr_cache.var, &name, r);
 
     if (vv != NULL) {
-        return njs_vm_value_string_set(vm, retval, vv->start, vv->length);
+        return njs_vm_value_string_create(vm, retval, vv->start, vv->length);
     }
 
     njs_value_undefined_set(retval);
