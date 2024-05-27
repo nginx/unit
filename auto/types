@@ -1,0 +1,118 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Sizes of C types.
+
+# "-Wall -Werror" or similar constraints in default CFLAGS may require
+# to use "%zu" format to printf() result of sizeof().  But "%zu" may
+# be unavailable, so the "(int)" cast is a simple and portable solution:
+#     printf("%d", (int) sizeof(TYPE));
+
+
+nxt_feature="int size"
+nxt_feature_name=NXT_INT_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(int));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="long size"
+nxt_feature_name=NXT_LONG_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(long));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="long long size"
+nxt_feature_name=NXT_LONG_LONG_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(long long));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="void * size"
+nxt_feature_name=NXT_PTR_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(void *));
+                      return 0;
+                  }"
+. auto/feature
+
+
+case "$nxt_feature_value" in
+    8) NXT_64BIT=1 ;;
+    *) NXT_64BIT=0 ;;
+esac
+
+
+nxt_feature="size_t size"
+nxt_feature_name=NXT_SIZE_T_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(size_t));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="off_t size"
+nxt_feature_name=NXT_OFF_T_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _FILE_OFFSET_BITS  64
+                  #include <unistd.h>
+                  #include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(off_t));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="time_t size"
+nxt_feature_name=NXT_TIME_T_SIZE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <time.h>
+                  #include <stdio.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(time_t));
+                      return 0;
+                  }"
+. auto/feature

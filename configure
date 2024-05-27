@@ -1,0 +1,182 @@
+#!/bin/sh
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Disable localized program messages.
+LC_ALL=C
+export LC_ALL
+
+# Stop on error exit status.
+set -e
+
+# Stop on uninitialized variable.
+set -u
+
+# Initialize variables with null values if they are not defined.
+CFLAGS=${CFLAGS=}
+NXT_TEST_CFLAGS=${NXT_TEST_CFLAGS=}
+NXT_TEST_LIBS=${NXT_TEST_LIBS=}
+
+NXT_BUILD_DIR=${NXT_BUILD_DIR:-build}
+
+NXT_AUTOTEST=$NXT_BUILD_DIR/autotest
+NXT_AUTOCONF_ERR=$NXT_BUILD_DIR/autoconf.err
+NXT_AUTOCONF_DATA=$NXT_BUILD_DIR/autoconf.data
+NXT_AUTO_CONFIG_H=$NXT_BUILD_DIR/include/nxt_auto_config.h
+NXT_VERSION_H=$NXT_BUILD_DIR/include/nxt_version.h
+NXT_MAKEFILE=$NXT_BUILD_DIR/Makefile
+
+CC=${CC:-cc}
+
+NXT_DAEMON=unitd
+NXT_USER="nobody"
+NXT_GROUP=
+
+nxt_module=${1:-""}
+
+case $nxt_module in
+    ""|--*)
+    ;;
+
+    unit)
+        shift
+    ;;
+
+    *)
+        . auto/modules/conf
+        exit 0
+    ;;
+esac
+
+
+. ./version
+. auto/os/test
+. auto/options
+
+mkdir -p $NXT_BUILD_DIR
+mkdir -p $NXT_BUILD_DIR/bin
+mkdir -p $NXT_BUILD_DIR/include
+mkdir -p $NXT_BUILD_DIR/lib
+mkdir -p $NXT_BUILD_DIR/lib/unit/modules
+mkdir -p $NXT_BUILD_DIR/sbin
+mkdir -p $NXT_BUILD_DIR/share/man/man8
+mkdir -p $NXT_BUILD_DIR/share/pkgconfig
+mkdir -p $NXT_BUILD_DIR/src
+mkdir -p $NXT_BUILD_DIR/src/test
+mkdir -p $NXT_BUILD_DIR/var/lib/unit
+mkdir -p $NXT_BUILD_DIR/var/log/unit
+mkdir -p $NXT_BUILD_DIR/var/run/unit
+
+
+> $NXT_AUTOCONF_ERR
+> $NXT_AUTO_CONFIG_H
+
+. auto/cc/test
+
+
+cat << END >> $NXT_AUTO_CONFIG_H
+
+#define NXT_CONFIGURE_OPTIONS  "$NXT_CONFIGURE_OPTIONS"
+#define NXT_SYSTEM_VERSION     "$NXT_SYSTEM $NXT_SYSTEM_VERSION $NXT_SYSTEM_PLATFORM"
+#define NXT_COMPILER_VERSION   "$NXT_CC_VERSION"
+
+#define NXT_PID                "$NXT_PID"
+#define NXT_LOG                "$NXT_LOG"
+#define NXT_MODULESDIR         "$NXT_MODULESDIR"
+#define NXT_STATEDIR           "$NXT_STATEDIR"
+#define NXT_TMPDIR             "$NXT_TMPDIR"
+
+#define NXT_CONTROL_SOCK       "$NXT_CONTROL"
+
+#define NXT_USER               "$NXT_USER"
+#define NXT_GROUP              "$NXT_GROUP"
+
+END
+
+
+if [ $echo = echo ]; then
+    # Build a portable "echo" program that supports only "-n" option.
+    # This also tests C compiler ability to create executables.
+    . auto/echo/build
+fi
+
+
+nxt_have=NXT_UNIX . auto/have
+
+if [ $NXT_UNIX_DOMAIN = YES ]; then
+    nxt_have=NXT_HAVE_UNIX_DOMAIN . auto/have
+fi
+
+NXT_LIBRT=
+
+. auto/endian
+. auto/types
+. auto/clang
+. auto/atomic
+. auto/malloc
+. auto/mmap
+. auto/shmem
+. auto/time
+. auto/threads
+. auto/events
+. auto/sockets
+. auto/sendfile
+. auto/files
+. auto/unix
+. auto/os/conf
+. auto/ssltls
+
+if [ $NXT_REGEX = YES ]; then
+    . auto/pcre
+fi
+
+. auto/cgroup
+. auto/isolation
+. auto/capability
+
+
+case "$NXT_SYSTEM_PLATFORM" in
+    i386 | amd64 | x86_64)
+        nxt_have=NXT_HAVE_NONALIGNED . auto/have
+    ;;
+esac
+
+
+if [ $NXT_DEBUG = YES ]; then
+    nxt_debug=1
+else
+    nxt_debug=0
+fi
+
+cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_DEBUG
+#define NXT_DEBUG  $nxt_debug
+#endif
+
+#define NXT_SHM_PREFIX  "$NXT_SHM_PREFIX"
+
+END
+
+. auto/test_build
+. auto/sources
+. auto/save
+
+# LOOK
+
+NXT_LIB_AUX_CFLAGS="$NXT_OPENSSL_CFLAGS $NXT_GNUTLS_CFLAGS \\
+                    $NXT_CYASSL_CFLAGS $NXT_POLARSSL_CFLAGS \\
+                    $NXT_PCRE_CFLAGS"
+
+NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
+                    $NXT_CYASSL_LIBS $NXT_POLARSSL_LIBS \\
+                    $NXT_PCRE_LIB"
+
+if [ $NXT_NJS != NO ]; then
+    . auto/njs
+fi
+
+. auto/make
+. auto/summary

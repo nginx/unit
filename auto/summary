@@ -1,0 +1,39 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+cat << END
+
+Unit configuration summary:
+
+  bin directory: ............. "$NXT_BINDIR"
+  sbin directory: ............ "$NXT_SBINDIR"
+  lib directory: ............. "$NXT_LIBDIR"
+  include directory: ......... "$NXT_INCLUDEDIR"
+  pkgconfig directory: ....... "$NXT_PKGCONFIGDIR"
+  man pages directory: ....... "$NXT_MANDIR"
+  modules directory: ......... "$NXT_MODULESDIR"
+  state directory: ........... "$NXT_STATEDIR"
+  tmp directory: ............. "$NXT_TMPDIR"
+
+  pid file: .................. "$NXT_PID"
+  log file: .................. "$NXT_LOG"
+
+  control API socket: ........ "$NXT_CONTROL"
+
+  non-privileged user: ....... "$NXT_USER"
+  non-privileged group: ...... "$NXT_GROUP"
+
+  IPv6 support: .............. $NXT_INET6
+  Unix domain sockets support: $NXT_UNIX_DOMAIN
+  TLS support: ............... $NXT_OPENSSL
+  Regex support: ............. $NXT_REGEX
+  njs support: ............... $NXT_NJS
+
+  process isolation: ......... $NXT_ISOLATION
+  cgroupv2: .................. $NXT_HAVE_CGROUP
+
+  debug logging: ............. $NXT_DEBUG
+
+END

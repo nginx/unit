@@ -1,0 +1,45 @@
+Source: unit
+Section: admin
+Priority: extra
+Maintainer: %%PACKAGE_VENDOR%%
+Build-Depends: debhelper (>= 11),
+               linux-libc-dev,
+               libssl-dev,
+               libpcre2-dev,
+               pkg-config,
+               clang,
+               llvm
+Standards-Version: 4.1.4
+Homepage: https://unit.nginx.org
+
+Package: unit
+Section: admin
+Architecture: any
+Depends: lsb-base,
+         ${misc:Depends}, ${shlibs:Depends}
+Provides: unit-r%%UNIT_VERSION%%
+Description: NGINX Unit
+ NGINX Unit is a runtime and delivery environment for modern distributed
+ applications. It runs the application code in multiple languages
+ (PHP, Python, Go, etc.), and tightly couples it with traffic delivery
+ in and out of the application. Take this application server and proxy
+ directly in the cloud / container environments and fully control your app
+ dynamically via an API.
+
+Package: unit-dbg
+Section: debug
+Architecture: any
+Priority: extra
+Depends: unit (= ${binary:Version}),
+         ${misc:Depends}
+Description: NGINX Unit (debug symbols)
+ This package contains the debugging symbols for NGINX Unit.
+
+Package: unit-dev
+Section: libdevel
+Priority: optional
+Architecture: any
+Depends: unit (= ${binary:Version}),
+         ${misc:Depends}
+Description: NGINX Unit (development files)
+ Library and include files required for NGINX Unit modules development.

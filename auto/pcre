@@ -1,0 +1,77 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+nxt_found=no
+NXT_HAVE_PCRE2=NO
+
+if [ $NXT_TRY_PCRE2 = YES ]; then
+    if /bin/sh -c "(pcre2-config --version)" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+        NXT_PCRE_CFLAGS=`pcre2-config --cflags`
+        NXT_PCRE_LIB=`pcre2-config --libs8`
+
+        nxt_feature="PCRE2 library"
+        nxt_feature_name=NXT_HAVE_PCRE2
+        nxt_feature_run=no
+        nxt_feature_incs="-DPCRE2_CODE_UNIT_WIDTH=8 $NXT_PCRE_CFLAGS"
+        nxt_feature_libs=$NXT_PCRE_LIB
+        nxt_feature_test="#include <pcre2.h>
+
+                          int main(void) {
+                              pcre2_code  *re;
+
+                              re = pcre2_compile((PCRE2_SPTR)\"\",
+                                                 PCRE2_ZERO_TERMINATED, 0,
+                                                 NULL, NULL, NULL);
+                              return (re == NULL);
+                          }"
+
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            NXT_HAVE_PCRE2=YES
+            $echo " + PCRE2 version: `pcre2-config --version`"
+        fi
+    fi
+fi
+
+if [ $nxt_found = no ]; then
+    if /bin/sh -c "(pcre-config --version)" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+        NXT_PCRE_CFLAGS=`pcre-config --cflags`
+        NXT_PCRE_LIB=`pcre-config --libs`
+
+        nxt_feature="PCRE library"
+        nxt_feature_name=NXT_HAVE_PCRE
+        nxt_feature_run=no
+        nxt_feature_incs=$NXT_PCRE_CFLAGS
+        nxt_feature_libs=$NXT_PCRE_LIB
+        nxt_feature_test="#include <pcre.h>
+
+                          int main(void) {
+                              pcre  *re;
+
+                              re = pcre_compile(NULL, 0, NULL, 0, NULL);
+                              if (re == NULL)
+                                  return 1;
+                              return 0;
+                          }"
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            $echo " + PCRE version: `pcre-config --version`"
+        fi
+    fi
+fi
+
+if [ $nxt_found = yes ]; then
+    nxt_have=NXT_HAVE_REGEX . auto/have
+
+else
+    $echo
+    $echo $0: error: no PCRE library found.
+    $echo
+    exit 1;
+fi

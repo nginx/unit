@@ -1,0 +1,196 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# C language features.
+
+
+nxt_feature="C99 variadic macro"
+nxt_feature_name=NXT_HAVE_C99_VARIADIC_MACRO
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #define set(dummy, ...)  sprintf(__VA_ARGS__)
+
+                  int main(void) {
+                      char  buf[4];
+
+                      buf[0] = '0';
+                      set(0, buf, \"%d\", 1);
+
+                      if (buf[0] == '1')
+                          return 0;
+                      return 1;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    nxt_feature="GCC variadic macro"
+    nxt_feature_name=NXT_HAVE_GCC_VARIADIC_MACRO
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <stdio.h>
+                      #define set(dummy, args...)  sprintf(args)
+
+                      int main(void) {
+                          char  buf[4];
+
+                          buf[0] = '0';
+                          set(0, buf, \"%d\", 1);
+
+                          if (buf[0] == '1')
+                              return 0;
+                          return 1;
+                      }"
+    . auto/feature
+fi
+
+
+nxt_feature="GCC __builtin_expect()"
+nxt_feature_name=NXT_HAVE_BUILTIN_EXPECT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(int argc, char *const *argv) {
+                      if ((__typeof__(argc == 0))
+                                   __builtin_expect((argc == 0), 0))
+                          return 0;
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __builtin_unreachable()"
+nxt_feature_name=NXT_HAVE_BUILTIN_UNREACHABLE
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(void) {
+                      __builtin_unreachable();
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __builtin_prefetch()"
+nxt_feature_name=NXT_HAVE_BUILTIN_PREFETCH
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(void) {
+                      __builtin_prefetch(0);
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __builtin_clz()"
+nxt_feature_name=NXT_HAVE_BUILTIN_CLZ
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(void) {
+                      if (__builtin_clz(1) == 31)
+                          return 0;
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __builtin_popcount()"
+nxt_feature_name=NXT_HAVE_BUILTIN_POPCOUNT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(void) {
+                      if (__builtin_popcount(5) == 2)
+                          return 0;
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __attribute__ visibility"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_VISIBILITY
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int n __attribute__ ((visibility(\"default\")));
+
+                  int main(void) {
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __attribute__ aligned"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_ALIGNED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int n __attribute__ ((aligned(64)));
+
+                  int main(void) {
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __attribute__ malloc"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_MALLOC
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+
+                  void *f(void) __attribute__ ((__malloc__));
+
+                  void *f(void) {
+                      return malloc(1);
+                  }
+
+                  int main(void) {
+                      if (f() != NULL) {
+                          return 1;
+                      }
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __attribute__ packed"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_PACKED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="struct s {
+                      char c;
+                      int i;
+                  } __attribute__ ((__packed__));
+
+                  int main(void) {
+                      return 1;
+                  }"
+. auto/feature
+
+
+nxt_feature="GCC __attribute__ unused"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_UNUSED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="static void f(void) __attribute__ ((__unused__));
+
+                  static void f(void)
+                  {
+                      return;
+                  }
+
+                  int main(void) {
+                      return 0;
+                  }"
+. auto/feature

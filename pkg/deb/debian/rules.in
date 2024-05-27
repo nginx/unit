@@ -1,0 +1,155 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
+export DEB_CFLAGS_MAINT_APPEND=-Wp,-D_FORTIFY_SOURCE=2 -fPIC
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed -pie
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+CODENAME := $(shell lsb_release -cs)
+
+BUILDDIR_unit = $(CURDIR)/debian/build-unit
+BUILDDIR_unit_debug = $(CURDIR)/debian/build-unit-debug
+INSTALLDIR = $(CURDIR)/debian/unit
+INSTALLDIR_dev = $(CURDIR)/debian/unit-dev
+BASEDIR = $(CURDIR)
+
+DOTESTS = 0
+
+njs:
+	dh_testdir
+	cd pkg/contrib && make .njs
+	touch $@
+
+libunit-wasm:
+	dh_testdir
+	cd pkg/contrib && make .libunit-wasm
+	touch $@
+
+config.env.%: njs
+	dh_testdir
+	mkdir -p $(BUILDDIR_$*)
+	cp -Pa $(CURDIR)/auto $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/test $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/tools $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/version $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/CHANGES $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/NOTICE $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/README.md $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/CONTRIBUTING.md $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/go $(BUILDDIR_$*)/
+	mkdir -p $(BUILDDIR_$*)/docs/man/man8
+	cp -Pa $(CURDIR)/docs/man/man8/unitd.8.in $(BUILDDIR_$*)/docs/man/man8/
+	touch $@
+
+configure.unit: config.env.unit
+	cd $(BUILDDIR_unit) && \
+	PKG_CONFIG_PATH=$(CURDIR)/pkg/contrib/njs/build \
+	CFLAGS= ./configure \
+		%%CONFIGURE_ARGS%% \
+		--modulesdir=/usr/lib/unit/modules \
+		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
+		--cc-opt="$(CFLAGS)" \
+		--ld-opt="$(LDFLAGS)"
+	touch $@
+
+configure.unit_debug: config.env.unit_debug
+	cd $(BUILDDIR_unit_debug) && \
+	PKG_CONFIG_PATH=$(CURDIR)/pkg/contrib/njs/build \
+	CFLAGS= ./configure \
+		%%CONFIGURE_ARGS%% \
+		--modulesdir=/usr/lib/unit/debug-modules \
+		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
+		--cc-opt="$(CFLAGS)" \
+		--ld-opt="$(LDFLAGS)" \
+		--debug
+	touch $@
+
+build-arch.%: configure.%
+	dh_testdir
+	$(MAKE) -C $(BUILDDIR_$*)
+	$(MAKE) -C $(BUILDDIR_$*) build/lib/libunit.a
+ifeq ($(DOTESTS), 1)
+	$(MAKE) -C $(BUILDDIR_$*) tests
+endif
+	touch $@
+
+do.tests: build
+	dh_testdir
+ifeq ($(DOTESTS), 1)
+	cd $(BUILDDIR_unit) && ./build/tests
+	cd $(BUILDDIR_unit_debug) && ./build/tests
+endif
+	touch $@
+
+build-indep:
+	dh_testdir
+	touch $@
+
+build-arch: build-arch.unit build-arch.unit_debug
+	dh_testdir
+	touch $@
+
+build: build-arch build-indep libunit-wasm
+	dh_testdir
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+	find $(CURDIR) -maxdepth 1 -size 0 -delete
+	rm -rf $(BUILDDIR_unit) $(BUILDDIR_unit_debug)
+
+install: build do.tests
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	dh_installsystemd -punit --name=unit unit.service
+	dh_installsystemd -punit --name=unit-debug --no-start --no-enable unit-debug.service
+	dh_installlogrotate
+	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
+	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
+	install -m 755 $(BUILDDIR_unit)/tools/unitc $(INSTALLDIR)/usr/bin/unitc
+	install -m 755 $(BUILDDIR_unit)/tools/setup-unit $(INSTALLDIR)/usr/bin/setup-unit
+	install -m 755 $(BUILDDIR_unit_debug)/build/sbin/unitd $(INSTALLDIR)/usr/sbin/unitd-debug
+	install -m 644 $(BUILDDIR_unit_debug)/build/lib/libunit.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-debug.a
+	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
+	install -m 644 debian/unit.example.config $(INSTALLDIR)/usr/share/doc/unit/examples/example.config
+	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/changelog
+	install -m 644 README.md $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 CONTRIBUTING.md $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 NOTICE $(INSTALLDIR)/usr/share/doc/unit/
+	mkdir -p $(INSTALLDIR_dev)/usr/include/unit
+	install -m644 $(CURDIR)/pkg/contrib/libunit-wasm/src/c/libunit-wasm.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-wasm.a
+	install -m644 $(CURDIR)/pkg/contrib/libunit-wasm/src/c/include/unit/unit-wasm.h $(INSTALLDIR_dev)/usr/include/unit/
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_installchangelogs
+	dh_link
+	dh_strip --dbg-package=unit-dbg
+	dh_shlibdeps
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_perl
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch: install
+
+binary: binary-indep binary-arch
+
+.PHONY: clean binary-indep binary-arch binary install build

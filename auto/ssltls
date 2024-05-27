@@ -1,0 +1,215 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_OPENSSL_CFLAGS=
+NXT_OPENSSL_LIBS=
+NXT_GNUTLS_CFLAGS=
+NXT_GNUTLS_LIBS=
+NXT_OPENSSL_LIBS=
+NXT_CYASSL_CFLAGS=
+NXT_CYASSL_LIBS=
+NXT_POLARSSL_CFLAGS=
+NXT_POLARSSL_LIBS=
+
+
+if [ $NXT_OPENSSL = YES ]; then
+
+    nxt_feature="OpenSSL library"
+    nxt_feature_name=NXT_HAVE_OPENSSL
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs="-lssl -lcrypto"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main(void) {
+                          SSL_library_init();
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    if [ $nxt_found = yes ]; then
+        NXT_TLS=YES
+        NXT_OPENSSL_LIBS="$nxt_feature_libs"
+
+        nxt_feature="OpenSSL version"
+        nxt_feature_name=NXT_HAVE_OPENSSL_VERSION
+        nxt_feature_run=value
+        nxt_feature_test="#include <openssl/ssl.h>
+
+                          int main(void) {
+                              printf(\"\\\"%s\\\"\",
+                                     SSLeay_version(SSLEAY_VERSION));
+                              return 0;
+                          }"
+        . auto/feature
+
+    else
+        $echo
+        $echo $0: error: no OpenSSL library found.
+        $echo
+        exit 1;
+    fi
+
+
+    nxt_feature="OpenSSL SSL_CONF_cmd()"
+    nxt_feature_name=NXT_HAVE_OPENSSL_CONF_CMD
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs="$NXT_OPENSSL_LIBS"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main(void) {
+                          SSL_CONF_cmd(NULL, NULL, NULL);
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    nxt_feature="OpenSSL tlsext support"
+    nxt_feature_name=NXT_HAVE_OPENSSL_TLSEXT
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs="$NXT_OPENSSL_LIBS"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main(void) {
+                          #if (OPENSSL_NO_TLSEXT)
+                          #error OpenSSL: no tlsext support.
+                          #else
+                          return 0;
+                          #endif
+                      }"
+    . auto/feature
+fi
+
+
+if [ $NXT_GNUTLS = YES ]; then
+
+    if /bin/sh -c "(pkg-config gnutls --exists)" >> $NXT_AUTOCONF_ERR 2>&1;
+    then
+        NXT_GNUTLS_CFLAGS=`pkg-config gnutls --cflags`
+        NXT_GNUTLS_LIBS=`pkg-config gnutls --libs`
+
+        nxt_feature="GnuTLS library"
+        nxt_feature_name=NXT_HAVE_GNUTLS
+        nxt_feature_run=yes
+        nxt_feature_incs=$NXT_GNUTLS_CFLAGS
+        nxt_feature_libs=$NXT_GNUTLS_LIBS
+        nxt_feature_test="#include <gnutls/gnutls.h>
+
+                          int main(void) {
+                              gnutls_global_init();
+                              gnutls_global_deinit();
+                              return 0;
+                          }"
+        . auto/feature
+
+
+        if [ $nxt_found = yes ]; then
+            NXT_TLS=YES
+
+            $echo " + GnuTLS version: `pkg-config gnutls --modversion`"
+
+
+            nxt_feature="gnutls_transport_set_vec_push_function"
+            nxt_feature_name=NXT_HAVE_GNUTLS_VEC_PUSH
+            nxt_feature_run=no
+            nxt_feature_incs=$NXT_GNUTLS_CFLAGS
+            nxt_feature_libs=$NXT_GNUTLS_LIBS
+            nxt_feature_test="#include <gnutls/gnutls.h>
+
+                      int main(void) {
+                          gnutls_transport_set_vec_push_function(NULL, NULL);
+                          return 0;
+                      }"
+            . auto/feature
+
+
+            nxt_feature="gnutls_global_set_time_function"
+            nxt_feature_name=NXT_HAVE_GNUTLS_SET_TIME
+            nxt_feature_run=no
+            nxt_feature_incs=$NXT_GNUTLS_CFLAGS
+            nxt_feature_libs=$NXT_GNUTLS_LIBS
+            nxt_feature_test="#include <gnutls/gnutls.h>
+
+                      int main(void) {
+                          gnutls_global_set_time_function(NULL);
+                          return 0;
+                      }"
+            . auto/feature
+
+        else
+            $echo
+            $echo $0: error: no GnuTLS library found.
+            $echo
+            exit 1;
+        fi
+    fi
+fi
+
+
+if [ $NXT_CYASSL = YES ]; then
+
+    nxt_feature="CyaSSL library"
+    nxt_feature_name=NXT_HAVE_CYASSL
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs="-lcyassl"
+    nxt_feature_test="#include <cyassl/ssl.h>
+
+                      int main(void) {
+                          CyaSSL_Init();
+                          CyaSSL_Cleanup();
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    if [ $nxt_found = yes ]; then
+        NXT_TLS=YES
+        NXT_CYASSL_CFLAGS="$nxt_feature_incs"
+        NXT_CYASSL_LIBS="$nxt_feature_libs"
+
+    else
+        $echo
+        $echo $0: error: no CyaSSL library found.
+        $echo
+        exit 1;
+    fi
+fi
+
+
+if [ $NXT_POLARSSL = YES ]; then
+
+    nxt_feature="PolarSSL library"
+    nxt_feature_name=NXT_HAVE_POLARSSL
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs="-lpolarssl"
+    nxt_feature_test="#include <polarssl/ssl.h>
+
+                      int main(void) {
+                          ssl_context  ssl;
+                          memset(&ssl, '\0', sizeof(ssl));
+                          ssl_init(&ssl);
+                          ssl_free(&ssl);
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    if [ $nxt_found = yes ]; then
+        NXT_TLS=YES
+        NXT_POLARSSL_CFLAGS="$nxt_feature_incs"
+        NXT_POLARSSL_LIBS="$nxt_feature_libs"
+
+    else
+        $echo
+        $echo $0: error: no PolarSSL library found.
+        $echo
+        exit 1;
+    fi
+fi

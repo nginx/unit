@@ -1,0 +1,330 @@
+#!/bin/bash
+# unitc - a curl wrapper for configuring NGINX Unit
+# https://github.com/nginx/unit/tree/master/tools
+# NGINX, Inc. (c) 2024
+
+# Defaults
+#
+ERROR_LOG=/dev/null
+REMOTE=0
+SHOW_LOG=1
+NOLOG=0
+QUIET=0
+CONVERT=0
+URI=""
+RPC_CMD=""
+METHOD=PUT
+CONF_FILES=()
+
+while [ $# -gt 0 ]; do
+	OPTION=$(echo $1 | tr '[a-z]' '[A-Z]')
+	case $OPTION in
+		"-F" | "--FORMAT")
+			case $(echo $2 | tr '[a-z]' '[A-Z]') in
+				"YAML")
+					CONVERT=1
+					if hash yq 2> /dev/null; then
+						CONVERT_TO_JSON="yq eval -P --output-format=json"
+						CONVERT_FROM_JSON="yq eval -P --output-format=yaml"
+					else
+						echo "${0##*/}: ERROR: yq(1) is required to use YAML format; install at <https://github.com/mikefarah/yq#install>"
+						exit 1
+					fi
+					;;
+				"")
+					echo "${0##*/}: ERROR: Must specify configuration format"
+					exit 1
+					;;
+				*)
+					echo "${0##*/}: ERROR: Invalid format ($2)"
+					exit 1
+					;;
+			esac
+			shift; shift
+			;;
+
+		"-H" | "--HELP")
+			shift
+			;;
+
+		"-L" | "--NOLOG" | "--NO-LOG")
+			NOLOG=1
+			shift
+			;;
+
+		"-Q" | "--QUIET")
+			QUIET=1
+			shift
+			;;
+
+		"GET" | "PUT" | "POST" | "DELETE" | "INSERT" | "EDIT")
+			METHOD=$OPTION
+			shift
+			;;
+
+		"HEAD" | "PATCH" | "PURGE" | "OPTIONS")
+			echo "${0##*/}: ERROR: Invalid HTTP method ($OPTION)"
+			exit 1
+			;;
+
+		*)
+			if [ -f $1 ] && [ -r $1 ]; then
+				CONF_FILES+=($1)
+				if [ "${1##*.}" = "yaml" ]; then
+					echo "${0##*/}: INFO: converting $1 to JSON"
+					shift; set -- "--format" "yaml" "$@" # Apply the command line option
+				else
+					shift
+				fi
+			elif [ "${1:0:1}" = "/" ] || [ "${1:0:4}" = "http" ] && [ "$URI" = "" ]; then
+				URI=$1
+				shift
+			elif [ "${1:0:6}" = "ssh://" ]; then
+				UNIT_CTRL=$1
+				shift
+			elif [ "${1:0:9}" = "docker://" ]; then
+				UNIT_CTRL=$1
+				shift
+			else
+				echo "${0##*/}: ERROR: Invalid option ($1)"
+				exit 1
+			fi
+			;;
+	esac
+done
+
+if [ "$URI" = "" ]; then
+	cat << __EOF__
+${0##*/} - a curl wrapper for managing NGINX Unit configuration
+
+USAGE: ${0##*/} [options] URI
+
+• URI is for Unit's control API target, e.g. /config
+• A local Unit control socket is detected unless a remote one is specified.
+• Configuration data is read from stdin.
+• All options are case-insensitive (excluding filenames and URIs).
+
+General options
+  filename …          # Read configuration data from files instead of stdin
+  HTTP method         # Default=GET, or PUT when config data is present
+  EDIT                # Opens the URI contents in \$EDITOR
+  INSERT              # Virtual HTTP method; prepend data to an array
+  -f | --format YAML  # Convert configuration data to/from YAML format
+  -q | --quiet        # No output to stdout
+
+Local options
+  -l | --nolog        # Do not monitor the Unit log file after config changes
+
+Remote options
+  ssh://[user@]remote_host[:port]/path/to/control.socket  # Remote Unix socket
+  http://remote_host:port/URI                             # Remote TCP socket
+  docker://container_ID[/non-default/control.socket]      # Container on host
+
+ A remote Unit instance may also be defined with the \$UNIT_CTRL environment
+ variable as http://remote_host:port  or  ssh://…  or  docker://…  (as above).
+
+__EOF__
+	exit 1
+fi
+
+# Figure out if we're running on the Unit host, or remotely
+#
+if [ "$UNIT_CTRL" = "" ]; then
+	if [ "${URI:0:4}" = "http" ]; then
+		REMOTE=1
+		UNIT_CTRL=$(echo "$URI" | cut -f1-3 -d/)
+		URI=/$(echo "$URI" | cut -f4- -d/)
+	fi
+elif [ "${UNIT_CTRL:0:6}" = "ssh://" ]; then
+	REMOTE=1
+	RPC_CMD="ssh $(echo $UNIT_CTRL | cut -f1-3 -d/)"
+	UNIT_CTRL="--unix-socket /$(echo $UNIT_CTRL | cut -f4- -d/) _"
+elif [ "${UNIT_CTRL:0:9}" = "docker://" ]; then
+	RPC_CMD="docker exec -i $(echo $UNIT_CTRL | cut -f3 -d/)"
+	DOCKSOCK=/$(echo "$UNIT_CTRL" | cut -f4- -d/)
+	if [ "$DOCKSOCK" = "/" ]; then
+		DOCKSOCK="/var/run/control.unit.sock" # Use default location if no path
+	fi
+	UNIT_CTRL="--unix-socket $DOCKSOCK _"
+	REMOTE=1
+elif [ "${URI:0:1}" = "/" ]; then
+	REMOTE=1
+fi
+
+if [ $REMOTE -eq 0 ]; then
+	# Check if Unit is running, find the main process
+	#
+	PID=($(ps ax | grep unit:\ main | grep -v \ grep | awk '{print $1}'))
+	if [ ${#PID[@]} -eq 0 ]; then
+		echo "${0##*/}: ERROR: unitd not running (set \$UNIT_CTRL to configure a remote instance)"
+		exit 1
+	elif [ ${#PID[@]} -gt 1 ]; then
+		echo "${0##*/}: ERROR: multiple unitd processes detected (${PID[@]})"
+		exit 1
+	fi
+
+	# Read the significant unitd conifuration from cache file (or create it)
+	#
+	if [ -r /tmp/${0##*/}.$PID.env ]; then
+		source /tmp/${0##*/}.$PID.env
+	else
+		# Check we have all the tools we will need (that we didn't already use)
+		#
+		MISSING=$(hash curl tr cut sed tail sleep 2>&1 | cut -f4 -d: | tr -d '\n')
+		if [ "$MISSING" != "" ]; then
+			echo "${0##*/}: ERROR: cannot find$MISSING: please install or add to \$PATH"
+			exit 1
+		fi
+
+		# Obtain any optional startup parameters from the 'unitd: main' process
+		# so we can get the actual control address and error log location.
+		# Command line options and output of ps(1) is notoriously variable across
+		# different *nix/BSD platforms so multiple attempts might be needed.
+		#
+		PARAMS=$((ps -wwo args=COMMAND -p $PID || ps $PID) 2> /dev/null | grep unit | tr '[]' ^ | cut -f2 -d^ | sed -e 's/ --/\n--/g')
+		if [ "$PARAMS" = "" ]; then
+			echo "${0##*/}: WARNING: unable to identify unitd command line parameters for PID $PID, assuming unitd defaults from \$PATH"
+			PARAMS=unitd
+		fi
+		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control ' | cut -f2 -d' ')
+		if [ "$CTRL_ADDR" = "" ]; then
+			CTRL_ADDR=$($(echo "$PARAMS") --help | grep -A1 '\--control ADDRESS' | tail -1 | cut -f2 -d\")
+		fi
+		if [ "$CTRL_ADDR" = "" ]; then
+			echo "${0##*/}: ERROR: cannot detect control socket. Did you start unitd with a relative path? Try starting unitd with --control option."
+			exit 2
+		fi
+
+		# Prepare for network or Unix socket addressing
+		#
+		if [ $(echo $CTRL_ADDR | grep -c ^unix:) -eq 1 ]; then
+			SOCK_FILE=$(echo $CTRL_ADDR | cut -f2- -d:)
+			if [ -r $SOCK_FILE ]; then
+				UNIT_CTRL="--unix-socket $SOCK_FILE _"
+			else
+				echo "${0##*/}: ERROR: cannot read unitd control socket: $SOCK_FILE"
+				ls -l $SOCK_FILE
+				exit 2
+			fi
+		else
+			UNIT_CTRL="http://$CTRL_ADDR"
+		fi
+
+		# Get error log filename
+		#
+		ERROR_LOG=$(echo "$PARAMS" | grep '\--log' | cut -f2 -d' ')
+		if [ "$ERROR_LOG" = "" ]; then
+			ERROR_LOG=$($(echo "$PARAMS") --help | grep -A1 '\--log' | tail -1 | cut -f2 -d\")
+		fi
+		if [ "$ERROR_LOG" = "" ]; then
+			echo "${0##*/}: WARNING: cannot detect unit log file (will not be monitored). If you started unitd from a relative path then try using the --log option."
+			ERROR_LOG=/dev/null
+		fi
+
+		# Cache the discovery for this unit PID (and cleanup any old files)
+		#
+		rm -f /tmp/${0##*/}.* 2> /dev/null
+		echo UNIT_CTRL=\"${UNIT_CTRL}\" > /tmp/${0##*/}.$PID.env
+		echo ERROR_LOG=${ERROR_LOG} >> /tmp/${0##*/}.$PID.env
+	fi
+fi
+
+# Choose presentation style
+#
+if [ $QUIET -eq 1 ]; then
+	OUTPUT="tail -c 0" # Equivalent to >/dev/null
+elif [ $CONVERT -eq 1 ]; then
+	OUTPUT=$CONVERT_FROM_JSON
+elif hash jq 2> /dev/null; then
+	OUTPUT="jq"
+else
+	OUTPUT="cat"
+fi
+
+# Get current length of error log before we make any changes
+#
+if [ -f $ERROR_LOG ] && [ -r $ERROR_LOG ]; then
+	LOG_LEN=$(wc -l < $ERROR_LOG)
+else
+	NOLOG=1
+fi
+
+# Adjust HTTP method and curl params based on presence of stdin payload
+#
+if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
+	if [ "$METHOD" = "DELETE" ]; then
+		$RPC_CMD curl -X $METHOD $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	elif [ "$METHOD" = "EDIT" ]; then
+		EDITOR=$(test "$EDITOR" && printf '%s' "$EDITOR" || command -v editor || command -v vim || echo vi)
+		EDIT_FILENAME=/tmp/${0##*/}.$$${URI//\//_}
+		$RPC_CMD curl -fsS $UNIT_CTRL$URI > $EDIT_FILENAME || exit 2
+		if [ "${URI:0:12}" = "/js_modules/" ]; then
+			if ! hash jq 2> /dev/null; then
+				echo "${0##*/}: ERROR: jq(1) is required to edit JavaScript modules; install at <https://stedolan.github.io/jq/>"
+				exit 1
+			fi
+			jq -r < $EDIT_FILENAME > $EDIT_FILENAME.js # Unescape linebreaks for a better editing experience
+			EDIT_FILE=$EDIT_FILENAME.js
+			$EDITOR $EDIT_FILENAME.js || exit 2
+			# Remove the references, delete old config, push new config+reference
+			$RPC_CMD curl -fsS $UNIT_CTRL/config/settings/js_module > /tmp/${0##*/}.$$_js_module && \
+			$RPC_CMD curl -X DELETE $UNIT_CTRL/config/settings/js_module && \
+			$RPC_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			printf "%s" "$(< $EDIT_FILENAME.js)" | $RPC_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			cat /tmp/${0##*/}.$$_js_module | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
+		elif [ $CONVERT -eq 1 ]; then
+			$CONVERT_FROM_JSON < $EDIT_FILENAME > $EDIT_FILENAME.yaml
+			$EDITOR $EDIT_FILENAME.yaml || exit 2
+			$CONVERT_TO_JSON < $EDIT_FILENAME.yaml | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		else
+			tr -d '\r' < $EDIT_FILENAME > $EDIT_FILENAME.json # Remove carriage-return from newlines
+			$EDITOR $EDIT_FILENAME.json || exit 2
+			cat $EDIT_FILENAME.json | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		fi
+	else
+		SHOW_LOG=$(echo $URI | grep -c ^/control/)
+		$RPC_CMD curl $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	fi
+else
+	if [ "$METHOD" = "INSERT" ]; then
+		if ! hash jq 2> /dev/null; then
+			echo "${0##*/}: ERROR: jq(1) is required to use the INSERT method; install at <https://stedolan.github.io/jq/>"
+			exit 1
+		fi
+		NEW_ELEMENT=$(cat ${CONF_FILES[@]})
+		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
+		OLD_ARRAY=$($RPC_CMD curl -s $UNIT_CTRL$URI)
+		if [ "$(echo $OLD_ARRAY | jq -r type)" = "array" ]; then
+			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		else
+			echo "${0##*/}: ERROR: the INSERT method expects an array"
+			exit 3
+		fi
+	else
+		if [ $CONVERT -eq 1 ]; then
+			cat ${CONF_FILES[@]} | $CONVERT_TO_JSON > /tmp/${0##*/}.$$_json
+			CONF_FILES=(/tmp/${0##*/}.$$_json)
+		fi
+		cat ${CONF_FILES[@]} | $RPC_CMD curl -X $METHOD --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	fi
+fi
+
+CURL_STATUS=${PIPESTATUS[0]}
+if [ $CURL_STATUS -ne 0 ]; then
+	echo "${0##*/}: ERROR: curl(1) exited with an error ($CURL_STATUS)"
+	if [ $CURL_STATUS -eq 7 ] && [ $REMOTE -eq 0 ]; then
+		echo "${0##*/}: Check that you have permission to access the Unit control socket, or try again with sudo(8)"
+	else
+		echo "${0##*/}: Trying to access $UNIT_CTRL$URI"
+		cat /tmp/${0##*/}.$$ && rm -f /tmp/${0##*/}.$$
+	fi
+	exit 4
+fi
+rm -f /tmp/${0##*/}.$$* 2> /dev/null
+
+if [ $SHOW_LOG -gt 0 ] && [ $NOLOG -eq 0 ] && [ $QUIET -eq 0 ]; then
+	echo -n "${0##*/}: Waiting for log..."
+	sleep $SHOW_LOG
+	echo ""
+	sed -n $((LOG_LEN+1)),\$p $ERROR_LOG
+fi

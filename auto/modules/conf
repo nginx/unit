@@ -1,0 +1,51 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+case "$nxt_module" in
+
+   python)
+       . auto/modules/python
+   ;;
+
+   php)
+       . auto/modules/php
+   ;;
+
+   go)
+       . auto/modules/go
+   ;;
+
+   perl)
+       . auto/modules/perl
+   ;;
+
+   ruby)
+       . auto/modules/ruby
+   ;;
+
+   nodejs)
+       . auto/modules/nodejs
+   ;;
+
+   java)
+       . auto/modules/java
+   ;;
+
+   wasm)
+       . auto/modules/wasm
+   ;;
+
+   wasm-wasi-component)
+       . auto/modules/wasm-wasi-component
+   ;;
+
+   *)
+       echo
+       echo $0: error: invalid module \"$nxt_module\".
+       echo
+       exit 1
+   ;;
+
+esac

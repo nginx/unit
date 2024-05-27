@@ -1,0 +1,289 @@
+X:stylesheet {
+
+X:output method="text";
+
+X:param format="'generic'";
+X:param pkgname="'unit'";
+X:param configuration="'change_log_conf.xml'";
+X:param curdate;
+X:param curtime;
+
+X:var conf = "document($configuration)/configuration";
+
+X:var start = {
+    X:choose {
+        X:when "$format='rpm'" {
+            !{$conf/rpm/start}
+        }
+        X:when "$format='deb'" {
+            !{$conf/deb/start}
+        }
+        X:when "$format='generic'" {
+            !{$conf/generic/start}
+        }
+    }
+}
+
+X:var indent = {
+    X:choose {
+        X:when "$format='rpm'" {
+            !{$conf/rpm/indent}
+        }
+        X:when "$format='deb'" {
+            !{$conf/deb/indent}
+        }
+        X:when "$format='generic'" {
+            !{$conf/generic/indent}
+        }
+    }
+}
+
+X:var max = {
+    X:choose {
+        X:when "$format='rpm'" {
+            !{$conf/rpm/length}
+        }
+        X:when "$format='deb'" {
+            !{$conf/deb/length}
+        }
+        X:when "$format='generic'" {
+            !{$conf/generic/length}
+        }
+    }
+}
+
+X:var br = {&lt;br&gt;}
+
+
+X:template = "/" { !! "change_log"; }
+X:template = "change_log" { !! "changes"; }
+
+
+X:template = "changes" {
+    X:var date_ = { !getdate(date="@date", curdate="$curdate") }
+    X:var time_ = { !gettime(time="@time", curtime="$curtime") }
+    X:var pday = { !padded_day(date="$date_") }
+    X:var dow = { !day_of_week(date="$date_") }
+    X:var apply = { !string_in_list(list="@apply", string="$pkgname") }
+    X:var pkgname_ = { !beautify(pkgname="$pkgname") }
+
+    X:choose {
+    X:when "$pkgname='unit' and $format='generic' and @rev!=1" {}
+    X:otherwise {
+    X:if "$apply=$pkgname" {
+
+    X:if "$format='generic'" {
+        X:text {&#10;}
+
+        !{substring(concat($conf/changes/title,
+                           $pkgname_,
+                           ' ', @ver,
+                           '                                                    '),
+                    1, $conf/changes/length)}
+
+        !{substring($date_, 9, 2)}
+        !{$conf/changes/month[number(substring($date_, 6, 2))]}
+        !{substring($date_, 1, 4)}
+    }
+
+    X:if "$format='rpm'" {
+        !{concat('* ', $conf/changes/day[number($dow)],
+                 $conf/changes/month[number(substring($date_, 6, 2))],
+                 $pday, ' ',
+                 substring($date_, 1, 4), ' ', @packager, ' - ',
+                 @ver, '-', @rev, '%{?dist}.ngx')}
+    }
+
+    X:if "$format='deb'" {
+        !{concat($pkgname, ' (', @ver, '-', @rev,
+                 '~%%CODENAME%%) %%CODENAME%%; urgency=low')}
+
+        X:text {&#10;}
+    }
+
+    X:text {&#10;}
+
+    !! "change";
+
+    X:text {&#10;}
+
+    X:if "$format='deb'" {
+        !{concat(' -- ', @packager, '  ',
+                 $conf/changes/day[number($dow)], ', ',
+                 $pday,
+                 $conf/changes/month[number(substring($date_, 6, 2))],
+                 substring($date_, 1, 4), ' ', $time_)}
+
+        X:text {&#10;}
+        X:text {&#10;}
+    }
+    }
+    }
+    }
+}
+
+
+X:template = "change" {
+    X:var prefix = "$conf/changes/*[local-name(.)=current()/@type]"
+
+    X:var postfix = { X:if "$prefix" { X:text {: } } }
+
+    !! "para" (prefix = "concat($start, $prefix, $postfix)");
+}
+
+
+X:template para(prefix) = "para" {
+    X:var text = { !!; }
+
+    X:if "$format='generic'" {
+        X:text {&#10;}
+    }
+
+    !wrap(text = "normalize-space($text)",
+          prefix = { X:if "position() = 1" { !{$prefix} } else { !{$indent} } })
+}
+
+
+X:template wrap(text, prefix) {
+    X:if "$text" {
+        X:var offset = {
+            X:choose {
+                X:when "starts-with($text, concat($br, ' '))" {
+                    !{string-length($br) + 2}
+                }
+                X:when "starts-with($text, $br)" {
+                    !{string-length($br) + 1}
+                }
+                X:otherwise {
+                    1
+                }
+            }
+        }
+
+        X:var length = {
+            !length(text = "substring($text, $offset)",
+                    prefix = "string-length($prefix)",
+                    length = "$max")
+        }
+
+        !{$prefix}
+
+        !{normalize-space(translate(substring($text, $offset, $length),
+                                    '&#xA0;', ' '))}
+
+        X:text {&#10;}
+
+        !wrap(text = "substring($text, $length + $offset)", prefix = "$indent")
+    }
+}
+
+
+X:template length(text, prefix, length) {
+    X:var break = "substring-before(substring($text, 1,
+                                    $length - $prefix + string-length($br)),
+                                    $br)"
+
+    X:choose {
+        X:when "$break" { !{string-length($break)} }
+
+        X:when "$length = 0" { !{$max - $prefix} }
+
+        X:when "string-length($text) + $prefix &lt;= $length" {
+            !{$length - $prefix}
+        }
+
+        X:when "substring($text, $length - $prefix + 1, 1) = ' '" {
+            !{$length - $prefix + 1}
+        }
+
+        X:otherwise {
+            !length(text = "$text", prefix = "$prefix", length = "$length - 1")
+        }
+    }
+}
+
+
+X:template day_of_week(date) {
+    X:param year = "substring-before($date, '-')";
+    X:param month = "substring-before(substring-after($date, '-'), '-')";
+    X:param day = "substring-after(substring-after($date, '-'), '-')";
+
+    X:var a = "floor((14 - $month) div 12)";
+
+    X:var y = "$year - $a";
+
+    X:var m = "$month + 12 * $a - 2";
+
+    !{($day + $y + floor($y div 4) - floor($y div 100) 
+    + floor($y div 400) + floor((31 * $m) div 12)) mod 7 + 1}
+}
+
+
+X:template padded_day(date) {
+    !{substring(concat('  ', format-number(substring($date, 9, 2), '##')),
+           1 + string-length(format-number(substring($date, 9, 2), '##')))}
+}
+
+
+X:template string_in_list(list, string) {
+    X:choose {
+        X:when "contains($list, ' ')" {
+            X:var str = "substring-before($list, ' ')";
+            X:choose {
+                X:when "$str=$string" {
+                    !{$string}
+                }
+                X:otherwise {
+                    !string_in_list(list="substring-after($list, ' ')",
+                                    string="$string")
+                }
+            }
+        }
+        X:otherwise {
+            X:if "$list=$string" { !{$string} }
+            X:if "$list='*'" { !{$string} }
+        }
+    }
+}
+
+
+X:template beautify(pkgname) {
+    X:choose {
+        X:when "$pkgname='unit'" {Unit}
+        X:otherwise {
+            !{$pkgname}
+        }
+    }
+}
+
+
+X:template getdate(date, curdate) {
+    X:choose {
+        X:when "$date=''" {
+            !{$curdate}
+        }
+        X:otherwise {
+            !{$date}
+        }
+    }
+}
+
+
+X:template gettime(time, curtime) {
+    X:choose {
+        X:when "$time=''" {
+            !{$curtime}
+        }
+        X:otherwise {
+            !{$time}
+        }
+    }
+}
+
+
+X:template = "at" {@}
+X:template = "br" { !{$br} }
+X:template = "nobr" { !{translate(., ' ', '&#xA0;')} }
+
+
+}

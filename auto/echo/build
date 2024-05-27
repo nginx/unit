@@ -1,0 +1,27 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+$echo 'building an "echo" program'
+
+rm -f $NXT_BUILD_DIR/bin/echo
+
+nxt_echo_test="$CC -o $NXT_BUILD_DIR/bin/echo -O $NXT_CC_OPT
+               auto/echo/echo.c $NXT_LD_OPT"
+
+# "|| true" is to bypass "set -e" setting.
+nxt_echo_err=`$nxt_echo_test 2>&1 || true`
+
+if [ ! -x $NXT_BUILD_DIR/bin/echo ]; then
+    $echo
+    $echo $0: error: cannot build an \"echo\" program:
+    $echo
+    $echo $nxt_echo_test
+    $echo
+    $echo $nxt_echo_err
+    $echo
+    exit 1
+fi
+
+echo=$NXT_BUILD_DIR/bin/echo

@@ -1,0 +1,211 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Linux 3.17 with glibc 2.25, FreeBSD 12, Solaris 11.3.
+
+nxt_feature="getrandom()"
+nxt_feature_name=NXT_HAVE_GETRANDOM
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <unistd.h>
+                  #include <sys/random.h>
+
+                  int main(void) {
+                      char  buf[4];
+
+                      if (getrandom(buf, 4, 0) < 0) {
+                          return 1;
+                      }
+
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # Linux 3.17 SYS_getrandom.
+
+    nxt_feature="SYS_getrandom in Linux"
+    nxt_feature_name=NXT_HAVE_LINUX_SYS_GETRANDOM
+    nxt_feature_test="#include <unistd.h>
+                      #include <sys/syscall.h>
+                      #include <linux/random.h>
+
+                      int main(void) {
+                          char  buf[4];
+
+                          if (syscall(SYS_getrandom, buf, 4, 0) < 0) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # OpenBSD 5.6 lacks <sys/random.h>.
+
+    nxt_feature="getentropy()"
+    nxt_feature_name=NXT_HAVE_GETENTROPY
+    nxt_feature_test="#include <unistd.h>
+
+                      int main(void) {
+                          char  buf[4];
+
+                          if (getentropy(buf, 4) == -1) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # macOS 10.12.
+
+    nxt_feature="getentropy() in sys/random.h"
+    nxt_feature_name=NXT_HAVE_GETENTROPY_SYS_RANDOM
+    nxt_feature_test="#include <unistd.h>
+                      #include <sys/random.h>
+
+                      int main(void) {
+                          char  buf[4];
+
+                          if (getentropy(buf, 4) == -1) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+nxt_feature="ucontext"
+nxt_feature_name=NXT_HAVE_UCONTEXT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <ucontext.h>
+
+                  int main(void) {
+                      ucontext_t  uc;
+
+                      if (getcontext(&uc) == 0) {
+                          makecontext(&uc, NULL, 0);
+                          setcontext(&uc);
+                      }
+
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX 10.6 (Snow Leopard) has deprecated ucontext
+    # and requires _XOPEN_SOURCE to be defined.
+
+    nxt_feature="_XOPEN_SOURCE ucontext"
+    nxt_feature_name=NXT_HAVE_UCONTEXT
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#define _XOPEN_SOURCE
+                      #include <stdlib.h>
+                      #include <ucontext.h>
+
+                      int main(void) {
+                          ucontext_t  uc;
+
+                          if (getcontext(&uc) == 0) {
+                              makecontext(&uc, NULL, 0);
+                              setcontext(&uc);
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# FreeBSD dlopen() is in libc.
+# MacOSX libdl.dylib is a symlink to libSystem.dylib.
+# GCC5 AddressSanitizer intercepts dlopen() and dlclose() but not dlsym()
+# so all dynamic linker functions should be tested.
+
+NXT_LIBDL=
+
+nxt_feature="dlopen()"
+nxt_feature_name=NXT_HAVE_DLOPEN
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <dlfcn.h>
+
+                  int main(void) {
+                      void *h = dlopen(NULL, RTLD_NOW | RTLD_GLOBAL);
+                      dlsym(h, \"\");
+                      dlclose(h);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = no ]; then
+
+    # Linux and Solaris prior to 10 require libdl.
+    # Solaris 10 libdl.so.1 is a filter to /usr/lib/ld.so.1.
+
+    nxt_feature="dlopen() in libdl"
+    nxt_feature_libs="-ldl"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_LIBDL="-ldl"
+    fi
+fi
+
+
+# NetBSD 1.0, OpenBSD 1.0, FreeBSD 2.2 setproctitle().
+
+nxt_feature="setproctitle()"
+nxt_feature_name=NXT_HAVE_SETPROCTITLE
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      setproctitle(\"%s\", \"title\");
+                      return 0;
+                  }"
+. auto/feature
+
+
+# Linux, FreeBSD, Solaris getgrouplist()
+nxt_feature="getgrouplist()"
+nxt_feature_name=NXT_HAVE_GETGROUPLIST
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <unistd.h>
+                  #include <grp.h>
+
+                  int main(void) {
+                      getgrouplist(\"root\", 0, NULL, NULL);
+                      return 0;
+                  }"
+. auto/feature

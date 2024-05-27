@@ -1,0 +1,87 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+cat << END
+
+./configure options:
+
+  --cc=FILE            set C compiler filename, default: "$CC"
+  --cc-opt=OPTIONS     set additional C compiler options
+  --ld-opt=OPTIONS     set additional linker options
+
+  --prefix=DIR         default: "/usr/local"
+  --exec-prefix=DIR    default: "\$prefix"
+  --bindir=DIR         default: "\$exec_prefix/bin"
+  --sbindir=DIR        default: "\$exec_prefix/sbin"
+  --includedir=DIR     default: "\$prefix/include"
+  --libdir=DIR         default: "\$exec_prefix/lib"
+  --modulesdir=DIR     default: "\$libdir/unit/modules"
+  --datarootdir=DIR    default: "\$prefix/share"
+  --mandir=DIR         default: "\$datarootdir/man"
+  --pkgconfigdir=DIR   default: "\$datarootdir/pkgconfig"
+  --localstatedir=DIR  default: "\$prefix/var"
+  --statedir=DIR       default: "\$localstatedir/lib/unit"
+  --runstatedir=DIR    default: "\$localstatedir/run/unit"
+  --logdir=DIR         default: "\$localstatedir/log/unit"
+  --tmpdir=DIR         default: "/tmp"
+
+  --incdir=DIR         [deprecated] synonym for --includedir
+  --modules=DIR        [deprecated] synonym for --modulesdir
+  --state=DIR          [deprecated] synonym for --statedir
+  --tmp=DIR            [deprecated] synonym for --tmpdir
+
+  --pid=FILE           set pid filename, default: "\$runstatedir/unit.pid"
+  --log=FILE           set log filename, default: "\$logdir/unit.log"
+
+  --control=ADDRESS    set address of control API socket
+                       default: "unix:\$runstatedir/control.unit.sock"
+
+  --user=USER          set non-privileged processes to run as specified user
+                       default: "$NXT_USER"
+  --group=GROUP        set non-privileged processes to run as specified group
+                       default: user's primary group
+
+  --no-ipv6            disable IPv6 support
+  --no-unix-sockets    disable Unix domain sockets support
+  --no-regex           disable regular expression support
+  --no-pcre2           force using PCRE library
+
+  --openssl            enable OpenSSL library usage
+
+  --njs                enable njs library usage
+
+  --debug              enable debug logging
+
+
+  python OPTIONS       configure Python module
+                       run "./configure python --help" to see available options
+
+  php OPTIONS          configure PHP module
+                       run "./configure php --help" to see available options
+
+  go OPTIONS           configure Go module
+                       run "./configure go --help" to see available options
+
+  perl OPTIONS         configure Perl module
+                       run "./configure perl --help" to see available options
+
+  ruby OPTIONS         configure Ruby module
+                       run "./configure ruby --help" to see available options
+
+  nodejs OPTIONS       configure Node.js module
+                       run "./configure nodejs --help" to see available options
+
+  java OPTIONS         configure Java module
+                       run "./configure java --help" to see available options
+
+  wasm OPTIONS         configure WebAssembly module
+                       run "./configure wasm --help" to see available options
+
+  wasm-wasi-component OPTIONS
+                       configure WebAssembly Component Model module
+                       run "./configure wasm-wasi-component --help" to see
+                       available options
+
+END

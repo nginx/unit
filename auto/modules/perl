@@ -1,0 +1,216 @@
+
+# Copyright (C) Alexander Borisov
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --perl=*)      NXT_PERL="$value"                                ;;
+        --module=*)    NXT_PERL_MODULE="$value"                         ;;
+
+        --help)
+            cat << END
+
+    --perl=FILE           set perl executable, default: perl
+    --module=NAME         set unit perl module name
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Perl option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+$echo "configuring Perl module"
+$echo "configuring Perl module ..." >> $NXT_AUTOCONF_ERR
+
+NXT_PERL=${NXT_PERL=perl}
+NXT_PERL_MODULE=${NXT_PERL_MODULE=${NXT_PERL##*/}}
+
+nxt_found=no
+
+if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
+    \$Config{version}, \"\\n\"'" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    NXT_PERL_CFLAGS=`$NXT_PERL -MExtUtils::Embed -e ccflags | sed -e 's/^ //;s/ $//'`
+    NXT_PERL_INCLUDE=`$NXT_PERL -MExtUtils::Embed -e perl_inc | sed -e 's/^ //;s/ $//'`
+    NXT_PERL_LDOPTS=`$NXT_PERL -MExtUtils::Embed -e ldopts | sed -e 's/^ //;s/ $//'`
+
+    if [ "$NXT_SYSTEM" = "Darwin" ]; then
+        # OS X system perl wants to link universal binaries
+        NXT_PERL_LDOPTS=`echo $NXT_PERL_LDOPTS \
+                         | sed -e 's/-arch i386//' -e 's/-arch x86_64//'`
+    fi
+
+    if [ "$NXT_CC_NAME" = "clang" ]; then
+        # Perl's CFLAGS has -fwrapv which under clang discards our
+        # -fno-strict-overflow resulting in an unused argument error
+        NXT_PERL_CFLAGS="$NXT_PERL_CFLAGS -Qunused-arguments"
+    fi
+
+    nxt_feature="Perl"
+    nxt_feature_name=""
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PERL_INCLUDE}"
+    nxt_feature_libs="${NXT_PERL_LDOPTS}"
+    nxt_feature_test="
+        #define _GNU_SOURCE
+        #include <EXTERN.h>
+        #include <perl.h>
+
+        static PerlInterpreter *my_perl;
+
+        int main(void) {
+            char argv[] = \"\\0-e\\00\";
+            char *embedding[] = { &argv[0], &argv[1], &argv[4] };
+
+            int pargc = 0;
+            char **pargv = NULL, **penv = NULL;
+            PERL_SYS_INIT3(&pargc, &pargv, &penv);
+
+            my_perl = perl_alloc();
+            perl_construct(my_perl);
+            perl_parse(my_perl, NULL, 3, embedding, NULL);
+            PL_exit_flags |= PERL_EXIT_DESTRUCT_END;
+            perl_run(my_perl);
+
+            perl_destruct(my_perl);
+            perl_free(my_perl);
+            PERL_SYS_TERM();
+
+            return 0;
+        }"
+
+    . auto/feature
+
+else
+    $echo "checking for Perl ... not found"
+fi
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no Perl found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="Perl version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PERL_INCLUDE}"
+nxt_feature_libs="${NXT_PERL_LDOPTS}"
+nxt_feature_test="
+    #define _GNU_SOURCE
+    #include <EXTERN.h>
+    #include <perl.h>
+
+    int main(void) {
+        printf(\"%s\", PERL_VERSION_STRING);
+        return 0;
+    }"
+
+. auto/feature
+
+
+if grep ^$NXT_PERL_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_PERL_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+$echo " + Perl module: ${NXT_PERL_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_PERL_MODULE_SRCS=" \
+    src/perl/nxt_perl_psgi.c \
+    src/perl/nxt_perl_psgi_layer.c
+"
+
+# The Perl module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_PERL_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_PERL_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_PERL_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/perl
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_PERL_CFLAGS \$(NXT_INCS) $NXT_PERL_INCLUDE \\
+	$nxt_dep_flags \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_PERL_MODULE}
+.PHONY: ${NXT_PERL_MODULE}-install
+.PHONY: ${NXT_PERL_MODULE}-uninstall
+
+all: ${NXT_PERL_MODULE}
+
+${NXT_PERL_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so:	$nxt_objs
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_PERL_LDOPTS $NXT_LD_OPT
+
+
+install: ${NXT_PERL_MODULE}-install
+
+${NXT_PERL_MODULE}-install: ${NXT_PERL_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+
+
+uninstall: ${NXT_PERL_MODULE}-uninstall
+
+${NXT_PERL_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_PERL_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

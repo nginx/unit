@@ -1,0 +1,643 @@
+
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+NXT_JAVA_HOME=${JAVA_HOME-}
+NXT_JAR_REPO=https://repo1.maven.org/maven2/
+NXT_JAR_LOCAL_REPO=$HOME/.m2/repository/
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+
+        --module=*)     NXT_JAVA_MODULE="$value"                              ;;
+        --home=*)       NXT_JAVA_HOME="$value"                                ;;
+        --lib-path=*)   NXT_JAVA_LIB_PATH="$value"                            ;;
+        --repo=*)       NXT_JAR_REPO="$value"                                 ;;
+        --local-repo=*) NXT_JAR_LOCAL_REPO="$value"                           ;;
+        --sha512=*)     NXT_SHA512_TOOL="$value"                              ;;
+        --jars=*)       NXT_JARS="$value"                                     ;;
+
+        --help)
+            cat << END
+
+    --module=NAME         set unit Java module name
+    --home=DIR            set Java home directory
+    --lib-path=DIRECTORY  set directory path to libjvm.so library
+    --repo=URL            set Maven remote repository URL
+                          default: "$NXT_JAR_REPO"
+    --local-repo=DIR      set local repository directory
+                          default: "$NXT_JAR_LOCAL_REPO"
+    --sha512=SHA512       set command for SHA512 check
+    --jars=DIR            set jars install/search directory
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Java option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+NXT_JARS=${NXT_JARS=$NXT_MODULESDIR}
+NXT_JAVA_MODULE=${NXT_JAVA_MODULE=java}
+NXT_JAVA_LIB_PATH=${NXT_JAVA_LIB_PATH=}
+
+$echo "configuring Java module"
+$echo "configuring Java module ..." >> $NXT_AUTOCONF_ERR
+
+if [ -n "${NXT_JAVA_HOME}" ]; then
+    $echo "using java.home ${NXT_JAVA_HOME}"
+    $echo "using java.home ${NXT_JAVA_HOME}" >> $NXT_AUTOCONF_ERR
+
+    if [ ! -d "${NXT_JAVA_HOME}" ]; then
+        $echo
+        $echo $0: error: Java home directory not found.
+        $echo
+        exit 1
+    fi
+
+    NXT_JAVA="${NXT_JAVA_HOME}/bin/java"
+
+else
+    $echo -n "checking for java executable ..."
+    $echo "checking for java executable ..." >> $NXT_AUTOCONF_ERR
+
+    NXT_JAVA=`which java || :`
+    if [ -z "$NXT_JAVA" -o ! -x "$NXT_JAVA" ]; then
+        $echo " not found"
+        $echo
+        $echo $0: error: java executable not found.
+        $echo
+        exit 1
+    fi
+
+    $echo " found $NXT_JAVA"
+    $echo "found $NXT_JAVA" >> $NXT_AUTOCONF_ERR
+
+    "$NXT_JAVA" -version
+
+    $echo -n "checking java.home ..."
+    $echo "checking java.home ..." >> $NXT_AUTOCONF_ERR
+
+    NXT_JAVA_HOME=`$NXT_JAVA -XshowSettings 2>&1 | grep -F -e java.home | sed -e 's/^.*= //'`
+    if [ -z "$NXT_JAVA_HOME" ]; then
+        $echo " not found"
+        $echo
+        $echo $0: error: java.home not found.
+        $echo
+        exit 1
+    fi
+
+    $echo " $NXT_JAVA_HOME"
+    $echo "got java.home $NXT_JAVA_HOME" >> $NXT_AUTOCONF_ERR
+
+    if [ ! -x "${NXT_JAVA_HOME}/bin/javac" ]; then
+        NXT_JAVA_HOME_=${NXT_JAVA_HOME%/jre}
+        if [ -x "${NXT_JAVA_HOME_}/bin/javac" ]; then
+            $echo "adjust java.home $NXT_JAVA_HOME_"
+            $echo "adjust java.home $NXT_JAVA_HOME_" >> $NXT_AUTOCONF_ERR
+
+            NXT_JAVA_HOME="$NXT_JAVA_HOME_"
+        fi
+    fi
+fi
+
+NXT_JAVAC="${NXT_JAVA_HOME}/bin/javac"
+
+if [ ! -x "$NXT_JAVAC" ]; then
+    $echo
+    $echo $0: error: javac not found.
+    $echo
+    exit 1
+fi
+
+NXT_JAVA_INCLUDE="-I${NXT_JAVA_HOME}/include"
+
+case "$NXT_SYSTEM" in
+    Linux)
+        NXT_JAVA_INCLUDE="${NXT_JAVA_INCLUDE} -I${NXT_JAVA_HOME}/include/linux"
+        ;;
+    Darwin)
+        NXT_JAVA_INCLUDE="${NXT_JAVA_INCLUDE} -I${NXT_JAVA_HOME}/include/darwin"
+        ;;
+    FreeBSD)
+        NXT_JAVA_INCLUDE="${NXT_JAVA_INCLUDE} -I${NXT_JAVA_HOME}/include/freebsd"
+        ;;
+esac
+
+if [ -z "$NXT_JAVA_LIB_PATH" ]; then
+    $echo -n "checking library path ..."
+    $echo "checking library path ..." >> $NXT_AUTOCONF_ERR
+
+    if [ ! -x "$NXT_JAVA" ]; then
+        $echo " not found"
+        $echo
+        $echo $0: error: java executable not found.
+        $echo
+        exit 1
+    fi
+
+    NXT_JAVA_LIB_PATH=`$NXT_JAVA -XshowSettings 2>&1 | grep -F -e sun.boot.library.path | sed -e 's/^.*= //'`
+
+    if [ -z "$NXT_JAVA_LIB_PATH" ]; then
+        $echo " not found"
+        $echo
+        $echo $0: error: library path not found.
+        $echo
+        exit 1
+    fi
+
+    $echo " $NXT_JAVA_LIB_PATH"
+    $echo "got library path $NXT_JAVA_LIB_PATH" >> $NXT_AUTOCONF_ERR
+fi
+
+NXT_JAVA_LIB_SERVER_PATH="${NXT_JAVA_LIB_PATH}/server"
+
+NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_SERVER_PATH} -Wl,-rpath,${NXT_JAVA_LIB_SERVER_PATH} -ljvm"
+
+
+nxt_found=no
+
+nxt_feature="JNI"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_JAVA_INCLUDE}"
+nxt_feature_libs="${NXT_JAVA_LDFLAGS}"
+nxt_feature_test="
+    #include <jni.h>
+
+    int main(void) {
+        JNI_CreateJavaVM(NULL, NULL, NULL);
+        return 0;
+    }"
+
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no JNI found.
+    $echo
+    exit 1;
+fi
+
+NXT_JAVA_VERSION=`$NXT_JAVAC -version 2>&1`
+NXT_JAVA_VERSION=${NXT_JAVA_VERSION#javac }
+NXT_JAVA_INCLUDE="$NXT_JAVA_INCLUDE -I$NXT_BUILD_DIR/$NXT_JAVA_MODULE -DNXT_JAVA_VERSION=$NXT_JAVA_VERSION"
+
+if grep ^$NXT_JAVA_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_JAVA_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+. ./version
+
+NXT_UNIT_JAR=nginx-unit-jsc-${NXT_JAVA_MODULE}-$NXT_VERSION.jar
+NXT_WS_API_JAR=websocket-api-${NXT_JAVA_MODULE}-$NXT_VERSION.jar
+
+NXT_JAVA_BUILD_CP=$NXT_BUILD_DIR/$NXT_JAVA_MODULE
+NXT_JAVA_INSTALL_JARS=
+NXT_JAVA_UNINSTALL_JARS=
+
+NXT_JAVA_JARS=$NXT_BUILD_DIR/$NXT_JAVA_MODULE/nxt_jars.h
+mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE
+
+cat << END > $NXT_JAVA_JARS
+#ifndef _NXT_JAVA_JARS_INCLUDED_
+#define _NXT_JAVA_JARS_INCLUDED_
+
+#define NXT_JARS "$NXT_JARS"
+
+static const char *nxt_java_system_jars[] = {
+END
+
+NXT_TOMCAT_VERSION=9.0.89
+
+NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
+
+NXT_JAR_NAME=tomcat-servlet-api
+NXT_JAR_NAMESPACE=org/apache/tomcat/
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-el-api
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-jsp-api
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-jasper
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-jasper-el
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-juli
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-api
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-util-scan
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=tomcat-util
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=ecj
+NXT_JAR_VERSION=3.26.0
+NXT_JAR_NAMESPACE=org/eclipse/jdt/
+. auto/modules/java_get_jar
+
+cat << END >> $NXT_JAVA_JARS
+    "$NXT_WS_API_JAR",
+    NULL
+};
+
+static const char *nxt_java_unit_jars[] = {
+    "$NXT_UNIT_JAR",
+END
+
+NXT_JAR_VERSION=9.4.54.v20240208
+NXT_JAR_NAMESPACE=org/eclipse/jetty/
+
+NXT_JAR_NAME=jetty-util
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=jetty-server
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=jetty-http
+. auto/modules/java_get_jar
+
+NXT_JAR_NAME=classgraph
+NXT_JAR_VERSION=4.8.172
+NXT_JAR_NAMESPACE=io/github/classgraph/
+. auto/modules/java_get_jar
+
+cat << END >> $NXT_JAVA_JARS
+    NULL
+};
+
+#endif /* _NXT_JAVA_JARS_INCLUDED_ */
+END
+
+NXT_JAVA_LIBJVM="$NXT_JAVA_LIB_SERVER_PATH/libjvm.so"
+
+if [ "$NXT_SYSTEM" = "Darwin" ]; then
+NXT_JAVA_LIBC_DIR="/usr/lib"
+else
+NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep -F libc. | cut -d' ' -f3`
+NXT_JAVA_LIBC_DIR=`dirname $NXT_JAVA_LIBC_DIR`
+fi
+
+
+NXT_JAVA_MOUNTS_HEADER=nxt_${NXT_JAVA_MODULE}_mounts.h
+
+cat << END > $NXT_BUILD_DIR/include/$NXT_JAVA_MOUNTS_HEADER
+#ifndef _NXT_JAVA_MOUNTS_H_INCLUDED_
+#define _NXT_JAVA_MOUNTS_H_INCLUDED_
+
+
+static const nxt_fs_mount_t  nxt_java_mounts[] = {
+    {(u_char *) "$NXT_JAVA_LIBC_DIR", (u_char *) "$NXT_JAVA_LIBC_DIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_JAVA_HOME", (u_char *) "$NXT_JAVA_HOME",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+};
+
+
+#endif /* _NXT_JAVA_MOUNTS_H_INCLUDED_ */
+END
+
+$echo " + Java module: ${NXT_JAVA_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_JAVA_MODULE_SRCS=" \
+    src/nxt_java.c \
+    src/java/nxt_jni.c \
+    src/java/nxt_jni_Context.c \
+    src/java/nxt_jni_HeaderNamesEnumeration.c \
+    src/java/nxt_jni_HeadersEnumeration.c \
+    src/java/nxt_jni_InputStream.c \
+    src/java/nxt_jni_OutputStream.c \
+    src/java/nxt_jni_Request.c \
+    src/java/nxt_jni_Response.c \
+    src/java/nxt_jni_Thread.c \
+    src/java/nxt_jni_URLClassLoader.c \
+"
+
+# The Java module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_JAVA_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_JAVA_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_JAVA_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/java
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_JAVA_MOUNTS_H=\"$NXT_JAVA_MOUNTS_HEADER\" \\
+           \$(NXT_INCS) $NXT_JAVA_INCLUDE \\
+	$nxt_dep_flags \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+NXT_JAVA_SRCS=" \
+    src/java/nginx/unit/Context.java \
+    src/java/nginx/unit/DynamicDispatcherRequest.java \
+    src/java/nginx/unit/DynamicPathRequest.java \
+    src/java/nginx/unit/ForwardRequestWrapper.java \
+    src/java/nginx/unit/HeaderNamesEnumeration.java \
+    src/java/nginx/unit/HeadersEnumeration.java \
+    src/java/nginx/unit/IncludeRequestWrapper.java \
+    src/java/nginx/unit/IncludeResponseWrapper.java \
+    src/java/nginx/unit/InitParams.java \
+    src/java/nginx/unit/InputStream.java \
+    src/java/nginx/unit/JspPropertyGroup.java \
+    src/java/nginx/unit/OutputStream.java \
+    src/java/nginx/unit/Request.java \
+    src/java/nginx/unit/RequestAttrProxy.java \
+    src/java/nginx/unit/Response.java \
+    src/java/nginx/unit/Session.java \
+    src/java/nginx/unit/SessionAttrProxy.java \
+    src/java/nginx/unit/Taglib.java \
+    src/java/nginx/unit/UnitSessionCookieConfig.java \
+    src/java/nginx/unit/websocket/AsyncChannelGroupUtil.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapper.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapperNonSecure.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapperSecure.java \
+    src/java/nginx/unit/websocket/AuthenticationException.java \
+    src/java/nginx/unit/websocket/Authenticator.java \
+    src/java/nginx/unit/websocket/AuthenticatorFactory.java \
+    src/java/nginx/unit/websocket/BackgroundProcess.java \
+    src/java/nginx/unit/websocket/BackgroundProcessManager.java \
+    src/java/nginx/unit/websocket/BasicAuthenticator.java \
+    src/java/nginx/unit/websocket/Constants.java \
+    src/java/nginx/unit/websocket/DecoderEntry.java \
+    src/java/nginx/unit/websocket/DigestAuthenticator.java \
+    src/java/nginx/unit/websocket/FutureToSendHandler.java \
+    src/java/nginx/unit/websocket/MessageHandlerResult.java \
+    src/java/nginx/unit/websocket/MessageHandlerResultType.java \
+    src/java/nginx/unit/websocket/MessagePart.java \
+    src/java/nginx/unit/websocket/PerMessageDeflate.java \
+    src/java/nginx/unit/websocket/ReadBufferOverflowException.java \
+    src/java/nginx/unit/websocket/Transformation.java \
+    src/java/nginx/unit/websocket/TransformationFactory.java \
+    src/java/nginx/unit/websocket/TransformationResult.java \
+    src/java/nginx/unit/websocket/Util.java \
+    src/java/nginx/unit/websocket/WrappedMessageHandler.java \
+    src/java/nginx/unit/websocket/WsContainerProvider.java \
+    src/java/nginx/unit/websocket/WsExtension.java \
+    src/java/nginx/unit/websocket/WsExtensionParameter.java \
+    src/java/nginx/unit/websocket/WsFrameBase.java \
+    src/java/nginx/unit/websocket/WsFrameClient.java \
+    src/java/nginx/unit/websocket/WsHandshakeResponse.java \
+    src/java/nginx/unit/websocket/WsIOException.java \
+    src/java/nginx/unit/websocket/WsPongMessage.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointAsync.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointBase.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointBasic.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointImplBase.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointImplClient.java \
+    src/java/nginx/unit/websocket/WsSession.java \
+    src/java/nginx/unit/websocket/WsWebSocketContainer.java \
+    src/java/nginx/unit/websocket/pojo/Constants.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointClient.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointServer.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialBinary.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialText.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeBinary.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholePong.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeText.java \
+    src/java/nginx/unit/websocket/pojo/PojoMethodMapping.java \
+    src/java/nginx/unit/websocket/pojo/PojoPathParam.java \
+    src/java/nginx/unit/websocket/pojo/package-info.java \
+    src/java/nginx/unit/websocket/server/Constants.java \
+    src/java/nginx/unit/websocket/server/DefaultServerEndpointConfigurator.java \
+    src/java/nginx/unit/websocket/server/UpgradeUtil.java \
+    src/java/nginx/unit/websocket/server/UriTemplate.java \
+    src/java/nginx/unit/websocket/server/WsContextListener.java \
+    src/java/nginx/unit/websocket/server/WsFilter.java \
+    src/java/nginx/unit/websocket/server/WsHandshakeRequest.java \
+    src/java/nginx/unit/websocket/server/WsHttpUpgradeHandler.java \
+    src/java/nginx/unit/websocket/server/WsMappingResult.java \
+    src/java/nginx/unit/websocket/server/WsPerSessionServerEndpointConfig.java \
+    src/java/nginx/unit/websocket/server/WsRemoteEndpointImplServer.java \
+    src/java/nginx/unit/websocket/server/WsSci.java \
+    src/java/nginx/unit/websocket/server/WsServerContainer.java \
+    src/java/nginx/unit/websocket/server/WsSessionListener.java \
+    src/java/nginx/unit/websocket/server/WsWriteTimeout.java \
+    src/java/nginx/unit/websocket/server/package-info.java \
+"
+
+NXT_JAVA_WS_API_SRCS=" \
+    src/java/javax/websocket/ClientEndpoint.java \
+    src/java/javax/websocket/ClientEndpointConfig.java \
+    src/java/javax/websocket/CloseReason.java \
+    src/java/javax/websocket/ContainerProvider.java \
+    src/java/javax/websocket/DecodeException.java \
+    src/java/javax/websocket/Decoder.java \
+    src/java/javax/websocket/DefaultClientEndpointConfig.java \
+    src/java/javax/websocket/DeploymentException.java \
+    src/java/javax/websocket/EncodeException.java \
+    src/java/javax/websocket/Encoder.java \
+    src/java/javax/websocket/Endpoint.java \
+    src/java/javax/websocket/EndpointConfig.java \
+    src/java/javax/websocket/Extension.java \
+    src/java/javax/websocket/HandshakeResponse.java \
+    src/java/javax/websocket/MessageHandler.java \
+    src/java/javax/websocket/OnClose.java \
+    src/java/javax/websocket/OnError.java \
+    src/java/javax/websocket/OnMessage.java \
+    src/java/javax/websocket/OnOpen.java \
+    src/java/javax/websocket/PongMessage.java \
+    src/java/javax/websocket/RemoteEndpoint.java \
+    src/java/javax/websocket/SendHandler.java \
+    src/java/javax/websocket/SendResult.java \
+    src/java/javax/websocket/Session.java \
+    src/java/javax/websocket/SessionException.java \
+    src/java/javax/websocket/WebSocketContainer.java \
+    src/java/javax/websocket/server/DefaultServerEndpointConfig.java \
+    src/java/javax/websocket/server/HandshakeRequest.java \
+    src/java/javax/websocket/server/PathParam.java \
+    src/java/javax/websocket/server/ServerApplicationConfig.java \
+    src/java/javax/websocket/server/ServerContainer.java \
+    src/java/javax/websocket/server/ServerEndpoint.java \
+    src/java/javax/websocket/server/ServerEndpointConfig.java \
+"
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_JAVA_MODULE}
+.PHONY: ${NXT_JAVA_MODULE}-install
+.PHONY: ${NXT_JAVA_MODULE}-uninstall
+
+all: ${NXT_JAVA_MODULE}
+
+${NXT_JAVA_MODULE}: $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \
+    $NXT_BUILD_DIR/$NXT_UNIT_JAR \
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_JAVA_LDFLAGS $NXT_LD_OPT
+
+
+install: ${NXT_JAVA_MODULE}-install
+
+${NXT_JAVA_MODULE}-install: \\
+    $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \\
+    $NXT_BUILD_DIR/$NXT_UNIT_JAR \\
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR \\
+    java-shared-install
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+	install -d \$(DESTDIR)$NXT_JARS
+	install -p -m 0644 $NXT_BUILD_DIR/$NXT_UNIT_JAR \$(DESTDIR)$NXT_JARS/
+	install -p -m 0644 $NXT_BUILD_DIR/$NXT_WS_API_JAR \$(DESTDIR)$NXT_JARS/
+
+
+uninstall: ${NXT_JAVA_MODULE}-uninstall
+
+${NXT_JAVA_MODULE}-uninstall: java-shared-uninstall
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_JAVA_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_JARS/$NXT_UNIT_JAR
+	rm -f \$(DESTDIR)$NXT_JARS/$NXT_WS_API_JAR
+	@rmdir -p \$(DESTDIR)$NXT_JARS 2>/dev/null || true
+
+END
+
+if ! grep ^$NXT_BUILD_DIR/$NXT_UNIT_JAR: $NXT_MAKEFILE 2>&1 > /dev/null; then
+
+    cat << END >> $NXT_MAKEFILE
+
+NXT_JAVA_SRCS = $NXT_JAVA_SRCS
+
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes: \$(NXT_JAVA_SRCS) \\
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR
+	rm -rf $NXT_BUILD_DIR/$NXT_JAVA_MODULE/nginx/unit
+	$NXT_JAVAC -d $NXT_BUILD_DIR/$NXT_JAVA_MODULE \\
+		-cp $NXT_JAVA_BUILD_CP:$NXT_BUILD_DIR/$NXT_WS_API_JAR \\
+		\$(NXT_JAVA_SRCS)
+	touch \$@
+
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE: LICENSE
+	mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF
+	cp -p LICENSE \$@
+
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE: NOTICE
+	mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF
+	cp -p NOTICE \$@
+
+$NXT_BUILD_DIR/$NXT_UNIT_JAR: \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE
+	$NXT_JAVA_HOME/bin/jar c -C $NXT_BUILD_DIR/$NXT_JAVA_MODULE META-INF \\
+		-C $NXT_BUILD_DIR/$NXT_JAVA_MODULE nginx/unit > \$@
+
+NXT_JAVA_WS_API_SRCS = $NXT_JAVA_WS_API_SRCS
+
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/.javax.websocket.classes: \$(NXT_JAVA_WS_API_SRCS)
+	rm -rf $NXT_BUILD_DIR/$NXT_JAVA_MODULE/javax/websocket
+	$NXT_JAVAC -d $NXT_BUILD_DIR/$NXT_JAVA_MODULE -cp $NXT_JAVA_BUILD_CP \\
+		\$(NXT_JAVA_WS_API_SRCS)
+	touch \$@
+
+$NXT_BUILD_DIR/$NXT_WS_API_JAR: \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.javax.websocket.classes \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE
+	$NXT_JAVA_HOME/bin/jar c -C $NXT_BUILD_DIR/$NXT_JAVA_MODULE META-INF \\
+		-C $NXT_BUILD_DIR/$NXT_JAVA_MODULE javax/websocket > \$@
+
+END
+
+NXT_PROPS="\
+    nginx/unit/websocket/LocalStrings.properties \
+    nginx/unit/websocket/pojo/LocalStrings.properties \
+    nginx/unit/websocket/server/LocalStrings.properties \
+"
+
+for nxt_prop in $NXT_PROPS ; do
+
+    cat << END >> $NXT_MAKEFILE
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/$nxt_prop: src/java/$nxt_prop \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes
+	cp src/java/$nxt_prop \$@
+
+$NXT_BUILD_DIR/$NXT_UNIT_JAR: $NXT_BUILD_DIR/$NXT_JAVA_MODULE/$nxt_prop
+
+END
+
+done
+
+fi
+
+if ! grep ^java-shared-install: $NXT_MAKEFILE 2>&1 > /dev/null; then
+
+    cat << END >> $NXT_MAKEFILE
+
+.PHONY: java-shared-install
+.PHONY: java-shared-uninstall
+
+java-shared-install: $NXT_JAVA_INSTALL_JARS
+	install -d \$(DESTDIR)$NXT_JARS
+	install -p -m 0644 $NXT_JAVA_INSTALL_JARS \$(DESTDIR)$NXT_JARS/
+
+java-shared-uninstall:
+	rm -f $NXT_JAVA_UNINSTALL_JARS
+	@rmdir -p \$(DESTDIR)$NXT_JARS 2>/dev/null || true
+
+END
+
+fi

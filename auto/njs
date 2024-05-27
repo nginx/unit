@@ -1,0 +1,53 @@
+
+# Copyright (C) NGINX, Inc.
+
+
+nxt_found=no
+NXT_HAVE_NJS=NO
+
+if /bin/sh -c "(pkg-config njs --exists)" >> $NXT_AUTOCONF_ERR 2>&1;
+then
+    NXT_NJS_AUX_CFLAGS=
+    NXT_NJS_AUX_LIBS=
+    NXT_NJS_CFLAGS=`pkg-config njs --cflags`
+    NXT_NJS_LIBS=`pkg-config njs --libs`
+else
+    NXT_NJS_AUX_CFLAGS=
+    NXT_NJS_AUX_LIBS="$NXT_LIBM $NXT_LIB_AUX_LIBS"
+    NXT_NJS_CFLAGS=
+    NXT_NJS_LIBS="-lnjs"
+fi
+
+nxt_feature="njs"
+nxt_feature_name=NXT_HAVE_NJS
+nxt_feature_run=no
+nxt_feature_incs="$NXT_NJS_CFLAGS $NXT_NJS_AUX_CFLAGS"
+nxt_feature_libs="$NXT_NJS_LIBS $NXT_NJS_AUX_LIBS"
+nxt_feature_test="#include <njs.h>
+
+                  #if NJS_VERSION_NUMBER < 0x000803
+                  # error njs < 0.8.3 is not supported.
+                  #endif
+
+                  int main(void) {
+                      njs_vm_t      *vm;
+                      njs_vm_opt_t  opts;
+
+                      njs_vm_opt_init(&opts);
+
+                      vm = njs_vm_create(&opts);
+                      if (vm == NULL)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no njs library \>= 0.8.3 found.
+    $echo
+    exit 1;
+fi
+
+NXT_LIB_AUX_CFLAGS="$NXT_LIB_AUX_CFLAGS $NXT_NJS_CFLAGS"
+NXT_LIB_AUX_LIBS="$NXT_NJS_LIBS $NXT_LIB_AUX_LIBS"

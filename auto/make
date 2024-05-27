@@ -1,0 +1,556 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) NGINX, Inc.
+
+. auto/cc/deps
+
+$echo "creating $NXT_MAKEFILE"
+
+
+cat << END > $NXT_MAKEFILE
+
+# Pretty print compiler etc actions...
+PP_CC		:= @echo '  CC    '
+PP_AR		:= @echo '  AR    '
+PP_LD		:= @echo '  LD    '
+PP_VER		:= @echo '  VER   '
+PP_SED		:= @echo '  SED   '
+
+CC =			$CC
+AR =			$AR
+
+EXTRA_CFLAGS =
+CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS \$(EXTRA_CFLAGS)
+
+NXT_EXEC_LINK =		$NXT_EXEC_LINK $NXT_LD_OPT
+NXT_SHARED_LOCAL_LINK =	$NXT_SHARED_LOCAL_LINK $NXT_LD_OPT
+NXT_MODULE_LINK =	$NXT_MODULE_LINK
+
+all: $NXT_DAEMON manpage
+
+.PHONY: $NXT_DAEMON manpage
+$NXT_DAEMON: $NXT_BUILD_DIR/sbin/$NXT_DAEMON
+manpage: $NXT_BUILD_DIR/share/man/man8/unitd.8
+
+END
+
+
+NXT_OS=$(uname -s)
+NXT_GNU_MAKE=$(make --version | grep GNU || true)
+
+# Requires GNU make. On OpenIndiana at least we have to use gmake
+if [ -n "$NXT_GNU_MAKE" ] || [ $NXT_OS = "SunOS" ]; then
+
+	cat << END >> $NXT_MAKEFILE
+# By default compiler etc output is hidden, use
+#   make V=1 ...
+# to show it.
+V := 0
+
+v := @
+ifeq (\$V,1)
+        v :=
+endif
+
+# Optionally enable debugging builds with
+#   make D=1 ...
+# -g is always used, this just changes the optimisation level.
+# On GCC this would be -Og, however according to the clang(1)
+# man page, -O0 'generates the most debuggable code'.
+D := 0
+
+ifeq (\$D,1)
+        CFLAGS += -O0
+endif
+
+# Optionally disable -Werror with
+#   make E=0 ...
+E := 1
+
+ifeq (\$E,0)
+        CFLAGS += -Wno-error
+endif
+
+END
+
+fi
+
+
+# The include paths list.
+
+$echo -n "NXT_LIB_INCS =" >> $NXT_MAKEFILE
+
+for nxt_inc in src $NXT_BUILD_DIR/include
+do
+    $echo -n " -I $nxt_inc" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# Library object files list.
+
+$echo "NXT_LIB_OBJS = \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_LIB_SRCS
+do
+    nxt_obj=${nxt_src%.c}.o
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+
+$echo "NXT_LIB_UNIT_OBJS = \\" >> $NXT_MAKEFILE
+$echo "	$NXT_BUILD_DIR/src/nxt_lvlhsh.o \\" >> $NXT_MAKEFILE
+$echo "	$NXT_BUILD_DIR/src/nxt_murmur_hash.o \\" >> $NXT_MAKEFILE
+$echo "	$NXT_BUILD_DIR/src/nxt_socket_msg.o \\" >> $NXT_MAKEFILE
+$echo "	$NXT_BUILD_DIR/src/nxt_websocket.o \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_LIB_UNIT_SRCS
+do
+    nxt_obj=${nxt_src%.c}.o
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+
+
+# The version file.
+
+cat << END >> $NXT_MAKEFILE
+
+include version
+
+$NXT_VERSION_H: version
+	\$(PP_VER) \$@ \(NXT_VERSION\)
+	\$(v)$echo '#define NXT_VERSION "\$(NXT_VERSION)"' > $NXT_VERSION_H
+	\$(PP_VER) \$@ \(NXT_VERNUM\)
+	\$(v)$echo '#define NXT_VERNUM  \$(NXT_VERNUM)' >> $NXT_VERSION_H
+
+END
+
+
+# Shared and static library.
+
+cat << END >> $NXT_MAKEFILE
+
+libnxt:	$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+
+$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS)
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_SHARED_LOCAL_LINK) -o \$@ \$(NXT_LIB_OBJS) \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS)
+	\$(PP_AR) \$@
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS)
+
+$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC: \$(NXT_LIB_UNIT_OBJS) \\
+		$NXT_BUILD_DIR/share/pkgconfig/unit.pc \\
+		$NXT_BUILD_DIR/share/pkgconfig/unit-uninstalled.pc
+	\$(PP_AR) \$@
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_UNIT_OBJS)
+
+END
+
+
+# Object files.
+
+for nxt_src in $NXT_LIB_SRCS $NXT_TEST_SRCS $NXT_LIB_UNIT_SRCS \
+               src/test/nxt_unit_app_test.c \
+               src/test/nxt_unit_websocket_chat.c \
+               src/test/nxt_unit_websocket_echo.c
+do
+    nxt_obj=${nxt_src%.c}.o
+    nxt_dep=${nxt_src%.c}.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_dep_flags \\
+	$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+nxt_src=src/test/nxt_cq_test.c
+nxt_obj=src/test/nxt_ncq_test.o
+nxt_dep=src/test/nxt_ncq_test.dep
+nxt_dep_flags=`nxt_gen_dep_flags`
+nxt_dep_post=`nxt_gen_dep_post`
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=1 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_dep_flags \\
+	$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+nxt_src=src/test/nxt_cq_test.c
+nxt_obj=src/test/nxt_vbcq_test.o
+nxt_dep=src/test/nxt_vbcq_test.dep
+nxt_dep_flags=`nxt_gen_dep_flags`
+nxt_dep_post=`nxt_gen_dep_post`
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_NCQ_TEST=0 \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_dep_flags \\
+	$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+$echo >> $NXT_MAKEFILE
+
+
+if [ $NXT_TESTS = YES ]; then
+
+    # Test object files list.
+
+    $echo "NXT_TEST_OBJS = \\" >> $NXT_MAKEFILE
+
+    for nxt_src in $NXT_TEST_SRCS
+    do
+        nxt_obj=${nxt_src%.c}.o
+        $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+    done
+
+    # Test executables.
+
+    cat << END >> $NXT_MAKEFILE
+
+.PHONY: tests
+tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
+			$NXT_BUILD_DIR/ncq_test \\
+			$NXT_BUILD_DIR/vbcq_test \\
+			$NXT_BUILD_DIR/unit_app_test $NXT_BUILD_DIR/unit_websocket_chat \\
+			$NXT_BUILD_DIR/unit_websocket_echo
+
+$NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
+		\$(CFLAGS) \$(NXT_TEST_OBJS) \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+		-o $NXT_BUILD_DIR/utf8_file_name_test \\
+		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/ncq_test: $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/ncq_test \\
+		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/vbcq_test: $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/vbcq_test \\
+		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_app_test \\
+		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/unit_websocket_chat: \\
+		$NXT_BUILD_DIR/src/test/nxt_unit_websocket_chat.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_chat \\
+		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_websocket_chat.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/unit_websocket_echo: \\
+		$NXT_BUILD_DIR/src/test/nxt_unit_websocket_echo.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/unit_websocket_echo \\
+		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_unit_websocket_echo.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+END
+
+else
+
+    cat << END >> $NXT_MAKEFILE
+
+.PHONY: tests
+tests:
+	@(echo; \\
+	  echo "error: to make tests you need to configure --tests option."; \\
+	  echo; \\
+	  exit 1)
+
+END
+
+fi
+
+
+NXT_MAKE_INCS="src $NXT_BUILD_DIR/include"
+NXT_MAKE_SRCS="$NXT_SRCS"
+
+
+# The include paths list.
+
+$echo -n "NXT_INCS =" >> $NXT_MAKEFILE
+
+for nxt_inc in $NXT_MAKE_INCS
+do
+    $echo -n " -I $nxt_inc" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# Object files list.
+
+$echo "NXT_OBJS = \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_MAKE_SRCS
+do
+    nxt_obj=${nxt_src%.c}.o
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+
+
+# unit executable.
+
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/sbin/$NXT_DAEMON:	$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+				\$(NXT_OBJS)
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o \$@ \$(CFLAGS) \\
+		\$(NXT_OBJS) $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+END
+
+
+# unitd man page
+
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/share/man/man8/unitd.8: docs/man/man8/unitd.8.in \\
+				$NXT_BUILD_DIR/include/nxt_auto_config.h
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|%%ERROR_LOG_PATH%%|$NXT_LOG|" \\
+		-e "s|%%PID_PATH%%|$NXT_PID|" \\
+		-e "s|%%SOCKET_PATH%%|$NXT_CONTROL|" \\
+		< docs/man/man8/unitd.8.in > \$@
+
+END
+
+
+# unit object files.
+
+for nxt_src in $NXT_MAKE_SRCS
+do
+    nxt_obj=${nxt_src%.c}.o
+    nxt_dep=${nxt_src%.c}.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
+		$NXT_LIB_AUX_CFLAGS \\
+		-o $NXT_BUILD_DIR/$nxt_obj \\
+		$nxt_dep_flags \\
+		$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+
+# install
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: install ${NXT_DAEMON}-install install-check manpage-install
+
+install: ${NXT_DAEMON}-install manpage-install
+
+install-check:
+	@test -n "\$(DESTDIR)$NXT_PREFIX" \\
+	|| (echo; \\
+	    echo "error: to make install you need either"; \\
+	    echo "    to configure --prefix option"; \\
+	    echo "    or to set DESTDIR environment variable."; \\
+	    echo; \\
+	    exit 1)
+
+${NXT_DAEMON}-install: $NXT_DAEMON install-check
+	test -d \$(DESTDIR)$NXT_SBINDIR \
+		|| install -d \$(DESTDIR)$NXT_SBINDIR
+	install -p $NXT_BUILD_DIR/sbin/$NXT_DAEMON \$(DESTDIR)$NXT_SBINDIR/
+	test -d \$(DESTDIR)$NXT_STATEDIR \
+		|| install -d \$(DESTDIR)$NXT_STATEDIR
+	test -d \$(DESTDIR)$NXT_LOGDIR \
+		|| install -d \$(DESTDIR)$NXT_LOGDIR
+	test -d \$(DESTDIR)$NXT_RUNSTATEDIR \
+		|| install -d \$(DESTDIR)$NXT_RUNSTATEDIR
+
+manpage-install: manpage install-check
+	test -d \$(DESTDIR)$NXT_MANDIR/man8 \
+		|| install -d \$(DESTDIR)$NXT_MANDIR/man8
+	install -p -m644 $NXT_BUILD_DIR/share/man/man8/unitd.8 \
+		\$(DESTDIR)$NXT_MANDIR/man8/
+
+.PHONY: uninstall ${NXT_DAEMON}-uninstall manpage-uninstall
+
+uninstall: ${NXT_DAEMON}-uninstall manpage-uninstall
+
+${NXT_DAEMON}-uninstall:
+	rm -f \$(DESTDIR)$NXT_SBINDIR/$NXT_DAEMON
+	@rmdir -p \$(DESTDIR)$NXT_SBINDIR 2>/dev/null || true
+
+manpage-uninstall:
+	rm -f \$(DESTDIR)$NXT_MANDIR/man8/unitd.8
+	@rmdir -p \$(DESTDIR)$NXT_MANDIR/man8 2>/dev/null || true
+
+END
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: libunit-install libunit-uninstall
+
+libunit-install: $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	test -d \$(DESTDIR)$NXT_LIBDIR \
+		|| install -d \$(DESTDIR)$NXT_LIBDIR
+	install -p -m u=rw,go=r $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC \
+		\$(DESTDIR)$NXT_LIBDIR/
+	test -d \$(DESTDIR)$NXT_PKGCONFIGDIR \
+		|| install -d \$(DESTDIR)$NXT_PKGCONFIGDIR
+	install -p -m u=rw,go=r $NXT_BUILD_DIR/share/pkgconfig/unit.pc \
+		\$(DESTDIR)$NXT_PKGCONFIGDIR/
+	test -d \$(DESTDIR)$NXT_INCLUDEDIR \
+		|| install -d \$(DESTDIR)$NXT_INCLUDEDIR
+	install -p -m u=rw,go=r src/nxt_unit.h \
+		src/nxt_unit_field.h \
+		src/nxt_unit_request.h \
+		src/nxt_unit_response.h \
+		src/nxt_unit_sptr.h \
+		src/nxt_unit_typedefs.h \
+		src/nxt_unit_websocket.h \
+		$NXT_BUILD_DIR/include/nxt_auto_config.h \
+		$NXT_BUILD_DIR/include/nxt_version.h \
+		src/nxt_websocket_header.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/
+
+libunit-uninstall:
+	rm -f \$(DESTDIR)$NXT_LIBDIR/$NXT_LIB_UNIT_STATIC
+	@rmdir -p \$(DESTDIR)$NXT_LIBDIR 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_PKGCONFIGDIR/unit.pc
+	@rmdir -p \$(DESTDIR)$NXT_PKGCONFIGDIR 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_field.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_request.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_response.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_sptr.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_typedefs.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_websocket.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_auto_config.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_version.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_websocket_header.h
+	@rmdir -p \$(DESTDIR)$NXT_INCLUDEDIR 2>/dev/null || true
+
+END
+
+# pkg-config files
+
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/share/pkgconfig/unit.pc: src/unit.pc.in
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|@PREFIX@|$NXT_PREFIX|" \\
+		-e "s|@LIBDIR@|$NXT_LIBDIR|" \\
+		-e "s|@CFLAGS@|-I$NXT_INCLUDEDIR|" \\
+		-e "s|@VERSION@|\$(NXT_VERSION)|" \\
+		-e "s|@EXTRA_LIBS@|$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS|" \\
+		-e "s|@CONFARGS@|$(echo $NXT_CONFIGURE_OPTIONS | sed -e 's| -pie||' -e 's| --njs||')|" \\
+		-e "s|@MODULESDIR@|$NXT_MODULESDIR|" \\
+	< src/unit.pc.in > \$@
+
+$NXT_BUILD_DIR/share/pkgconfig/unit-uninstalled.pc: src/unit.pc.in
+	\$(PP_SED) \$@
+	\$(v)sed -e "s|@PREFIX@|$(pwd)/$NXT_BUILD_DIR|" \\
+		-e "s|@LIBDIR@|$(pwd)/$NXT_BUILD_DIR/lib|" \\
+		-e "s|@CFLAGS@|-I$(pwd)/src -I$(pwd)$NXT_BUILD_DIR/include|" \\
+		-e "s|@VERSION@|\$(NXT_VERSION)|" \\
+		-e "s|@EXTRA_LIBS@|$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS|" \\
+		-e "s|@CONFARGS@|$(echo $NXT_CONFIGURE_OPTIONS | sed -e 's| -pie||' -e 's| --njs||')|" \\
+	< src/unit.pc.in > \$@
+
+END
+
+# Makefile.
+# *.dSYM is MacOSX Clang debug information.
+
+cat << END > Makefile
+
+include $NXT_MAKEFILE
+
+.PHONY: clean
+clean:
+		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
+
+.PHONY: help
+help:
+	@echo "Variables to control make/build behaviour:"
+	@echo
+	@echo "  make V=1 ...           - Enables verbose output"
+	@echo "  make D=1 ...           - Enables debug builds (-O0)"
+	@echo "  make E=0 ...           - Disables -Werror"
+	@echo
+	@echo "  make EXTRA_CFLAGS= ... - Add extra compiler options"
+	@echo
+	@echo "  Variables can be combined."
+
+END

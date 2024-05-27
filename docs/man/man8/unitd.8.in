@@ -1,0 +1,129 @@
+.\" (C) 2017-2024 NGINX, Inc.
+.\" (C) 2017-2024 Andrei Zeliankou
+.\" (C) 2018-2024 Konstantin Pavlov
+.\" (C) 2021-2024 Zhidao Hong
+.\" (C) 2022-2024 Andrew Clayton
+.\" (C) 2022-2024 Liam Crilly
+.\" (C) 2023-2024 Dan Callahan
+.\" (C) 2023-2024 Danielle De Leo
+.\" (C) 2023-2024 Dylan Arbour
+.\" (C) 2023-2024 Gabor Javorszky
+.\" (C) 2023-2024 Igor Ippolitov
+.\" (C) 2023-2024 Taryn Musgrave
+.\" (C) 2021-2023 Alejandro Colomar
+.\" (C) 2017-2022 Valentin V. Bartenev
+.\" (C) 2017-2022 Max Romanov
+.\" (C) 2021-2022 Oisín Canty
+.\" (C) 2017-2021 Igor Sysoev
+.\" (C) 2017-2021 Andrei Belov
+.\" (C) 2019-2021 Tiago Natel de Moura
+.\" (C) 2019-2020 Axel Duch
+.\" (C) 2018-2019 Alexander Borisov
+.\"
+.Dd 2023-04-26
+.Dt unitd 8
+.Os NGINX Unit
+.Sh Name
+.Nm unitd
+.Nd "runs the NGINX Unit daemon"
+.Sh Synopsis
+.Nm
+.Op Fl Fl no-daemon
+.Op Fl Fl control Ar socket
+.Op Fl Fl control-mode Ar mode
+.Op Fl Fl control-user Ar user
+.Op Fl Fl control-group Ar group
+.Op Fl Fl group Ar name
+.Op Fl Fl user Ar name
+.Op Fl Fl log Ar file
+.Op Fl Fl modulesdir Ar directory
+.Op Fl Fl pid Ar file
+.Op Fl Fl statedir Ar directory
+.Nm
+.Op Fl h | Fl Fl help | Fl Fl version
+.Sh Description
+NGINX Unit is a polyglot app server, a reverse proxy, and a static file server
+for UNIX-like systems.
+It was built by
+.Xr nginx 8
+team members from
+scratch to be highly efficient and fully configurable at runtime.
+.Sh Options
+.Bl -tag -width indent
+.It Fl h , Fl Fl help
+Displays a summary of Unit's command-line options and their
+compile-time defaults.
+.It Fl Fl version
+Displays Unit's version and the
+.Pa ./configure
+settings it was built with.
+.It Fl Fl no-daemon
+Runs Unit in non-daemon mode.
+.It Fl Fl control Ar socket
+Overrides the control API's socket address in IPv4, IPv6,
+or UNIX-domain format.
+.It Fl Fl control-mode Ar mode
+Sets the permission of the UNIX-domain control socket.
+.It Fl Fl control-user Ar user
+Sets the owner of the UNIX-domain control socket.
+.It Fl Fl control-group Ar group
+Sets the group of the UNIX-domain control socket.
+.It Fl Fl group Ar name , Fl Fl user Ar name
+Override group name and user name used to run Unit's non-privileged processes.
+.It Fl Fl log Ar file
+Overrides the pathname for Unit's log.
+.It Fl Fl modulesdir Ar directory
+Overrides the directory path for Unit's language modules
+.Po Pa *.unit.so
+.Pc files .
+.It Fl Fl pid Ar file
+Overrides the pathname for the PID file of Unit's main process.
+.It Fl Fl statedir Ar directory
+Overrides the directory path for Unit's state storage.
+.El
+.Sh Exit status
+Exit status is 0 on success, or 1 if the daemon encounters an error.
+.Sh Files
+.Bl -tag -width indent
+.It Pa %%PID_PATH%%
+The PID file of Unit's main process.
+.It Pa %%ERROR_LOG_PATH%%
+A general-purpose log for diagnostics and troubleshooting.
+.El
+.Sh Sockets
+.Bl -tag -width indent
+.It Pa %%SOCKET_PATH%%
+The socket address of Unit's control API.
+.El
+.Sh Copyright
+.nf
+(C) 2017-2024 NGINX, Inc.
+(C) 2017-2024 Andrei Zeliankou
+(C) 2018-2024 Konstantin Pavlov
+(C) 2021-2024 Zhidao Hong
+(C) 2022-2024 Andrew Clayton
+(C) 2022-2024 Liam Crilly
+(C) 2023-2024 Dan Callahan
+(C) 2023-2024 Danielle De Leo
+(C) 2023-2024 Dylan Arbour
+(C) 2023-2024 Gabor Javorszky
+(C) 2023-2024 Igor Ippolitov
+(C) 2023-2024 Taryn Musgrave
+(C) 2021-2023 Alejandro Colomar
+(C) 2017-2022 Valentin V. Bartenev
+(C) 2017-2022 Max Romanov
+(C) 2021-2022 Oisín Canty
+(C) 2017-2021 Igor Sysoev
+(C) 2017-2021 Andrei Belov
+(C) 2019-2021 Tiago Natel de Moura
+(C) 2019-2020 Axel Duch
+(C) 2018-2019 Alexander Borisov
+.fi
+.Pp
+SPDX-License-Identifier: Apache-2.0
+.Sh See also
+.Lk https://unit.nginx.org Website
+.Pp
+.Lk https://mailman.nginx.org/mailman/listinfo/unit "User mailing list"
+.Pp
+.Lk https://github.com/nginx/unit GitHub

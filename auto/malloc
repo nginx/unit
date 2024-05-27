@@ -1,0 +1,175 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Linux glibc 2.1.91, FreeBSD 7.0, Solaris 11,
+# MacOSX 10.6 (Snow Leopard), NetBSD 5.0.
+
+nxt_feature="posix_memalign()"
+nxt_feature_name=NXT_HAVE_POSIX_MEMALIGN
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+
+                  int main(void) {
+                      void  *p;
+
+                      if (posix_memalign(&p, 4096, 4096) != 0)
+                          return 1;
+
+                      free(p);
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # Solaris, HP-UX.
+
+    nxt_feature="memalign()"
+    nxt_feature_name=NXT_HAVE_MEMALIGN
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <stdlib.h>
+
+                      int main(void) {
+                          void  *p;
+
+                          p = memalign(4096, 4096);
+                          if (p == NULL)
+                              return 1;
+
+                          free(p);
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# Linux malloc_usable_size().
+
+nxt_feature="Linux malloc_usable_size()"
+nxt_feature_name=NXT_HAVE_MALLOC_USABLE_SIZE
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <malloc.h>
+
+                  int main(void) {
+                      void  *p;
+
+                      p = malloc(4096);
+                      if (malloc_usable_size(p) < 4096)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # FreeBSD malloc_usable_size().
+
+    nxt_feature="FreeBSD malloc_usable_size()"
+    nxt_feature_name=NXT_HAVE_MALLOC_USABLE_SIZE
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <stdlib.h>
+                      #include <malloc_np.h>
+
+                      int main(void) {
+                          void  *p;
+
+                          p = malloc(4096);
+                          if (malloc_usable_size(p) < 4096)
+                              return 1;
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX malloc_good_size().
+
+    nxt_feature="MacOSX malloc_good_size()"
+    nxt_feature_name=NXT_HAVE_MALLOC_GOOD_SIZE
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <malloc/malloc.h>
+
+                      int main(void) {
+                          if (malloc_good_size(4096) < 4096)
+                              return 1;
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# alloca().
+
+# Linux, FreeBSD, MacOSX.
+
+nxt_feature="alloca()"
+nxt_feature_name=NXT_HAVE_ALLOCA
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+
+                  int main(void) {
+                      void  *p;
+
+                      p = alloca(256);
+                      if (p == 0)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # Linux, Solaris, MacOSX.
+
+    nxt_feature="alloca() in alloca.h"
+    nxt_feature_name=NXT_HAVE_ALLOCA_H
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <alloca.h>
+
+                      int main(void) {
+                          void  *p;
+
+                          p = alloca(256);
+                          if (p == 0)
+                              return 1;
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# Linux mallopt().
+
+nxt_feature="Linux mallopt()"
+nxt_feature_name=NXT_HAVE_MALLOPT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <malloc.h>
+
+                  int main(void) {
+                      mallopt(M_PERTURB, 0x55);
+                      return 0;
+                  }"
+. auto/feature

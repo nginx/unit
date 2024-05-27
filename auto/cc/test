@@ -1,0 +1,148 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+$echo checking for C compiler: $CC
+cat << END >> $NXT_AUTOCONF_ERR
+----------------------------------------
+checking for C compiler: $CC
+END
+
+
+# Allow error exit status.
+set +e
+
+if [ -z `which $CC` ]; then
+    $echo
+    $echo $0: error: $CC not found.
+    $echo
+    exit 1;
+fi
+
+
+if `/bin/sh -c "($CC -v)" 2>&1 | grep "gcc version" >> $NXT_AUTOCONF_ERR 2>&1`
+then
+    NXT_CC_NAME=gcc
+    $echo " + using GNU C compiler"
+    NXT_CC_VERSION=`/bin/sh -c "($CC -v)" 2>&1 | grep "gcc version" 2>&1`
+    $echo " + $NXT_CC_VERSION"
+
+else
+if `/bin/sh -c "($CC -v)" 2>&1 | grep "clang version" >> $NXT_AUTOCONF_ERR 2>&1`
+then
+    NXT_CC_NAME=clang
+    $echo " + using Clang C compiler"
+    NXT_CC_VERSION=`/bin/sh -c "($CC -v)" 2>&1 | grep "clang version" 2>&1`
+    $echo " + $NXT_CC_VERSION"
+
+else
+if `/bin/sh -c "($CC -v)" 2>&1 \
+                 | grep "Apple LLVM version" >> $NXT_AUTOCONF_ERR 2>&1`
+then
+    NXT_CC_NAME=clang
+    $echo " + using Clang C compiler"
+    NXT_CC_VERSION=`/bin/sh -c "($CC -v)" 2>&1 | grep "Apple LLVM version" 2>&1`
+    $echo " + $NXT_CC_VERSION"
+
+else
+    NXT_CC_NAME=cc
+    NXT_CC_VERSION=cc
+
+fi # Apple LLVM clang
+fi # clang
+fi # gcc
+
+
+case $NXT_CC_NAME in
+
+    gcc)
+        nxt_have=NXT_GCC . auto/have
+
+        NXT_CFLAGS="$NXT_CFLAGS -pipe"
+        NXT_CFLAGS="$NXT_CFLAGS -fPIC"
+
+        # Do not export symbols except explicitly marked with NXT_EXPORT.
+        NXT_CFLAGS="$NXT_CFLAGS -fvisibility=hidden"
+
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
+
+        NXT_CFLAGS="$NXT_CFLAGS -std=gnu11"
+
+        NXT_CFLAGS="$NXT_CFLAGS -O"
+        NXT_CFLAGS="$NXT_CFLAGS -Wall -Wextra"
+
+        #NXT_CFLAGS="$NXT_CFLAGS -Wunused-result"
+        NXT_CFLAGS="$NXT_CFLAGS -Wno-unused-parameter"
+        #NXT_CFLAGS="$NXT_CFLAGS -Wshorten-64-to-32"
+        NXT_CFLAGS="$NXT_CFLAGS -Wwrite-strings"
+
+        # -O2 enables -fstrict-aliasing and -fstrict-overflow.
+        #NXT_CFLAGS="$NXT_CFLAGS -O2"
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-aliasing"
+
+        #NXT_CFLAGS="$NXT_CFLAGS -fomit-frame-pointer"
+        #NXT_CFLAGS="$NXT_CFLAGS -momit-leaf-frame-pointer"
+
+        # While -Wstrict-overflow is supported by GCC 4.2+,
+        # at level 3 and above it is prone to give false
+        # positives.
+        #NXT_CFLAGS="$NXT_CFLAGS -Wstrict-overflow=5"
+
+        NXT_CFLAGS="$NXT_CFLAGS -Wmissing-prototypes"
+
+        # Stop on warning.
+        NXT_CFLAGS="$NXT_CFLAGS -Werror"
+
+        # Debug.
+        NXT_CFLAGS="$NXT_CFLAGS -g"
+    ;;
+
+    clang)
+        nxt_have=NXT_CLANG . auto/have
+
+        NXT_CFLAGS="$NXT_CFLAGS -pipe"
+        NXT_CFLAGS="$NXT_CFLAGS -fPIC"
+
+        # Do not export symbols except explicitly marked with NXT_EXPORT.
+        NXT_CFLAGS="$NXT_CFLAGS -fvisibility=hidden"
+
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
+
+        NXT_CFLAGS="$NXT_CFLAGS -std=gnu11"
+
+        NXT_CFLAGS="$NXT_CFLAGS -O"
+        NXT_CFLAGS="$NXT_CFLAGS -Wall -Wextra"
+
+        #NXT_CFLAGS="$NXT_CFLAGS -Wunused-result"
+        NXT_CFLAGS="$NXT_CFLAGS -Wno-unused-parameter"
+        #NXT_CFLAGS="$NXT_CFLAGS -Wshorten-64-to-32"
+        NXT_CFLAGS="$NXT_CFLAGS -Wwrite-strings"
+        #NXT_CFLAGS="$NXT_CFLAGS -O2"
+        # strict-aliasing is always enabled by default in clang
+        NXT_CFLAGS="$NXT_CFLAGS -fno-strict-aliasing"
+
+        #NXT_CFLAGS="$NXT_CFLAGS -fomit-frame-pointer"
+        NXT_CFLAGS="$NXT_CFLAGS -Wstrict-overflow=5"
+
+        NXT_CFLAGS="$NXT_CFLAGS -Wmissing-prototypes"
+
+        # Stop on warning.
+        NXT_CFLAGS="$NXT_CFLAGS -Werror"
+
+        # Debug.
+
+        if [ "$NXT_SYSTEM_PLATFORM" != "powerpc" ]; then
+            # "-g" flag causes the "unknown pseudo-op: `.cfi_sections'"
+            # error on PowerPC Clang.
+            NXT_CFLAGS="$NXT_CFLAGS -g"
+        fi
+    ;;
+
+    *)
+    ;;
+
+esac
+
+# Stop on error exit status again.
+set -e

@@ -1,0 +1,291 @@
+
+# Copyright (C) Max Romanov
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --config=*)    NXT_PHP_CONFIG="$value"                               ;;
+        --module=*)    NXT_PHP_MODULE="$value"                               ;;
+        --lib-path=*)  NXT_PHP_LIB_PATH="$value"                             ;;
+        --lib-static)  NXT_PHP_LIB_STATIC=yes                                ;;
+
+        --help)
+            cat << END
+
+    --config=FILE         set php-config filename
+    --module=NAME         set unit php module name
+    --lib-path=DIRECTORY  set directory path to libphp.so library
+    --lib-static          enable linking with static libphp.a library
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid PHP option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+NXT_PHP_CONFIG=${NXT_PHP_CONFIG=php-config}
+NXT_PHP=${NXT_PHP_CONFIG%-config*}
+NXT_PHP_MODULE=${NXT_PHP_MODULE=${NXT_PHP##*/}}
+NXT_PHP_LIB_PATH=${NXT_PHP_LIB_PATH=}
+NXT_PHP_LIB_STATIC=${NXT_PHP_LIB_STATIC=no}
+NXT_PHP_ADDITIONAL_FLAGS=
+
+
+$echo "configuring PHP module"
+$echo "configuring PHP module ..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "checking for PHP ..."
+$echo "checking for PHP ..." >> $NXT_AUTOCONF_ERR
+
+NXT_PHP_LDFLAGS=
+
+if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    $echo " found"
+
+    NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
+    NXT_PHP_EXT_DIR="`${NXT_PHP_CONFIG} --extension-dir`"
+
+    $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
+
+    NXT_PHP_MAJOR_VERSION=${NXT_PHP_VERSION%%.*}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_VERSION#*.}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_MINOR_VERSION%%.*}
+
+    if [ $NXT_PHP_MAJOR_VERSION = 5 -a $NXT_PHP_MINOR_VERSION -lt 4 ]; then
+        NXT_PHP_ADDITIONAL_FLAGS=-Wno-write-strings
+    fi
+
+    NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
+
+    if [ $NXT_PHP_LIB_STATIC = yes ]; then
+
+        if [ "$NXT_PHP_LIB_PATH" = "" ]; then
+            $echo
+            $echo $0: error: --lib-static option requires --lib-path option.
+            $echo
+            exit 1;
+        fi
+
+        NXT_PHP_LIB="$NXT_PHP_LIB_PATH/libphp${NXT_PHP_VERSION%%.*}.a"
+        NXT_PHP_LDFLAGS="`${NXT_PHP_CONFIG} --ldflags` \
+                         `${NXT_PHP_CONFIG} --libs`"
+
+    else
+        if [ $NXT_PHP_MAJOR_VERSION -ge 8 ]; then
+            NXT_PHP_LIB="-lphp"
+        else
+            NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+        fi
+
+        if [ "$NXT_PHP_LIB_PATH" != "" ]; then
+            # "php-config --ldflags" does not contain path to libphp, but
+            # contains usually path to libraries required by extensions.
+            NXT_PHP_LDFLAGS="-L${NXT_PHP_LIB_PATH} -Wl,-rpath,${NXT_PHP_LIB_PATH}"
+        fi
+    fi
+
+else
+    $echo
+    $echo $0: error: no PHP found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="PHP version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+
+    int main(void) {
+        printf(\"%s\", PHP_VERSION);
+        return 0;
+    }"
+
+. auto/feature
+
+
+nxt_feature="PHP embed SAPI"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main(void) {
+    #if (PHP_VERSION_ID < 80200)
+        php_module_startup(NULL, NULL, 0);
+    #else
+        php_module_startup(NULL, NULL);
+    #endif
+        return 0;
+    }"
+
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no PHP embed SAPI found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="PHP Zend Thread Safety"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main(void) {
+        #ifndef ZTS
+        #error ZTS is not defined.
+        #endif
+        return 0;
+    }"
+
+. auto/feature
+
+
+# Bug #71041 (https://bugs.php.net/bug.php?id=71041).
+
+nxt_feature="PHP zend_signal_startup()"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main(void) {
+        zend_signal_startup();
+        return 0;
+    }"
+
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_ZEND_SIGNAL_STARTUP=1
+else
+    NXT_ZEND_SIGNAL_STARTUP=0
+fi
+
+
+if grep ^$NXT_PHP_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_PHP_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+
+$echo " + PHP module: ${NXT_PHP_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_PHP_MODULE_SRCS=" \
+    src/nxt_php_sapi.c \
+"
+
+# The php module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_PHP_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_PHP_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_PHP_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_PHP_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	$NXT_PHP_INCLUDE -DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
+	$nxt_dep_flags \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_PHP_MODULE}
+.PHONY: ${NXT_PHP_MODULE}-install
+.PHONY: ${NXT_PHP_MODULE}-uninstall
+
+all: ${NXT_PHP_MODULE}
+
+${NXT_PHP_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PHP_MODULE}.unit.so
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_PHP_MODULE}.unit.so:	$nxt_objs
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ \\
+	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS} $NXT_LD_OPT
+
+
+install: ${NXT_PHP_MODULE}-install
+
+${NXT_PHP_MODULE}-install: ${NXT_PHP_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_PHP_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+
+
+uninstall: ${NXT_PHP_MODULE}-uninstall
+
+${NXT_PHP_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_PHP_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

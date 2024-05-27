@@ -1,0 +1,127 @@
+# Copyright (C) Andrew Clayton
+# Copyright (C) F5, Inc.
+
+
+NXT_WCM_MODULE=wasm-wasi-component
+NXT_WCM_MOD_NAME=`echo $NXT_WCM_MODULE | tr '-' '_'`.unit.so
+
+NXT_WCM_MOD_CARGO="src/wasm-wasi-component/target/release/libwasm_wasi_component.so"
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+
+        --help)
+            cat << END
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid $NXT_WCM_MODULE option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+NXT_WCM_WASM_TOOLS_BIN=${NXT_WCM_WASM_TOOLS_BIN=}
+
+
+$echo "configuring $NXT_WCM_MODULE module"
+$echo "configuring $NXT_WCM_MODULE module ..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "looking for rust compiler ... "
+
+if [ -z `which rustc 2>/dev/null` ]; then
+    $echo "not found."
+    exit 1;
+fi
+
+$echo "found."
+
+$echo -n "looking for cargo ... "
+
+if [ -z `which cargo 2>/dev/null` ]; then
+    $echo "not found."
+    exit 1;
+fi
+
+$echo "found."
+
+
+if grep ^$NXT_WCM_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_WCM_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+
+$echo " + $NXT_WCM_MODULE module: $NXT_WCM_MOD_NAME"
+
+
+NXT_OS=$(uname -s)
+
+if [ $NXT_OS = "Darwin" ]; then
+	NXT_CARGO_CMD="cargo rustc --release --manifest-path src/wasm-wasi-component/Cargo.toml -- --emit link=target/release/libwasm_wasi_component.so -C link-args='-undefined dynamic_lookup'"
+else
+	NXT_CARGO_CMD="cargo build --release --manifest-path src/wasm-wasi-component/Cargo.toml"
+fi
+
+
+NXT_WCM_DEPS=" \
+    build/src/nxt_unit.o \
+    src/wasm-wasi-component/build.rs \
+    src/wasm-wasi-component/wrapper.h \
+    src/wasm-wasi-component/src/lib.rs \
+"
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_WCM_MODULE}
+.PHONY: ${NXT_WCM_MODULE}-install
+.PHONY: ${NXT_WCM_MODULE}-uninstall
+
+all: ${NXT_WCM_MODULE}
+
+${NXT_WCM_MODULE}:	${NXT_WCM_MOD_CARGO}
+
+${NXT_WCM_MOD_CARGO}: ${NXT_WCM_DEPS}
+	$NXT_CARGO_CMD
+
+install: ${NXT_WCM_MODULE}-install
+
+${NXT_WCM_MODULE}-install: ${NXT_WCM_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p ${NXT_WCM_MOD_CARGO} \\
+		\$(DESTDIR)$NXT_MODULESDIR/$NXT_WCM_MOD_NAME
+
+uninstall: ${NXT_WCM_MODULE}-uninstall
+
+${NXT_WCM_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/$NXT_WCM_MOD_NAME
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

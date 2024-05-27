@@ -1,0 +1,177 @@
+name: "CI - Fedora Rawhide / Alpine Edge / GCC / Clang"
+
+on:
+  push:
+    branches: master
+    paths:
+      - configure
+      - 'auto/**'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/ci-dev-distro-compiler.yaml'
+  pull_request:
+    branches: master
+    paths:
+      - configure
+      - 'auto/**'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/ci-dev-distro-compiler.yaml'
+
+jobs:
+
+  fedora-rawhide:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ 'gcc', 'clang' ]
+
+    container:
+      image: fedora:rawhide
+
+    steps:
+      - name: Install tools/deps
+        run: |
+          dnf -y update
+          dnf -y install --setopt=install_weak_deps=False \
+              which wget git gcc make pcre2-devel openssl-devel \
+              python-unversioned-command python3 python3-devel \
+              php-devel php-embedded perl-devel perl-ExtUtils-Embed \
+              ruby-devel java-devel nodejs-devel nodejs-npm golang
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            dnf -y install --setopt=install_weak_deps=False clang
+          fi
+          npm install -g node-gyp
+
+      - uses: actions/checkout@v4
+
+      - name: configure unit CC=${{ matrix.compiler }}
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            ./configure --openssl --cc=clang
+          else
+            ./configure --openssl
+          fi
+
+      - name: make unit
+        run: make -j 4
+
+      - name: configure unit-php
+        run: ./configure php
+
+      - name: make unit-php
+        run: make -j 4 php
+
+      - name: configure unit-python
+        run: ./configure python
+
+      - name: make unit-python
+        run: make -j 4 python
+
+      - name: configure unit-perl
+        run: ./configure perl
+        if: matrix.compiler == 'gcc'
+
+      - name: make unit-perl
+        run: make -j 4 perl
+        if: matrix.compiler == 'gcc'
+
+      - name: configure unit-ruby
+        run: ./configure ruby
+
+      - name: make unit-ruby
+        run: make -j 4 ruby
+
+      - name: configure unit-java
+        run: ./configure java
+
+      - name: make unit-java
+        run: make -j 4 java
+
+      - name: configure unit-nodejs
+        run: ./configure nodejs
+
+      - name: make unit-nodejs
+        run: make node-local-install DESTDIR=node
+
+      - name: configure unit-go
+        run: ./configure go --go-path=
+
+      - name: make unit-go
+        run: make go-install
+
+      - name: Install wasmtime
+        run: |
+          wget -O- https://github.com/bytecodealliance/wasmtime/releases/download/v20.0.0/wasmtime-v20.0.0-x86_64-linux-c-api.tar.xz | tar -xJf -
+
+      - name: configure unit-wasm
+        run: ./configure wasm --include-path=wasmtime-v20.0.0-x86_64-linux-c-api/include --lib-path=wasmtime-v20.0.0-x86_64-linux-c-api/lib --rpath
+
+      - name: make unit-wasm
+        run: make wasm
+
+  alpine-edge:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ 'gcc', 'clang' ]
+
+    container:
+      image: alpine:edge
+
+    steps:
+      - name: Install tools/deps
+        run: |
+          apk update && apk upgrade
+          apk add gcc make musl-dev openssl-dev pcre2-dev curl \
+              php83-dev php83-embed python3-dev perl-dev ruby-dev openjdk21-jdk
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            apk add clang
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: configure unit CC=${{ matrix.compiler }}
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            ./configure --openssl --cc=clang
+          else
+            ./configure --openssl
+          fi
+
+      - name: make unit
+        run: make -j 4
+
+      - name: configure unit-php
+        run: ln -s /usr/lib/libphp83.so /usr/lib/libphp.so && ./configure php
+
+      - name: make unit-php
+        run: make -j 4
+
+      - name: configure unit-python
+        run: ./configure python
+
+      - name: make unit-python
+        run: make -j 4
+
+      - name: configure unit-perl
+        run: ./configure perl
+
+      - name: make unit-perl
+        run: make -j 4 perl
+
+      - name: configure unit-ruby
+        run: ./configure ruby
+
+      - name: make unit-ruby
+        run: make -j 4 ruby
+
+      - name: configure unit-java
+        run: ./configure java
+
+      - name: make unit-java
+        run: make -j 4 java

@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" != "configure" ]; then
+    exit 0
+fi
+
+if [ -n "$2" ]; then
+    if dpkg --compare-versions "${2%%-*}" le "1.21.0"; then
+      cat <<BANNER
+----------------------------------------------------------------------
+
+WARNING:
+
+Since version 1.22.0, Unit's non-privileged processes run as unit:unit by
+default.  Review your system permissions and Unit configuration so apps and
+routes that relied on these processes running as nobody:nogroup stay working.
+
+More info: https://unit.nginx.org/installation/#official-packages
+
+----------------------------------------------------------------------
+BANNER
+    fi
+fi
+
+if ! getent group unit >/dev/null; then
+    groupadd --system unit >/dev/null
+fi
+
+if ! getent passwd unit >/dev/null; then
+    useradd \
+      --system \
+      --gid unit \
+      --no-create-home \
+      --home /nonexistent \
+      --comment "unit user" \
+      --shell /bin/false \
+      unit >/dev/null
+fi
+
+#DEBHELPER#
+
+exit 0

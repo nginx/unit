@@ -1,0 +1,30 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+#
+# Please report security issues as below, specifically
+# mentioning NGINX Unit in the subject.
+#
+Canonical: https://unit.nginx.org/.well-known/security.txt
+Contact: mailto:security-alert@nginx.org
+Encryption: https://nginx.org/keys/maxim.key
+Encryption: https://nginx.org/keys/sb.key
+Encryption: https://nginx.org/keys/thresh.key
+Expires: 2025-01-01T00:00:00.000Z
+Policy: https://www.first.org/cvss/v3.1/specification-document
+Preferred-Languages: en
+
+-----BEGIN PGP SIGNATURE-----
+
+iQGzBAEBCAAdFiEEE8gqY7YDV2FW4wpOoOqYG2aw2WcFAmWdrbkACgkQoOqYG2aw
+2WdAIQv/UpQXSYWboNMq9DnXZsMNdeCdAg8nv1PdNYfDzr21YavHsdP3upEg2NUX
+M/9WiyO5HwV7FAWKQ8J6T0vg8EZITij5Dxhia4Z/h9QE6bXTH4rD/UViJ+/RTtwF
+3WvaMNGUSlTQUNCRQ0QGTAb/jXUQCE8OwFz2UM0ZgqyUmIdkuxMEhsNd4AfAUS4A
+OOhM6qfXXAulPNVFZ65Lx7NIner37OyNuzhyuQxIFsnbGagMEIvptkevNIMEy8WO
+BeseYx/fp1gHdLTIUKl+nvKR7as5O+fFZSm/eG3VpkS6Fall54WX6zzalhZN7Pie
+pze8YdbUukdMUV6wQ/pQH4e/QyEEI8RCk95cZE9mSfxygpbIfBypj66GTaOUC/2z
+iTv2tX/DXiGQbSpkNLzwntVvuN5P9BebxmSKdspwfszccPzNhhCVQMkkhzvNVeQ6
+UTorp2O3xvi5fBIUWQU5xkrKqwAmZBYHMPDA97H9hiTmHkytd7YYkvPmJKNDksSa
+ui3gNrJe
+=yDJD
+-----END PGP SIGNATURE-----

@@ -1,0 +1,6 @@
+^build/
+^Makefile$
+\.pyc$
+\.cache$
+\.pytest_cache$
+__pycache__/

@@ -1,0 +1,351 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Core
+          - build: unit
+            os: ubuntu-latest
+          # Modules
+          - build: go-1.21
+            os: ubuntu-latest
+          - build: go-1.22
+            os: ubuntu-latest
+          - build: java-17
+            os: ubuntu-latest
+          - build: java-18
+            os: ubuntu-latest
+          - build: java-21
+            os: ubuntu-latest
+          - build: node-20
+            os: ubuntu-latest
+          - build: node-21
+            os: ubuntu-latest
+          - build: perl
+            os: ubuntu-latest
+          - build: php-8.1
+            os: ubuntu-latest
+          - build: php-8.2
+            os: ubuntu-latest
+          - build: php-8.3
+            os: ubuntu-latest
+          - build: python-3.11
+            os: ubuntu-latest
+          - build: python-3.12
+            os: ubuntu-latest
+          - build: ruby-3.2
+            os: ubuntu-latest
+          - build: ruby-3.3
+            os: ubuntu-latest
+          - build: wasm
+            os: ubuntu-latest
+          - build: wasm-wasi-component
+            os: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Provides module, language version and testpath from build name
+      - name: Output build metadata
+        id: metadata
+        run: |
+          if [ "${{ matrix.build }}" = "wasm-wasi-component" ]; then
+            module="wasm-wasi-component"
+          else
+            # Split the build name by '-' into module and version
+            IFS='-' read -r module version <<< "${{ matrix.build }}"
+          fi
+
+          testpath="test/test_${module}*"
+
+          # Run all tests for "unit" and "python"
+          # Python is the default module for tests
+          if [ "$module" = "unit" ] || [ "$module" = "python" ]; then
+            testpath="test"
+          fi
+
+          echo "module=${module}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "testpath=${testpath}" >> "$GITHUB_OUTPUT"
+
+          NJS_VERSION=$(sed -n "s/NJS_VERSION := \(.*\)/\1/p" pkg/contrib/src/njs/version)
+          echo "njs_version=${NJS_VERSION}" >> "$GITHUB_OUTPUT"
+
+          cat "$GITHUB_OUTPUT"
+
+      # https://github.com/actions/runner-images/issues/2821
+      - name: Kill mono process
+        run: |
+          sudo systemctl stop mono-xsp4.service
+          sudo systemctl mask mono-xsp4.service
+          sudo systemctl status mono-xsp4.service || true
+          PID=$(sudo lsof -t -i :8084)
+          echo "Killing PID $PID"
+          sudo kill -9 $PID
+
+      ##
+      ## njs
+      ##
+
+      - name: Clone njs repository
+        uses: actions/checkout@v4
+        with:
+          repository: nginx/njs
+          ref: '${{ steps.metadata.outputs.njs_version }}'
+          path: njs
+
+      - name: Make njs
+        run: |
+          ./configure --no-libxml2 --no-zlib
+          make -j4 -k
+        working-directory: njs
+
+      ##
+      ## Unit
+      ##
+
+      - name: Configure unit
+        run: |
+          ./configure \
+            --tests \
+            --openssl \
+            --njs \
+            --cc-opt="-I njs/src/ -I njs/build"  \
+            --ld-opt="-L njs/build"
+
+      - name: Make unit
+        run: |
+          make -j4 -k || make
+
+      ##
+      ## Go
+      ##
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '${{ steps.metadata.outputs.version }}'
+          cache: false
+        if: steps.metadata.outputs.module == 'go'
+
+      - name: Configure go
+        run: |
+          ./configure go --go-path=
+        if: steps.metadata.outputs.module == 'go'
+
+      - name: Make go
+        run: |
+          make go
+          make go-install
+        if: steps.metadata.outputs.module == 'go'
+
+      ##
+      ## Java
+      ##
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '${{ steps.metadata.outputs.version }}'
+        if: steps.metadata.outputs.module == 'java'
+
+      - name: Configure java
+        run: |
+          sudo ./configure java
+        if: steps.metadata.outputs.module == 'java'
+
+      - name: Make java
+        run: |
+          sudo make java
+        if: steps.metadata.outputs.module == 'java'
+
+      ##
+      ## Node
+      ##
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ steps.metadata.outputs.version }}'
+        if: steps.metadata.outputs.module == 'node'
+
+      - name: Install node-gyp
+        run: |
+          npm install -g node-gyp
+        if: steps.metadata.outputs.module == 'node'
+
+      - name: Configure node
+        run: |
+          ./configure nodejs
+        if: steps.metadata.outputs.module == 'node'
+
+      - name: Make node
+        run: |
+          make node-local-install DESTDIR=node
+        if: steps.metadata.outputs.module == 'node'
+
+      ##
+      ## Perl
+      ##
+
+      # Uses default Actions VM Perl
+      # https://github.com/actions/runner-images#available-images
+
+      - name: Install libperl-dev
+        run: |
+          sudo apt-get install libperl-dev
+        if: steps.metadata.outputs.module == 'perl'
+
+      - name: Configure perl
+        run: |
+          ./configure perl
+        if: steps.metadata.outputs.module == 'perl'
+
+      - name: Make perl
+        run: |
+          make perl
+        if: steps.metadata.outputs.module == 'perl'
+
+      ##
+      ## PHP
+      ##
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '${{ steps.metadata.outputs.version }}'
+          extensions: none
+        env:
+          update: true
+        if: steps.metadata.outputs.module == 'php'
+
+      - name: Configure php
+        run: |
+          ./configure php
+        if: steps.metadata.outputs.module == 'php'
+
+      - name: Make php
+        run: |
+          make php
+        if: steps.metadata.outputs.module == 'php'
+
+      ##
+      ## Python 3
+      ##
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ steps.metadata.outputs.version }}'
+        if: steps.metadata.outputs.module == 'python'
+
+      - name: Configure python3
+        run: |
+          sudo ./configure python --config=python3-config
+        if: steps.metadata.outputs.module == 'python'
+
+      - name: Make python3
+        run: |
+          sudo make python3
+        if: steps.metadata.outputs.module == 'python'
+
+      ##
+      ## Ruby
+      ##
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '${{ steps.metadata.outputs.version }}'
+        if: steps.metadata.outputs.module == 'ruby'
+
+      - name: Install rack
+        run: |
+          gem install rack
+        if: steps.metadata.outputs.module == 'ruby'
+
+      - name: Configure ruby
+        run: |
+          ./configure ruby
+        if: steps.metadata.outputs.module == 'ruby'
+
+      - name: Make ruby
+        run: |
+          make ruby
+        if: steps.metadata.outputs.module == 'ruby'
+
+      ##
+      ## Wasm
+      ##
+
+      - name: Make wasmtime
+        run: |
+          make -C pkg/contrib .wasmtime
+        if: steps.metadata.outputs.module == 'wasm'
+
+      - name: Configure wasm
+        run: |
+          ./configure wasm --include-path=pkg/contrib/wasmtime/crates/c-api/include --lib-path=pkg/contrib/wasmtime/target/release
+        if: steps.metadata.outputs.module == 'wasm'
+
+      - name: Make wasm
+        run: |
+          make wasm
+        if: steps.metadata.outputs.module == 'wasm'
+
+      ##
+      ## wasm-wasi-component
+      ##
+
+      - name: Setup rust
+        run: |
+          curl https://sh.rustup.rs | sh -s -- -y
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Configure wasm-wasi-component
+        run: |
+          ./configure wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Make wasm-wasi-component
+        run: |
+          CLANG_PATH=/usr/bin/clang-15 \
+          BINDGEN_EXTRA_CLANG_ARGS="-I../../njs/src -I../../njs/build" \
+          make wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      ##
+      ## Tests
+      ##
+
+      # /home/runner will be root only after calling sudo above
+      # Ensure all users and processes can execute
+      - name: Fix permissions
+        run: |
+          sudo chmod -R +x /home/runner
+          namei -l ${{ github.workspace }}
+
+      # Install python3 if not present
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'
+
+      - name: Install pytest
+        run: |
+          sudo -H pip install pytest
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'
+
+      - name: Run ${{ steps.metadata.outputs.module }} tests
+        run: |
+          sudo -E pytest --print-log ${{ steps.metadata.outputs.testpath }}
+        # Skip pytest if wasm build, as there are no tests yet
+        if: steps.metadata.outputs.module != 'wasm' &&
+            steps.metadata.outputs.module != 'wasm-wasi-component'

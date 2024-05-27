@@ -1,0 +1,116 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+$echo -n "checking for $nxt_feature ..."
+
+cat << END >> $NXT_AUTOCONF_ERR
+----------------------------------------
+checking for $nxt_feature
+END
+
+
+nxt_found=no
+nxt_feature_value=
+nxt_feature_inc_path=
+
+if test -n "$nxt_feature_incs"; then
+    case "$nxt_feature_incs" in
+        -*)
+            nxt_feature_inc_path="$nxt_feature_incs"
+        ;;
+
+        *)
+            for nxt_temp in $nxt_feature_incs; do
+                nxt_feature_inc_path="$nxt_feature_inc_path -I $nxt_temp"
+            done
+        ;;
+    esac
+fi
+
+
+cat << END > $NXT_AUTOTEST.c
+$nxt_feature_test
+END
+
+
+nxt_test="$CC $CFLAGS $NXT_CFLAGS $NXT_CC_OPT $NXT_TEST_CFLAGS \
+          $nxt_feature_inc_path -o $NXT_AUTOTEST $NXT_AUTOTEST.c \
+          $nxt_feature_libs $NXT_LD_OPT $NXT_TEST_LIBS"
+
+# /bin/sh -c "(...)" is to intercept "Killed", "Abort trap",
+# "Segmentation fault", or other shell messages.
+# "|| true" is to bypass "set -e" setting.
+
+/bin/sh -c "($nxt_test || true)" >> $NXT_AUTOCONF_ERR 2>&1
+
+
+if [ -x $NXT_AUTOTEST ]; then
+
+    case "$nxt_feature_run" in
+
+        value)
+            if /bin/sh -c "($NXT_AUTOTEST)" >> $NXT_AUTOCONF_ERR 2>&1; then
+                $echo >> $NXT_AUTOCONF_ERR
+                nxt_found=yes
+                nxt_feature_value=`$NXT_AUTOTEST`
+                $echo " $nxt_feature_value"
+                if [ -n "$nxt_feature_name" ]; then
+                    cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef $nxt_feature_name
+#define $nxt_feature_name  $nxt_feature_value
+#endif
+
+END
+                fi
+            else
+                $echo " not found"
+            fi
+        ;;
+
+        yes)
+            if /bin/sh -c "($NXT_AUTOTEST)" >> $NXT_AUTOCONF_ERR 2>&1; then
+                $echo " found"
+                nxt_found=yes
+                if [ -n "$nxt_feature_name" ]; then
+                    cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef $nxt_feature_name
+#define $nxt_feature_name  1
+#endif
+
+END
+                fi
+            else
+                $echo " found but is not working"
+            fi
+        ;;
+
+        *)
+            $echo " found"
+            nxt_found=yes
+            if [ -n "$nxt_feature_name" ]; then
+                cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef $nxt_feature_name
+#define $nxt_feature_name  1
+#endif
+
+END
+            fi
+        ;;
+    esac
+
+else
+    $echo " not found"
+
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+    cat $NXT_AUTOTEST.c   >> $NXT_AUTOCONF_ERR
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+    $echo $nxt_test       >> $NXT_AUTOCONF_ERR
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+fi
+
+rm -rf $NXT_AUTOTEST*

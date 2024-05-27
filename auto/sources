@@ -1,0 +1,312 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_LIB_SRCS=" \
+    src/nxt_lib.c \
+    src/nxt_gmtime.c \
+    src/nxt_errno.c \
+    src/nxt_time.c \
+    src/nxt_malloc.c \
+    src/nxt_file.c \
+    src/nxt_mem_map.c \
+    src/nxt_socket.c \
+    src/nxt_socketpair.c \
+    src/nxt_socket_msg.c \
+    src/nxt_credential.c \
+    src/nxt_isolation.c \
+    src/nxt_process.c \
+    src/nxt_process_title.c \
+    src/nxt_signal.c \
+    src/nxt_port_socket.c \
+    src/nxt_port_memory.c \
+    src/nxt_port_rpc.c \
+    src/nxt_port.c \
+    src/nxt_dyld.c \
+    src/nxt_random.c \
+    src/nxt_queue.c \
+    src/nxt_rbtree.c \
+    src/nxt_mp.c \
+    src/nxt_mem_zone.c \
+    src/nxt_string.c \
+    src/nxt_utf8.c \
+    src/nxt_parse.c \
+    src/nxt_sprintf.c \
+    src/nxt_var.c \
+    src/nxt_tstr.c \
+    src/nxt_file_name.c \
+    src/nxt_log.c \
+    src/nxt_djb_hash.c \
+    src/nxt_murmur_hash.c \
+    src/nxt_lvlhsh.c \
+    src/nxt_array.c \
+    src/nxt_list.c \
+    src/nxt_buf.c \
+    src/nxt_buf_pool.c \
+    src/nxt_recvbuf.c \
+    src/nxt_sendbuf.c \
+    src/nxt_thread.c \
+    src/nxt_thread_mutex.c \
+    src/nxt_thread_cond.c \
+    src/nxt_spinlock.c \
+    src/nxt_semaphore.c \
+    src/nxt_thread_pool.c \
+    src/nxt_thread_time.c \
+    src/nxt_time_parse.c \
+    src/nxt_work_queue.c \
+    src/nxt_service.c \
+    src/nxt_log_moderation.c \
+    src/nxt_event_engine.c \
+    src/nxt_timer.c \
+    src/nxt_fd_event.c \
+    src/nxt_conn.c \
+    src/nxt_conn_connect.c \
+    src/nxt_conn_accept.c \
+    src/nxt_conn_read.c \
+    src/nxt_conn_write.c \
+    src/nxt_conn_close.c \
+    src/nxt_event_conn_job_sendfile.c \
+    src/nxt_conn_proxy.c \
+    src/nxt_job.c \
+    src/nxt_sockaddr.c \
+    src/nxt_listen_socket.c \
+    src/nxt_upstream.c \
+    src/nxt_upstream_round_robin.c \
+    src/nxt_http_parse.c \
+    src/nxt_app_log.c \
+    src/nxt_capability.c \
+    src/nxt_runtime.c \
+    src/nxt_conf.c \
+    src/nxt_conf_validation.c \
+    src/nxt_main_process.c \
+    src/nxt_signal_handlers.c \
+    src/nxt_controller.c \
+    src/nxt_router.c \
+    src/nxt_router_access_log.c \
+    src/nxt_h1proto.c \
+    src/nxt_status.c \
+    src/nxt_http_request.c \
+    src/nxt_http_response.c \
+    src/nxt_http_error.c \
+    src/nxt_http_route.c \
+    src/nxt_http_route_addr.c \
+    src/nxt_http_rewrite.c \
+    src/nxt_http_set_headers.c \
+    src/nxt_http_return.c \
+    src/nxt_http_static.c \
+    src/nxt_http_proxy.c \
+    src/nxt_http_chunk_parse.c \
+    src/nxt_http_variables.c \
+    src/nxt_application.c \
+    src/nxt_external.c \
+    src/nxt_port_hash.c \
+    src/nxt_sha1.c \
+    src/nxt_websocket.c \
+    src/nxt_websocket_accept.c \
+    src/nxt_http_websocket.c \
+    src/nxt_h1proto_websocket.c \
+    src/nxt_fs.c \
+"
+
+
+NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
+
+
+NXT_LIB_TLS_DEPS="src/nxt_tls.h"
+NXT_LIB_TLS_SRCS="src/nxt_cert.c"
+NXT_LIB_OPENSSL_SRCS="src/nxt_openssl.c"
+NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
+NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"
+NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
+
+NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
+NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
+
+if [ "$NXT_NJS" != "NO" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c src/nxt_script.c"
+fi
+
+NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
+NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
+NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport_engine.c"
+NXT_LIB_DEVPOLL_SRCS="src/nxt_devpoll_engine.c"
+NXT_LIB_POLLSET_SRCS="src/nxt_pollset_engine.c"
+NXT_LIB_POLL_SRCS="src/nxt_poll_engine.c"
+NXT_LIB_SELECT_SRCS="src/nxt_select_engine.c"
+
+NXT_LIB_LINUX_SENDFILE_SRCS="src/nxt_linux_sendfile.c"
+NXT_LIB_FREEBSD_SENDFILE_SRCS="src/nxt_freebsd_sendfile.c"
+NXT_LIB_SOLARIS_SENDFILEV_SRCS="src/nxt_solaris_sendfilev.c"
+NXT_LIB_MACOSX_SENDFILE_SRCS="src/nxt_macosx_sendfile.c"
+NXT_LIB_AIX_SEND_FILE_SRCS="src/nxt_aix_send_file.c"
+NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
+NXT_LIB_CLONE_SRCS="src/nxt_clone.c"
+
+NXT_TEST_BUILD_DEPS="src/nxt_test_build.h"
+NXT_TEST_BUILD_SRCS="src/nxt_test_build.c"
+
+NXT_TEST_DEPS="src/test/nxt_tests.h \
+    src/test/nxt_rbtree1.h \
+"
+
+NXT_TEST_SRCS=" \
+    src/test/nxt_tests.c \
+    src/test/nxt_rbtree1.c \
+    src/test/nxt_rbtree_test.c \
+    src/test/nxt_term_parse_test.c \
+    src/test/nxt_msec_diff_test.c \
+    src/test/nxt_mp_test.c \
+    src/test/nxt_mem_zone_test.c \
+    src/test/nxt_lvlhsh_test.c \
+    src/test/nxt_gmtime_test.c \
+    src/test/nxt_sprintf_test.c \
+    src/test/nxt_malloc_test.c \
+    src/test/nxt_utf8_test.c \
+    src/test/nxt_rbtree1_test.c \
+    src/test/nxt_http_parse_test.c \
+    src/test/nxt_strverscmp_test.c \
+    src/test/nxt_base64_test.c \
+"
+
+
+if [ $NXT_HAVE_CLONE_NEWUSER = YES ]; then
+    NXT_TEST_SRCS="$NXT_TEST_SRCS src/test/nxt_clone_test.c"
+fi
+
+
+NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
+    src/test/nxt_utf8_file_name_test.c \
+"
+
+
+if [ $NXT_HAVE_ROOTFS = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs_mount.c"
+fi
+
+
+if [ $NXT_TLS = YES ]; then
+    nxt_have=NXT_TLS . auto/have
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_TLS_SRCS"
+fi
+
+
+if [ $NXT_OPENSSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_OPENSSL_SRCS"
+fi
+
+
+if [ $NXT_GNUTLS = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_GNUTLS_SRCS"
+fi
+
+
+if [ $NXT_CYASSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CYASSL_SRCS"
+fi
+
+
+if [ $NXT_POLARSSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLARSSL_SRCS"
+fi
+
+
+if [ "$NXT_REGEX" = "YES" ]; then
+    if [ "$NXT_HAVE_PCRE2" = "YES" ]; then
+        NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_PCRE2_SRCS"
+    else
+        NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_PCRE_SRCS"
+    fi
+fi
+
+if [ "$NXT_HAVE_EPOLL" = "YES" -o "$NXT_TEST_BUILD_EPOLL" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_EPOLL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_KQUEUE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_KQUEUE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_EVENTPORT" = "YES" -o "$NXT_TEST_BUILD_EVENTPORT" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_EVENTPORT_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_DEVPOLL" = "YES" -o "$NXT_TEST_BUILD_DEVPOLL" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_DEVPOLL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_POLLSET" = "YES" -o "$NXT_TEST_BUILD_POLLSET" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLLSET_SRCS"
+fi
+
+
+NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLL_SRCS"
+NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SELECT_SRCS"
+
+
+if [ "$NXT_HAVE_LINUX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_LINUX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_LINUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_FREEBSD_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_FREEBSD_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_FREEBSD_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_SOLARIS_SENDFILEV" = "YES" \
+     -o "$NXT_TEST_BUILD_SOLARIS_SENDFILEV" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SOLARIS_SENDFILEV_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_MACOSX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_MACOSX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_MACOSX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_AIX_SEND_FILE" = "YES" \
+     -o "$NXT_TEST_BUILD_AIX_SEND_FILE" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_AIX_SEND_FILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_HPUX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_HPUX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_HPUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_LINUX_NS" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CLONE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_CGROUP" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_cgroup.c"
+fi
+
+
+if [ "$NXT_TEST_BUILD" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_TEST_BUILD_SRCS"
+fi
+
+
+if [ $NXT_TESTS = YES ]; then
+    nxt_have=NXT_TESTS . auto/have
+fi
+
+
+NXT_SRCS=" \
+    src/nxt_main.c \
+"

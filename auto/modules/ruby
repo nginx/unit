@@ -1,0 +1,276 @@
+
+# Copyright (C) Alexander Borisov
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --ruby=*)    NXT_RUBY="$value"                                    ;;
+        --module=*)  NXT_RUBY_MODULE="$value"                             ;;
+
+        --help)
+            cat << END
+
+    --ruby=FILE    set ruby executable, default: ruby
+    --module=NAME  set unit ruby module name
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Ruby option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+$echo "configuring Ruby module"
+$echo "configuring Ruby module ..." >> $NXT_AUTOCONF_ERR
+
+NXT_RUBY=${NXT_RUBY=ruby}
+NXT_RUBY_MODULE=${NXT_RUBY_MODULE=${NXT_RUBY}}
+
+nxt_found=no
+
+if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    NXT_RUBY_CFLAGS=
+    NXT_RUBY_RUBYHDRDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubyhdrdir"]'`
+    NXT_RUBY_ARCHHDRDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubyarchhdrdir"]'`
+    NXT_RUBY_SITEDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["sitedir"]'`
+    NXT_RUBY_LIBDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibdir"]'`
+    NXT_RUBY_TOPDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["topdir"]'`
+    NXT_RUBY_PREFIXDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibprefix"]'`
+
+    NXT_RUBY_GEMPATH=`$NXT_RUBY -rrubygems -e 'print Gem.default_path().join(":")'`
+
+    NXT_RUBY_INCPATH="-I$NXT_RUBY_ARCHHDRDIR -I$NXT_RUBY_RUBYHDRDIR"
+
+    NXT_RUBY_LIBNAME=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["RUBY_SO_NAME"]'`
+    NXT_RUBY_LIBSCONF=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["LIBS"]'`
+    NXT_RUBY_LIBPATH=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["libdir"]'`
+    NXT_RUBY_LIBS="-l$NXT_RUBY_LIBNAME $NXT_RUBY_LIBSCONF"
+
+    if [ $NXT_CC_NAME = clang ]; then
+        # Workaround Clang bug
+        nxt_feature="-fdeclspec"
+        nxt_feature_name=
+        nxt_feature_run=
+        nxt_feature_incs="-fdeclspec"
+        nxt_feature_libs=
+        nxt_feature_test="#include <stdlib.h>
+
+                          __declspec(noreturn) static void f(void);
+
+                          static void f(void) {
+                              exit(0);
+                          }
+
+                          int main(void) {
+                              f();
+                          }"
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            NXT_RUBY_CFLAGS="$NXT_RUBY_CFLAGS -fdeclspec"
+        fi
+    fi
+
+    nxt_feature="Ruby library"
+    nxt_feature_name=""
+    nxt_feature_run=value
+    nxt_feature_incs="${NXT_RUBY_INCPATH} ${NXT_RUBY_CFLAGS}"
+    nxt_feature_libs="${NXT_RUBY_LIBS}"
+    nxt_feature_test="
+        #include <ruby.h>
+
+        int main(void) {
+            static const char *argv[3] = {
+                \"NGINX_Unit\", \"-rrbconfig\",
+                \"-eprint RbConfig::CONFIG['libdir']\"
+            };
+
+            RUBY_INIT_STACK;
+            ruby_init();
+            return ruby_run_node(ruby_options(3, (char **) argv));
+        }"
+
+    . auto/feature
+
+    if [ "$nxt_feature_value" != "$NXT_RUBY_LIBPATH" ]; then
+        NXT_RUBY_LIBS="-L$NXT_RUBY_LIBPATH -Wl,-rpath,${NXT_RUBY_LIBPATH} $NXT_RUBY_LIBS"
+
+        nxt_feature="Ruby library in $NXT_RUBY_LIBPATH"
+        nxt_feature_name=""
+        nxt_feature_run=no
+        nxt_feature_incs="${NXT_RUBY_INCPATH} ${NXT_RUBY_CFLAGS}"
+        nxt_feature_libs="${NXT_RUBY_LIBS}"
+        nxt_feature_test="
+            #include <ruby.h>
+
+            int main(void) {
+                ruby_init();
+                return ruby_cleanup(0);
+            }"
+
+        . auto/feature
+    fi
+
+else
+    $echo "checking for Ruby ... not found"
+fi
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no Ruby found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="Ruby version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_RUBY_INCPATH} ${NXT_RUBY_CFLAGS}"
+nxt_feature_libs="${NXT_RUBY_LIBS}"
+nxt_feature_test="
+    #include <ruby.h>
+    #include <ruby/version.h>
+
+    int main(void) {
+        printf(\"%s\", ruby_version);
+        return 0;
+    }"
+
+. auto/feature
+
+
+if grep ^$NXT_RUBY_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_RUBY_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+
+NXT_RUBY_MOUNTS_HEADER=nxt_${NXT_RUBY_MODULE}_mounts.h
+NXT_RUBY_MOUNTS_PATH=$NXT_BUILD_DIR/include/$NXT_RUBY_MOUNTS_HEADER
+
+cat << END > $NXT_RUBY_MOUNTS_PATH
+
+static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
+    {(u_char *) "$NXT_RUBY_RUBYHDRDIR", (u_char *) "$NXT_RUBY_RUBYHDRDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_RUBY_ARCHHDRDIR", (u_char *) "$NXT_RUBY_ARCHHDRDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_RUBY_SITEDIR", (u_char *) "$NXT_RUBY_SITEDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_RUBY_LIBDIR", (u_char *) "$NXT_RUBY_LIBDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_RUBY_TOPDIR", (u_char *) "$NXT_RUBY_TOPDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+    {(u_char *) "$NXT_RUBY_PREFIXDIR", (u_char *) "$NXT_RUBY_PREFIXDIR",
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
+
+END
+
+for path in `echo $NXT_RUBY_GEMPATH | tr ':' '\n'`; do
+   $echo "{(u_char *) \"$path\", (u_char *) \"$path\"," >> $NXT_RUBY_MOUNTS_PATH
+   $echo "NXT_FS_BIND, (u_char *) \"bind\", 0, NULL, 1, 1}," >> $NXT_RUBY_MOUNTS_PATH
+done
+
+$echo "};" >> $NXT_RUBY_MOUNTS_PATH
+
+
+$echo " + Ruby module: ${NXT_RUBY_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_RUBY_MODULE_SRCS=" \
+    src/ruby/nxt_ruby.c \
+    src/ruby/nxt_ruby_stream_io.c
+"
+
+# The Ruby module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_RUBY_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_RUBY_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_RUBY_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/ruby
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_RUBY_CFLAGS -DNXT_RUBY_MOUNTS_H=\"$NXT_RUBY_MOUNTS_HEADER\" \\
+           \$(NXT_INCS) $NXT_RUBY_INCPATH \\
+	$nxt_dep_flags \\
+	-o \$@ $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_RUBY_MODULE}
+.PHONY: ${NXT_RUBY_MODULE}-install
+.PHONY: ${NXT_RUBY_MODULE}-uninstall
+
+all: ${NXT_RUBY_MODULE}
+
+${NXT_RUBY_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so:	$nxt_objs
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_RUBY_LIBS $NXT_LD_OPT
+
+
+install: ${NXT_RUBY_MODULE}-install
+
+${NXT_RUBY_MODULE}-install: ${NXT_RUBY_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+
+
+uninstall: ${NXT_RUBY_MODULE}-uninstall
+
+${NXT_RUBY_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_RUBY_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

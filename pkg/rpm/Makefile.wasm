@@ -1,0 +1,51 @@
+MODULES+=		wasm
+MODULE_SUFFIX_wasm=	wasm
+
+MODULE_SUMMARY_wasm=	WASM module for NGINX Unit
+
+MODULE_VERSION_wasm=	$(VERSION)
+MODULE_RELEASE_wasm=	1
+
+MODULE_CONFARGS_wasm=	wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=\`pwd\`/pkg/contrib/wasmtime/target/release \&\& ./configure wasm-wasi-component
+MODULE_MAKEARGS_wasm=	wasm wasm-wasi-component CFLAGS=\"\$$(grep ^CFLAGS build/Makefile | cut -d' ' -f 3-) -Wno-missing-prototypes\"
+MODULE_INSTARGS_wasm=	wasm-install wasm-wasi-component-install
+
+MODULE_SOURCES_wasm=
+
+BUILD_DEPENDS_wasm=
+
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_wasm)
+
+define MODULE_PREBUILD_wasm
+%{__make} -C pkg/contrib .wasmtime
+endef
+export MODULE_PREBUILD_wasm
+
+define MODULE_PREINSTALL_wasm
+endef
+export MODULE_PREINSTALL_wasm
+
+define MODULE_POSTINSTALL_wasm
+%{__install} -m 755 -p pkg/contrib/wasmtime/target/release/libwasmtime.so %{buildroot}%{_libdir}/
+endef
+export MODULE_POSTINSTALL_wasm
+
+define MODULE_FILES_wasm
+%{_libdir}/libwasmtime.so
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+endef
+export MODULE_FILES_wasm
+
+define MODULE_POST_wasm
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_wasm) has been installed.
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_wasm

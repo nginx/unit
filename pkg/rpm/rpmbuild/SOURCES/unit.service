@@ -1,0 +1,26 @@
+# Modifying this file in-place is not recommended, because changes
+# will be overwritten during package upgrades.  To customize the
+# behaviour, run "systemctl edit unit" to create an override unit.
+
+# For example, to change options given to the unitd binary at startup,
+# create an override unit (as is done by systemctl edit) and enter
+# the following:
+
+#       [Service]
+#       Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
+
+[Unit]
+Description=NGINX Unit
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
+ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
+ExecReload=
+RuntimeDirectory=unit
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

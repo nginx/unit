@@ -1,0 +1,12 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef $nxt_have
+#define $nxt_have  1
+#endif
+
+END

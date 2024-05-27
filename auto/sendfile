@@ -1,0 +1,164 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_HAVE_LINUX_SENDFILE=NO
+NXT_HAVE_FREEBSD_SENDFILE=NO
+NXT_HAVE_MACOSX_SENDFILE=NO
+NXT_HAVE_SOLARIS_SENDFILEV=NO
+NXT_HAVE_AIX_SEND_FILE=NO
+NXT_HAVE_HPUX_SENDFILE=NO
+
+
+# Linux sendfile().
+
+nxt_feature="Linux sendfile()"
+nxt_feature_name=NXT_HAVE_LINUX_SENDFILE
+nxt_feature_test="#include <sys/sendfile.h>
+
+                  int main(void) {
+                      off_t  offset;
+
+                      sendfile(-1, -1, &offset, 0);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_LINUX_SENDFILE=YES
+fi
+
+
+if [ $nxt_found = no ]; then
+    # FreeBSD sendfile().
+
+    nxt_feature="FreeBSD sendfile()"
+    nxt_feature_name=NXT_HAVE_FREEBSD_SENDFILE
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/types.h>
+                      #include <sys/socket.h>
+                      #include <sys/uio.h>
+                      #include <stdlib.h>
+
+                      int main(void) {
+                          off_t  sent;
+
+                          sendfile(-1, -1, 0, 0, NULL, &sent, 0);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_FREEBSD_SENDFILE=YES
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX sendfile().
+
+    nxt_feature="MacOSX sendfile()"
+    nxt_feature_name=NXT_HAVE_MACOSX_SENDFILE
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/types.h>
+                      #include <sys/socket.h>
+                      #include <sys/uio.h>
+                      #include <stdlib.h>
+
+                      int main(void) {
+                          off_t  sent;
+
+                          sendfile(-1, -1, 0, &sent, NULL, 0);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_MACOSX_SENDFILE=YES
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+    # No supported sendfile() found.  Using our replacement.
+    nxt_found=yes
+fi
+
+
+NXT_LIBSENDFILE=
+
+if [ $nxt_found = no ]; then
+
+    # Solaris 8 sendfilev().
+
+    nxt_feature="Solaris sendfilev()"
+    nxt_feature_name=NXT_HAVE_SOLARIS_SENDFILEV
+    nxt_feature_libs="-lsendfile"
+    nxt_feature_test="#include <sys/sendfile.h>
+
+                      int main(void) {
+                          size_t              sent;
+                          struct sendfilevec  vec;
+
+                          sendfilev(-1, &vec, 0, &sent);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_SOLARIS_SENDFILEV=YES
+        NXT_LIBSENDFILE=$nxt_feature_libs
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # AIX send_file().
+
+    nxt_feature="AIX send_file()"
+    nxt_feature_name=NXT_HAVE_AIX_SEND_FILE
+    nxt_feature_test="#include <sys/socket.h>
+
+                      int main(void) {
+                          int              s;
+                          struct sf_parms  sf_iobuf;
+
+                          send_file(&s, &sf_iobuf, 0);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_AIX_SEND_FILE=YES
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # HP-UX sendfile().
+
+    nxt_feature="HP-UX sendfile()"
+    nxt_feature_name=NXT_HAVE_HPUX_SENDFILE
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/socket.h>
+                      #include <stdlib.h>
+
+                      sbsize_t sendfile(int s, int fd, off_t offset,
+                          bsize_t nbytes, const struct iovec *hdtrl, int flags);
+
+                      int main(void) {
+                          sendfile(-1, -1, 0, 0, NULL, 0);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_HPUX_SENDFILE=YES
+    fi
+fi

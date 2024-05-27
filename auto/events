@@ -1,0 +1,196 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Linux epoll.
+
+nxt_feature="Linux epoll"
+nxt_feature_name=NXT_HAVE_EPOLL
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/epoll.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      int  n;
+
+                      n = epoll_create(1);
+                      close(n);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_EPOLL=YES
+
+    nxt_feature="Linux signalfd()"
+    nxt_feature_name=NXT_HAVE_SIGNALFD
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <signal.h>
+                      #include <sys/signalfd.h>
+                      #include <unistd.h>
+
+                      int main(void) {
+                          int       n;
+                          sigset_t  mask;
+
+                          sigemptyset(&mask);
+                          n = signalfd(-1, &mask, 0);
+                          close(n);
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    nxt_feature="Linux eventfd()"
+    nxt_feature_name=NXT_HAVE_EVENTFD
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/eventfd.h>
+                      #include <unistd.h>
+
+                      int main(void) {
+                          int  n;
+
+                          n = eventfd(0, 0);
+                          close(n);
+                          return 0;
+                      }"
+    . auto/feature
+
+else
+    NXT_HAVE_EPOLL=NO
+fi
+
+
+# FreeBSD, MacOSX, NetBSD, OpenBSD kqueue.
+
+nxt_feature="kqueue"
+nxt_feature_name=NXT_HAVE_KQUEUE
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/types.h>
+                  #include <sys/event.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      int  n;
+
+                      n = kqueue();
+                      close(n);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_KQUEUE=YES
+
+    nxt_feature="kqueue EVFILT_USER"
+    nxt_feature_name=NXT_HAVE_EVFILT_USER
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <stdlib.h>
+                      #include <sys/types.h>
+                      #include <sys/event.h>
+
+                      int main(void) {
+                          struct kevent  kev;
+
+                          kev.filter = EVFILT_USER;
+                          kevent(0, &kev, 1, NULL, 0, NULL);
+                          return 0;
+                      }"
+    . auto/feature
+
+else
+    NXT_HAVE_KQUEUE=NO
+fi
+
+
+# Solaris event port.
+
+nxt_feature="Solaris event port"
+nxt_feature_name=NXT_HAVE_EVENTPORT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <port.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      int  n;
+
+                      n = port_create();
+                      close(n);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_EVENTPORT=YES
+else
+    NXT_HAVE_EVENTPORT=NO
+fi
+
+
+# Solaris, HP-UX, IRIX, Tru64 UNIX /dev/poll.
+
+nxt_feature="/dev/poll"
+nxt_feature_name=NXT_HAVE_DEVPOLL
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+                  #include <sys/ioctl.h>
+                  #include <sys/devpoll.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      int  n;
+
+                      n = open(\"/dev/poll\", O_RDWR);
+                      close(n);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_DEVPOLL=YES
+else
+    NXT_HAVE_DEVPOLL=NO
+fi
+
+
+# AIX pollset.
+
+nxt_feature="AIX pollset"
+nxt_feature_name=NXT_HAVE_POLLSET
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+                  #include <sys/poll.h>
+                  #include <sys/pollset.h>
+                  #include <unistd.h>
+
+                  int main(void) {
+                      pollset_t  n;
+
+                      n = pollset_create(-1);
+                      pollset_destroy(n);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_POLLSET=YES
+else
+    NXT_HAVE_POLLSET=NO
+fi

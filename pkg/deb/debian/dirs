@@ -1,0 +1,5 @@
+usr/bin
+usr/sbin
+usr/lib/unit
+usr/include/unit
+var/lib/unit

@@ -1,0 +1,6389 @@
+openapi: 3.0.0
+info:
+  title: "NGINX Unit 1.32.0"
+  description: "NGINX Unit is a lightweight and versatile application runtime
+    that provides the essential components for your web application as a
+    single open-source server: running application code, serving static assets,
+    handling TLS and request routing.
+
+    \n\n**Important**: Unit's API is designed to expose any part of its
+    configuration as an addressable endpoint.  Suppose a JSON
+    object is stored at `/config/listeners/`:\n\n
+
+    ```json
+    {
+    \"*:8080\": {
+    \"pass\": \"applications/wp_emea_dev\"
+    }
+    }
+    ```\n
+
+    Here, `/config/listeners/*:8080` and `/config/listeners/*:8080/pass`
+    are also endpoints.  Generally, object options are addressable by
+    their names, array items—by their indexes (`/array/0/`).
+
+
+    \n\n**Note**: By default, Unit is configured through a UNIX domain
+    socket. To use this specification with OpenAPI tools interactively,
+    [start](https://unit.nginx.org/howto/source/#source-startup) Unit
+    with a TCP port as the control socket."
+
+  contact:
+    name: "Unit project"
+    email: "unit-owner@nginx.org"
+    url: "https://unit.nginx.org/"
+
+  license:
+    name: "Apache 2.0"
+    url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+
+  version: 0.2.0
+
+servers:
+  - url: http://{server}:{port}
+    variables:
+      server:
+        default: "localhost"
+
+      port:
+        default: "8080"
+
+# -- PATHS --
+
+paths:
+  /certificates:
+    summary: "Endpoint for the `certificates` object"
+    get:
+      operationId: getCerts
+      summary: "Retrieve the certificates object"
+      description: "Retrieves the entire `/certificates` section that represents
+        Unit's [stored certificates](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      responses:
+        "200":
+          description: "OK; the `certificates` object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/cert"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/cert"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}:
+    summary: "Endpoint for the certificate bundle object"
+    get:
+      operationId: getCertBundle
+      summary: "Retrieve the certificate bundle object"
+      description: "Retrieves the bundle description that represents
+        Unit's [stored certificate bundle]
+        (https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate bundle object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundle"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundle"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: putCertBundle
+      summary: "Create or overwrite the actual certificate bundle"
+      description: "Creates or overwrites the [stored certificate bundle]
+        (https://unit.nginx.org/certificates/) in Unit."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/bundleName"
+
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+  /certificates/{bundleName}/key:
+    summary: "Endpoint for the certificate bundle key"
+    get:
+      operationId: getCertBundleKey
+      summary: "Retrieve the certificate bundle key type"
+      description: "Retrieves the bundle key type from a
+        [stored certificate bundle](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate bundle key type exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                Key:
+                  value: "RSA (4096 bits)"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain:
+    summary: "Endpoint for the certificate bundle chain"
+    get:
+      operationId: getCertBundleChain
+      summary: "Retrieve the certificate bundle chain"
+      description: "Retrieves the bundle chain from a
+        [stored certificate bundle](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate bundle chain exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundleChain"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundleChain"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}:
+    summary: "Endpoint for the certificate object in the chain array"
+    get:
+      operationId: getCertBundleChainCert
+      summary: "Retrieve certificate object from the chain array"
+      description: "Retrieves the individual certificate from a
+        [stored certificate bundle](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundleChainCert"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundleChainCert"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject:
+    summary: "Endpoint for the certificate subject object"
+    get:
+      operationId: getCertBundleChainCertSubj
+      summary: "Retrieve the subject from the certificate object"
+      description: "Retrieves the subject from a
+        [stored certificate](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundleChainCertSubj"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundleChainCertSubj"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/common_name:
+    summary: "Endpoint for the certificate's common name"
+    get:
+      operationId: getCertBundleChainCertSubjCN
+      summary: "Retrieve the common name from the certificate subject"
+      description: "Retrieves the common name from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's common name exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                CN:
+                  value: "example.com"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/country:
+    summary: "Endpoint for the certificate's country of issue"
+    get:
+      operationId: getCertBundleChainCertSubjCountry
+      summary: "Retrieve the country code from the certificate subject"
+      description: "Retrieves the country code from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's country code exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                Country:
+                  value: "US"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/state_or_province:
+    summary: "Endpoint for the certificate's state or province of issue"
+    get:
+      operationId: getCertBundleChainCertSubjState
+      summary: "Retrieve the state or province code from the
+        certificate subject"
+
+      description: "Retrieves the state or province code from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's state or province code
+            exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                StateProvince:
+                  value: "CA"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/organization:
+    summary: "Endpoint for the certificate's designated organization"
+    get:
+      operationId: getCertBundleChainCertSubjOrg
+      summary: "Retrieve the organization name from the certificate subject"
+      description: "Retrieves the organization name from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's organization name exists
+            in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                Org:
+                  value: "Acme, Inc."
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/alt_names:
+    summary: "Endpoint for the certificate's alternative names"
+    get:
+      operationId: getCertBundleChainCertSubjAltArray
+      summary: "Retrieve the alternative names array from the
+        certificate subject"
+
+      description: "Retrieves the alternative names array from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's alternative names array
+            exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/stringArray"
+
+              examples:
+                AltNames:
+                  value:
+                    - "example.com"
+                    - "www.example.com"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/subject/alt_names/{arrayIndex2}:
+    summary: "Endpoint for the certificate's alternative name"
+    get:
+      operationId: getCertBundleChainCertSubjAlt
+      summary: "Retrieve an alternative name from the certificate subject"
+      description: "Retrieves an alternative name from a
+        [stored certificate's subject](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/arrayIndex2"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate subject's alternative name exists
+            in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                AltName:
+                  value: "example.com"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/issuer:
+    summary: "Endpoint for the certificate issuer object"
+    get:
+      operationId: getCertBundleChainCertIssuer
+      summary: "Retrieve the issuer object from the certificate object"
+      description: "Retrieves the issuer object from a
+        [stored certificate](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate issuer object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundleChainCertIssuer"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundleChainCertIssuer"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/issuer/common_name:
+    summary: "Endpoint for the certificate issuer's common name"
+    get:
+      operationId: getCertBundleChainCertIssuerCN
+      summary: "Retrieve the common name from the certificate issuer"
+      description: "Retrieves the common name from a
+        [stored certificate's issuer](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate issuer's common name exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                CN:
+                  value: "intermediate.ca.example.com"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/issuer/country:
+    summary: "Endpoint for the certificate issuer's country of issue"
+    get:
+      operationId: getCertBundleChainCertissuerCountry
+      summary: "Retrieve the country code from the certificate issuer"
+      description: "Retrieves the country code from a
+        [stored certificate's issuer](https://unit.nginx.org/certificates/)."
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate issuer's country code exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                Country:
+                  value: "US"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/issuer/state_or_province:
+    summary: "Endpoint for the certificate issuer's state or province of issue"
+    get:
+      operationId: getCertBundleChainCertIssuerState
+      summary: "Retrieve the state or province code from the certificate issuer"
+      description: "Retrieves the state or province code from a
+        [stored certificate's issuer](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate issuer's state or province code
+            exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                StateProvince:
+                  value: "CA"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/issuer/organization:
+    summary: "Endpoint for the certificate issuer's designated organization"
+    get:
+      operationId: getCertBundleChainCertIssuerOrg
+      summary: "Retrieve the organization name from the certificate issuer"
+      description: "Retrieves the organization name from a
+        [stored certificate's issuer](https://unit.nginx.org/certificates/)."
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate issuer's organization name exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                Org:
+                  value: "Acme Certification Authority"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/validity:
+    summary: "Endpoint for the certificate validity object"
+    get:
+      operationId: getCertBundleChainCertValid
+      summary: "Retrieve the validity object from the certificate object"
+      description: "Retrieves the validity object from a
+        [stored certificate](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the certificate validity object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/certBundleChainCertValidity"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/certBundleChainCertValidity"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/validity/since:
+    summary: "Endpoint for the certificate validity's starting time"
+    get:
+      operationId: getCertBundleChainCertValidSince
+      summary: "Retrieve the starting time of certificate validity"
+      description: "Retrieves the starting time of a
+        [stored certificate's validity](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the starting time of certificate validity exists
+            in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                DateTime:
+                  value: "Sep 18 19:46:19 2022 GMT"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /certificates/{bundleName}/chain/{arrayIndex}/validity/until:
+    summary: "Endpoint for the certificate validity's ending time"
+    get:
+      operationId: getCertBundleChainCertValidUntil
+      summary: "Retrieve the ending time of certificate validity"
+      description: "Retrieves the ending time of a
+        [stored certificate's validity](https://unit.nginx.org/certificates/)."
+
+      tags:
+        - certificates
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+        - $ref: "#/components/parameters/bundleName"
+
+      responses:
+        "200":
+          description: "OK; the ending time of certificate validity exists
+            in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                DateTime:
+                  value: "Sep 18 19:46:19 2022 GMT"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config:
+    summary: "Endpoint for the `config` object"
+    get:
+      operationId: getConfig
+      summary: "Retrieve the config"
+      description: "Retrieves the `config` object that represents Unit's
+        [configuration](https://unit.nginx.org/configuration)."
+
+      tags:
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `config` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/config"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/config"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateConfig
+      summary: "Create or overwrite the config"
+      description: "Creates or overwrites the entire `config` object."
+      tags:
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/config"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/config"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteConfig
+      summary: "Delete the config object"
+      description: "Deletes the entire `config` object."
+      tags:
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/access_log:
+    summary: "Endpoint for the `access_log` object"
+    get:
+      operationId: getAccessLog
+      summary: "Retrieve the access log"
+      description: "Retrieves the `access_log` entity that represents Unit's
+        [access log](https://unit.nginx.org/configuration/#access-log)."
+
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `access_log` entity exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configAccessLog"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configAccessLogBasic"
+
+                example2:
+                  $ref: "#/components/examples/configAccessLogComplex"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateAccessLog
+      summary: "Create or overwrite the access log"
+      description: "Creates or overwrites the entire `access_log` entity."
+      tags:
+        - access log
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configAccessLog"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configAccessLogBasic"
+
+              example2:
+                $ref: "#/components/examples/configAccessLogComplex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteAccessLog
+      summary: "Delete the access log"
+      description: "Deletes the entire `access_log` section."
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/access_log/format:
+    summary: "Endpoint for the `format` access log option"
+    get:
+      operationId: getAccessLogFormat
+      summary: "Retrieve the access log format option"
+      description: "Retrieves the `format` option that represents Unit's
+        [access log format](https://unit.nginx.org/configuration/#access-log)
+        in the `access_log` object."
+
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `format` option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                format:
+                  value: '$remote_addr - - [$time_local] "$request_line" $status
+                    $body_bytes_sent "$header_referer" "$header_user_agent"'
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateAccessLogFormat
+      summary: "Create or overwrite the access log format"
+      description: "Creates or overwrites the `format` option in the
+        `access_log` object."
+
+      tags:
+        - access log
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              format:
+                value: '$remote_addr - - [$time_local] "$request_line" $status
+                  $body_bytes_sent "$header_referer" "$header_user_agent"'
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteAccessLogFormat
+      summary: "Delete the access log format"
+      description: "Deletes the `format` option from the `access_log` object."
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/access_log/path:
+    summary: "Endpoint for the `path` access log option"
+    get:
+      operationId: getAccessLogPath
+      summary: "Retrieve the access log path option"
+      description: "Retrieves the `path` option that represents Unit's
+        [access log path](https://unit.nginx.org/configuration/#access-log)
+        in the `access_log` object."
+
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `path` option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                path:
+                  value: "/var/log/unit/access.log"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateAccessLogPath
+      summary: "Create or overwrite the access log path"
+      description: "Creates or overwrites the `path` option in the `access_log`
+        object."
+
+      tags:
+        - access log
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              path:
+                value: "/var/log/unit/access.log"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteAccessLogPath
+      summary: "Delete the access log path"
+      description: "Deletes the `path` option from the `access_log` object."
+      tags:
+        - access log
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/applications:
+    summary: "Endpoint for the `applications` object in the configuration"
+    get:
+      operationId: getApplications
+      summary: "Retrieve the applications object"
+      description: "Retrieves the `applications` object that represents Unit's
+        [applications](https://unit.nginx.org/configuration/#applications)."
+      tags:
+        - applications
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `applications` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configApplications"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configApplications"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateApplications
+      summary: "Overwrite the applications object"
+      description: "Overwrites the `applications` object in the configuration."
+      tags:
+        - applications
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configApplications"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configApplications"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteApplications
+      summary: "Delete the applications object"
+      description: "Deletes the `applications` object from the configuration."
+      tags:
+        - applications
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/applications/{appName}:
+    summary: "Endpoint for an application object in the configuration"
+
+    parameters:
+      - $ref: "#/components/parameters/appName"
+
+    get:
+      operationId: getApplication
+      summary: "Retrieve an application object"
+      description: "Retrieves the `{appName}` object that represents an
+        [application](https://unit.nginx.org/configuration/#applications)
+        in Unit's control API."
+
+      tags:
+        - applications
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `{appName}` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configApplication"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configApplication"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateApplication
+      summary: "Create or overwrite the application object"
+      description: "Creates or overwrites the `{appName}` object in the
+        configuration."
+
+      tags:
+        - applications
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configApplication"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configApplication"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteApplication
+      summary: "Delete the application object"
+      description: "Deletes the `{appName}` object from the configuration."
+      tags:
+        - applications
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /control/applications/{appName}/restart:
+    summary: "Endpoint for the `applications/{appName}/restart` option"
+    get:
+      operationId: getAppRestart
+      summary: "Restart the {appName} application"
+      description: "Tells Unit to [restart]
+        (https://unit.nginx.org/configuration/#process-management)
+        the application identified by `{appName}`."
+
+      tags:
+        - apps
+        - control
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `{appName}` application was gracefully
+            restarted."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/jsonSuccessMessage"
+
+              example:
+                success: "Ok"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners:
+    summary: "Endpoint for the `listeners` object"
+    get:
+      operationId: getListeners
+      summary: "Retrieve all the listeners"
+      description: "Retrieves the `listeners` object whose options represent
+        individual [listeners](https://unit.nginx.org/configuration/#listeners);
+        each is a unique combination of a host IP address (or a `*` wildcard to
+        match any host IP addresses) and a port."
+
+      tags:
+        - listeners
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `listeners` object exists in the configuration."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListeners"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListeners"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListeners
+      summary: "Create or overwrite all the listeners"
+      description: "Creates or overwrites the entire `listeners` section with
+        an object whose options represent individual listeners; each is a unique
+        combination of a host IP address (or a `*` wildcard to match any host IP
+        addresses) and a port."
+
+      tags:
+        - listeners
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListeners"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerSimple"
+
+              example2:
+                $ref: "#/components/examples/configListeners"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListeners
+      summary: "Delete all the listeners"
+      description: "Deletes the entire `listeners` section."
+      tags:
+        - listeners
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}:
+    summary: "Endpoint for a `listeners/{listenerName}` object that
+      represents a listener"
+
+    get:
+      operationId: getListener
+      summary: "Retrieve a listener object"
+      description: "Retrieves the `{listenerName}` object that configures a
+        [listener](https://unit.nginx.org/configuration/#listeners)."
+
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `{listenerName}` object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListener"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerSimple"
+
+                example2:
+                  $ref: "#/components/examples/configListenerComplex"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListener
+      summary: "Create or overwrite a listener object"
+      description: "Creates or overwrites the `{listenerName}` object."
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListener"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerSimple"
+
+              example2:
+                $ref: "#/components/examples/configListenerComplex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListener
+      summary: "Delete a listener object"
+      description: "Deletes the `{listenerName}` object."
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/pass:
+    summary: "Endpoint for the `listeners/{listenerName}/pass` option"
+    get:
+      operationId: getListenerPass
+      summary: "Retrieve the pass option in a listener"
+      description: "Retrieves the `pass` option that configures the destination
+        where the `{listenerName}` listener object
+        [passes its requests](https://unit.nginx.org/configuration/#listeners)."
+
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `pass` option exists in the configuration."
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerPassApp"
+
+                example2:
+                  $ref: "#/components/examples/configListenerPassRoute"
+
+                example3:
+                  $ref: "#/components/examples/configListenerPassAppTarget"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerPass
+      summary: "Update the pass option in a listener"
+      description: "Overwrites the `pass` option."
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerPassApp"
+
+              example2:
+                $ref: "#/components/examples/configListenerPassRoute"
+
+              example3:
+                $ref: "#/components/examples/configListenerPassAppTarget"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+  /config/listeners/{listenerName}/tls:
+    summary: "Endpoint for the `listeners/{listenerName}/tls` object"
+    get:
+      operationId: getListenerTls
+      summary: "Retrieve the tls object in a listener"
+      description: "Retrieves the `tls` object that configures [TLS settings]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        for the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `tls` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListenerTls"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTls"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerTls
+      summary: "Create or overwrite the tls object in a listener"
+      description: "Creates or overwrites the entire `tls` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListenerTls"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTls"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTls
+      summary: "Delete the tls object in a listener"
+      description: "Deletes the `tls` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/conf_commands:
+    summary: "Endpoint for the `listeners/{listenerName}/tls/conf_commands`
+      object"
+
+    get:
+      operationId: listListenerTlsConfCommands
+      summary: "Retrieve the conf_commands object in a listener"
+      description: "Retrieves the `conf_commands` object that sets
+        [TLS configuration commands]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        for the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `conf_commands` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListenerTlsConfCommands"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsConfCommands"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerTlsConfCommands
+      summary: "Create or overwrite the conf_commands object in a listener"
+      description: "Creates or overwrites the entire `conf_commands` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListenerTlsConfCommands"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsConfCommands"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsConfCommands
+      summary: "Delete the conf_commands object in a listener"
+      description: "Deletes the `conf_commands` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/session:
+    summary: "Endpoint for the `listeners/{listenerName}/tls/session` object"
+    get:
+      operationId: getListenerTlsSession
+      summary: "Retrieve the session object in a listener"
+      description: "Retrieves the `session` object that configures
+        [TLS session settings]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        for the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `session` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListenerTlsSession"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsSession"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerTlsSession
+      summary: "Create or overwrite the session object in a listener"
+      description: "Creates or overwrites the entire `session` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListenerTlsSession"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsSession"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsSession
+      summary: "Delete the session object in a listener"
+      description: "Deletes the `session` object."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/session/tickets:
+    summary: "Endpoint for the `listeners/{listenerName}/session/tickets`
+      object"
+
+    get:
+      operationId: listListenerTlsSessionTickets
+      summary: "Retrieve the tickets option in a listener"
+      description: "Retrieves the `tickets` option that lists
+        [TLS session ticket keys]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        used with the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `tickets` option exists in the configuration."
+
+          content:
+            application/jsons:
+              schema:
+                $ref: "#/components/schemas/configListenerTlsSessionTickets"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsSessionTicketsBool"
+
+                example2:
+                  $ref: "#/components/examples/configListenerTlsSessionTicketsString"
+
+                example3:
+                  $ref: "#/components/examples/configListenerTlsSessionTicketsArray"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    post:
+      operationId: insertListenerTlsSessionTicket
+      summary: "Add a new tickets array item in a listener"
+      description: "Adds a new session ticket key to the end of the `tickets`
+        string array that lists [session ticket keys]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        configured earlier."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsSessionTicketsString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    put:
+      operationId: updateListenerTlsSessionTickets
+      summary: "Create or overwrite the tickets option in a listener"
+      description: "Creates or overwrites the entire `tickets` option with a
+        boolean, string, or string array that configures [session ticket keys]
+        (https://unit.nginx.org/configuration/#ssl-tls-configuration)
+        used with the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListenerTlsSessionTickets"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsSessionTicketsBool"
+
+              example2:
+                $ref: "#/components/examples/configListenerTlsSessionTicketsString"
+
+              example3:
+                $ref: "#/components/examples/configListenerTlsSessionTicketsArray"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsSessionTickets
+      summary: "Delete the tickets option in a listener"
+      description: "Deletes the `tickets` option."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/session/tickets/{arrayIndex}:
+    summary: "Endpoint for the `listeners/{listenerName}/tls/certificate`
+      object"
+
+    get:
+      operationId: getListenerTlsSessionTicket
+      summary: "Retrieve a ticket array item in a listener"
+      description: "Retrieves the `{arrayIndex}`th item from the `tickets`
+        string array."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the ticket key at `{arrayIndex}` exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsSessionTicketsString"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerTlsSessionTicket
+      summary: "Create or overwrite a ticket array item in a listener"
+      description: "Overwrites a single `tickets` string array item identified
+        by `{arrayIndex}`."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsSessionTicketsString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsSessionTicket
+      summary: "Delete a ticket array item in a listener"
+      description: "Deletes an item from the `tickets` string array."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/certificate:
+    summary: "Endpoint for the `listeners/{listenerName}/tls/certificate`
+      object"
+
+    get:
+      operationId: listListenerTlsCertificates
+      summary: "Retrieve the certificate option in a listener"
+      description: "Retrieves the `certificate` option that lists [certificate
+        bundles](https://unit.nginx.org/configuration/#certificate-management)
+        used with the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `certificate` option exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListenerTlsCertificate"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsCertificateArray"
+
+                example2:
+                  $ref: "#/components/examples/configListenerTlsCertificateString"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    post:
+      operationId: insertListenerTlsCertificate
+      summary: "Add a new certificate array item in a listener"
+      description: "Adds a new certificate bundle name to the end of the
+        `certificate` string array."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsCertificateString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    put:
+      operationId: updateListenerTlsCertificates
+      summary: "Create or overwrite the certificate option in a listener"
+      description: "Creates or overwrites the entire `certificate` option."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/stringOrStringArray"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsCertificateArray"
+
+              example2:
+                $ref: "#/components/examples/configListenerTlsCertificateString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsCertificates
+      summary: "Delete the certificate option in a listener"
+      description: "Deletes the `certificate` option."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/tls/certificate/{arrayIndex}:
+    summary: "Endpoint for the `listeners/{listenerName}/tls/certificate`
+      string array item"
+
+    get:
+      operationId: getListenerTlsCertificate
+      summary: "Retrieve a certificate array item in a listener"
+      description: "Retrieves the `{arrayIndex}`th item from the `certificate`
+        string array."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the certificate bundle at `{arrayIndex}` exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerTlsCertificateString"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerTlsCertificate
+      summary: "Update a certificate array item in a listener"
+      description: "Overwrites a single `certificate` string array item
+        identified by `{arrayIndex}`."
+
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerTlsCertificateString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerTlsCertificate
+      summary: "Delete a certificate array item in a listener"
+      description: "Deletes an item from the `certificate` string array."
+      tags:
+        - listeners
+        - config
+        - tls
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/forwarded:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded` object"
+    get:
+      operationId: getListenerForwarded
+      summary: "Retrieve the forwarded object in a listener"
+      description: "Retrieves the `forwarded` object that configures
+        [originating IP identification]
+        (https://unit.nginx.org/configuration/#ip-protocol-forwarding)
+        for the `{listenerName}` listener."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `forwarded` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configListenerForwarded"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerForwarded"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerForwarded
+      summary: "Create or overwrite the forwarded object in a listener"
+      description: "Creates or overwrites the entire `forwarded` object."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configListenerForwarded"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwarded"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerForwared
+      summary: "Delete the forwarded object in a listener"
+      description: "Deletes the `forwarded` object."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/forwarded/client_ip:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded/client_ip`
+      option"
+
+    get:
+      operationId: getListenerForwardedClientIp
+      summary: "Retrieve the client_ip option in a listener"
+      description: "Retrieves the `client_ip` option that configures the headers
+        expected by the `{listenerName}` listener for
+        [originating IP identification]
+        (https://unit.nginx.org/configuration/#originating-ip-identification)."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `client_ip` option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerForwardedClientIp"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerForwardedClientIp
+      summary: "Create or overwrite the client_ip option in a listener"
+      description: "Creates or overwrites the `client_ip` option."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwardedClientIp"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+  /config/listeners/{listenerName}/forwarded/protocol:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded/protocol`
+      option"
+
+    get:
+      operationId: getListenerForwardedProtocol
+      summary: "Retrieve the protocol option in a listener"
+      description: "Retrieves the `protocol` option that configures the protocol
+        expected by the `{listenerName}` listener for
+        [originating IP identification]
+        (https://unit.nginx.org/configuration/#originating-ip-identification)."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `protocol` option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                  - "http"
+                  - "https"
+                  - "on"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerForwardedProtocol"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerForwardedProtocol
+      summary: "Create or overwrite the protocol option in a listener"
+      description: "Creates or overwrites the `protocol` option."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              enum:
+                - "http"
+                - "https"
+                - "on"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwardedProtocol"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+  /config/listeners/{listenerName}/forwarded/recursive:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded/recursive`
+      option"
+
+    get:
+      operationId: getListenerForwardedRecursive
+      summary: "Retrieve the recursive option in a listener"
+      description: "Retrieves the `recursive` option that controls how the
+        `{listenerName}` listener uses [originating IP identification]
+        (https://unit.nginx.org/configuration/#originating-ip-identification)."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `recursive` option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+              examples:
+                example1:
+                  summary: "Enables recursive header field traversal"
+                  value: true
+
+                example2:
+                  summary: "Disables recursive header field traversal"
+                  value: false
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerForwardedRecursive
+      summary: "Create or overwrite the recursive option in a listener"
+      description: "Creates or overwrites the `recursive` option."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+            examples:
+              example1:
+                summary: "Enables recursive header field traversal"
+                value: true
+
+              example2:
+                summary: "Disables recursive header field traversal"
+                value: false
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerForwardedRecursive
+      summary: "Delete the recursive object in a listener"
+      description: "Deletes the `recursive` object."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/forwarded/source:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded/source`
+      object"
+
+    get:
+      operationId: listListenerForwardedSources
+      summary: "Retrieve the source option in a listener"
+      description: "Retrieves the `source` option that defines address patterns
+        for trusted addresses, used by the `{listenerName}` listener for
+        [originating IP identification]
+        (https://unit.nginx.org/configuration/#originating-ip-identification)."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `source` option exists in the configuration."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/stringOrStringArray"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerForwardedSourceArray"
+
+                example2:
+                  $ref: "#/components/examples/configListenerForwardedSourceString"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    post:
+      operationId: insertListenerForwardedSource
+      summary: "Add a new source array item in a listener"
+      description: "Adds a new source bundle name to the end of the  `source`
+        string array defines address patterns for trusted addresses, used by
+        the `{listenerName}` listener for [originating IP identification]
+        (https://unit.nginx.org/configuration/#originating-ip-identification)."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwardedSourceString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    put:
+      operationId: updateListenerForwardedSources
+      summary: "Create or overwrite the source option in a listener"
+      description: "Creates or overwrites the entire `source` option."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/stringOrStringArray"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwardedSourceArray"
+
+              example2:
+                $ref: "#/components/examples/configListenerForwardedSourceString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerForwardedSources
+      summary: "Delete the source option in a listener"
+      description: "Deletes the `source` option."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/listeners/{listenerName}/forwarded/source/{arrayIndex}:
+    summary: "Endpoint for the `listeners/{listenerName}/forwarded/source`
+      string array item"
+
+    get:
+      operationId: getListenerForwardedSource
+      summary: "Retrieve a source array item in a listener"
+      description: "Retrieves the `{arrayIndex}`th item from the `source`
+        string array."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the address pattern at `{arrayIndex}` exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerForwardedSourceString"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerForwardedSource
+      summary: "Update a source array item in a listener"
+      description: "Overwrites a single `source` string array item identified
+        by `{arrayIndex}`."
+
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerForwardedSourceString"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteListenerForwardedSource
+      summary: "Delete a source array item in a listener"
+      description: "Deletes an item from the `source` string array."
+      tags:
+        - listeners
+        - config
+        - xff
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/routes:
+    summary: "Endpoint for the `routes` entity in the configuration"
+    get:
+      operationId: getRoutes
+      summary: "Retrieve the routes entity"
+      description: "Retrieves the `routes` entity that represents Unit's
+        [routes](https://unit.nginx.org/configuration/#routes)."
+
+      tags:
+        - config
+        - routes
+
+      responses:
+        "200":
+          description: "OK; the `routes` entity exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configRoutes"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configRoutes"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateRoutes
+      summary: "Overwrite the routes entity"
+      description: "Overwrites the `routes` entity in the configuration."
+      tags:
+        - config
+        - routes
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configRoutes"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configRoutes"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteRoutes
+      summary: "Delete the routes entity"
+      description: "Deletes the `routes` entity from the configuration."
+      tags:
+        - config
+        - routes
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings:
+    summary: "Endpoint for the `settings` object in the configuration"
+    get:
+      operationId: getSettings
+      summary: "Retrieve the settings object"
+      description: "Retrieves the `settings` object that represents Unit's
+        [global settings](https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `settings` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettings"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettings"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettings
+      summary: "Create or overwrite the settings object"
+      description: "Creates or overwrites the `settings` object in the
+        configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettings"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettings"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettings
+      summary: "Delete the settings object"
+      description: "Deletes the `settings` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http:
+    summary: "Endpoint for the `http` object in `settings`"
+
+    get:
+      operationId: getSettingsHttp
+      summary: "Retrieve the http object from settings"
+      description: "Retrieves the `http` object that represents Unit's
+        [HTTP settings](https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `http` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttp"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttp"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttp
+      summary: "Create or overwrite the http object"
+      description: "Creates or overwrites the `http` object in the
+        configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttp"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttp"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttp
+      summary: "Delete the http object"
+      description: "Deletes the `http` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/body_read_timeout:
+    summary: "Endpoint for the `body_read_timeout` option in `http`"
+    get:
+      operationId: getSettingsHttpBodyReadTimeout
+      summary: "Retrieve the body_read_timeout option from http settings"
+      description: "Retrieves the `body_read_timeout` option that represents
+        Unit's [request body read timeout]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `body_read_timeout` option exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                BodyReadTimeout:
+                  value: 30
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpBodyReadTimeout
+      summary: "Create or overwrite the body_read_timeout option"
+      description: "Creates or overwrites the `body_read_timeout` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              BodyReadTimeout:
+                value: 30
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpBodyReadTimeout
+      summary: "Delete the body_read_timeout option"
+      description: "Deletes the `body_read_timeout` option from the
+        configuration."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/discard_unsafe_fields:
+    summary: "Endpoint for the `discard_unsafe_fields` option in `http`"
+    get:
+      operationId: getSettingsDiscardUnsafeFields
+      summary: "Retrieve the discard_unsafe_fields option from http settings"
+      description: "Retrieves the `discard_unsafe_fields` option that represents
+        Unit's [header processing behavior]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `discard_unsafe_fields` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+              examples:
+                DiscardUnsafeFields:
+                  value: true
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsDiscardUnsafeFields
+      summary: "Create or overwrite the discard_unsafe_fields option"
+      description: "Creates or overwrites the `discard_unsafe_fields` option
+        in the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+            examples:
+              DiscardUnsafeFields:
+                value: true
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsDiscardUnsafeFields
+      summary: "Delete the discard_unsafe_fields option"
+      description: "Deletes the `discard_unsafe_fields` option from
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/header_read_timeout:
+    summary: "Endpoint for the `header_read_timeout` option in `http`"
+    get:
+      operationId: getSettingsHttpHeaderReadTimeout
+      summary: "Retrieve the header_read_timeout option from http settings"
+      description: "Retrieves the `header_read_timeout` option that represents
+        Unit's [request headers read timeout]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `header_read_timeout` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                HeaderReadTimeout:
+                  value: 30
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpHeaderReadTimeout
+      summary: "Create or overwrite the header_read_timeout option"
+      description: "Creates or overwrites the `header_read_timeout` option
+        in the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              HeaderReadTimeout:
+                value: 30
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpHeaderReadTimeout
+      summary: "Delete the header_read_timeout option"
+      description: "Deletes the `header_read_timeout` option from
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/idle_timeout:
+    summary: "Endpoint for the `idle_timeout` option in `http`"
+    get:
+      operationId: getSettingsHttpIdleTimeout
+      summary: "Retrieve the idle_timeout option from http settings"
+      description: "Retrieves the `idle_timeout` option that represents
+        Unit's [keep-alive idling timeout]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `idle_timeout` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                IdleTimeout:
+                  value: 180
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpIdleTimeout
+      summary: "Create or overwrite the idle_timeout option"
+      description: "Creates or overwrites the `idle_timeout` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              IdleTimeout:
+                value: 180
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpIdleTimeout
+      summary: "Delete the idle_timeout option"
+      description: "Deletes the `idle_timeout` option from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/log_route:
+    summary: "Endpoint for the `log_route` option in `http`"
+    get:
+      operationId: getSettingsLogRoute
+      summary: "Retrieve the log_route option from http settings"
+      description: "Retrieves the `log_route` option that controls
+        Unit's [router logging]
+        (https://unit.nginx.org/troubleshooting/#router-log)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `log_route` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+              examples:
+                LogRoute:
+                  value: true
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsLogRoute
+      summary: "Create or overwrite the log_route option"
+      description: "Creates or overwrites the `log_route` option
+        in the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+            examples:
+              LogRoute:
+                value: true
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsLogRoute
+      summary: "Delete the log_route option"
+      description: "Deletes the `log_route` option from
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/max_body_size:
+    summary: "Endpoint for the `max_body_size` option in `http`"
+    get:
+      operationId: getSettingsHttpMaxBodySize
+      summary: "Retrieve the max_body_size option from http settings"
+      description: "Retrieves the `max_body_size` option that represents
+        Unit's [request body size limit]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `max_body_size` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                MaxBodySize:
+                  value: 8388608
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpMaxBodySize
+      summary: "Create or overwrite the max_body_size option"
+      description: "Creates or overwrites the `max_body_size` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              MaxBodySize:
+                value: 8388608
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpMaxBodySize
+      summary: "Delete the max_body_size option"
+      description: "Deletes the `max_body_size` option from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/send_timeout:
+    summary: "Endpoint for the `send_timeout` option in `http`"
+    get:
+      operationId: getSettingsHttpSendTimeout
+      summary: "Retrieve the send_timeout option from http settings"
+      description: "Retrieves the `send_timeout` option that represents
+        Unit's [response send timeout]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `send_timeout` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                SendTimeout:
+                  value: 30
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpSendTimeout
+      summary: "Create or overwrite the send_timeout option"
+      description: "Creates or overwrites the `send_timeout` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              SendTimeout:
+                value: 30
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpSendTimeout
+      summary: "Delete the send_timeout option"
+      description: "Deletes the `send_timeout` option from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/server_version:
+    summary: "Endpoint for the `server_version` option in `http`"
+    get:
+      operationId: getSettingsServerVersion
+      summary: "Retrieve the server_version option from http settings"
+      description: "Retrieves the `server_version` option that controls
+        Unit's [Server header field versioning]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `server_version` option exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+              examples:
+                ServerVersion:
+                  value: true
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsServerVersion
+      summary: "Create or overwrite the server_version option"
+      description: "Creates or overwrites the `server_version` option
+        in the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+            examples:
+              ServerVersion:
+                value: true
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsServerVersion
+      summary: "Delete the server_version option"
+      description: "Deletes the `server_version` option from
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/static:
+    summary: "Endpoint for the `static` object in `http`"
+    get:
+      operationId: getSettingsHttpStatic
+      summary: "Retrieve the static object from http settings"
+      description: "Retrieves the `static` object that represents
+        Unit's [static content settings]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `static` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpStatic"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpStatic"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpStatic
+      summary: "Create or overwrite the static object"
+      description: "Creates or overwrites the `static` object in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpStatic"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpStatic"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpStatic
+      summary: "Delete the static object"
+      description: "Deletes the `static` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/static/mime_types:
+    summary: "Endpoint for the `mime_types` object in `static`"
+    get:
+      operationId: getSettingsHttpStaticMimeTypes
+      summary: "Retrieve the mime_types object from static settings"
+      description: "Retrieves the `mime_types` object that represents Unit's
+        [MIME type settings](https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `mime_types` object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpStaticMimeTypes"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpStaticMimeTypes"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpStaticMimeTypes
+      summary: "Create or overwrite the mime_types object"
+      description: "Creates or overwrites the `mime_types` object in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpStaticMimeTypes"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpStaticMimeTypes"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpStaticMimeTypes
+      summary: "Delete the mime_types object"
+      description: "Deletes the `mime_types` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/static/mime_types/{mimeType}:
+    summary: "Endpoint for a MIME type option in `mime_types`"
+    parameters:
+      - $ref: "#/components/parameters/mimeType"
+
+    get:
+      operationId: getSettingsHttpStaticMimeType
+      summary: "Retrieve the MIME type option from MIME type settings"
+      description: "Retrieves the MIME type option that represents a
+        [MIME type](https://unit.nginx.org/configuration/#settings)
+        supported by Unit."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the MIME type option exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpStaticMimeType"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpStaticMimeType"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpStaticMimeType
+      summary: "Create or overwrite the MIME type option"
+      description: "Creates or overwrites the MIME type option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpStaticMimeType"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpStaticMimeType"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpStaticMimeType
+      summary: "Delete the MIME type option"
+      description: "Deletes the MIME type option from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status:
+    summary: "Endpoint for the `status` object"
+    get:
+      operationId: getStatus
+      summary: "Retrieve the status object"
+      description: "Retrieves the entire `/status` section that represents
+        Unit's [usage statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `status` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/status"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/status"
+
+  /status/connections:
+    summary: "Endpoint for the `connections` status object"
+    get:
+      operationId: getStatusConnections
+      summary: "Retrieve the connections status object"
+      description: "Retrieves the `connections` status object that represents
+        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `connections` object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusConnections"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusConnections"
+
+  /status/connections/accepted:
+    summary: "Endpoint for the `accepted` connections number"
+    get:
+      operationId: getStatusConnectionsAccepted
+      summary: "Retrieve the accepted connections number"
+      description: "Retrieves the `accepted` connections number that represents
+        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `active` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Accepted:
+                  value: 1067
+
+  /status/connections/active:
+    summary: "Endpoint for the `active` connections number"
+    get:
+      operationId: getStatusConnectionsActive
+      summary: "Retrieve the active connections number"
+      description: "Retrieves the `active` connections number that represents
+        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `active` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Active:
+                  value: 13
+
+  /status/connections/idle:
+    summary: "Endpoint for the `idle` connections number"
+    get:
+      operationId: getStatusConnectionsIdle
+      summary: "Retrieve the idle connections number"
+      description: "Retrieves the `idle` connections number that represents
+        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `idle` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Idle:
+                  value: 4
+
+  /status/connections/closed:
+    summary: "Endpoint for the `closed` connections number"
+    get:
+      operationId: getStatusConnectionsClosed
+      summary: "Retrieve the closed connections number"
+      description: "Retrieves the `closed` connections number that represents
+        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `closed` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Closed:
+                  value: 4
+
+  /status/requests:
+    summary: "Endpoint for the `requests` status object"
+    get:
+      operationId: getStatusRequests
+      summary: "Retrieve the requests status object"
+      description: "Retrieves the `requests` status object that represents
+        Unit's instance [request statistics]
+        (https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `requests` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusRequests"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusRequests"
+
+  /status/requests/total:
+    summary: "Endpoint for the `total` requests number"
+    get:
+      operationId: getStatusRequestsTotal
+      summary: "Retrieve the total requests number"
+      description: "Retrieves the `total` requests number that represents Unit's
+        instance [request statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `total` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Closed:
+                  value: 1307
+
+  /status/applications:
+    summary: "Endpoint for the `applications` status object"
+    get:
+      operationId: getStatusApplications
+      summary: "Retrieve the applications status object"
+      description: "Retrieves the `applications` status object that represents
+        Unit's per-app
+        [process and request statistics](https://unit.nginx.org/usagestats/)."
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `applications` object exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusApplications"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusApplications"
+
+  /status/applications/{appName}:
+    summary: "Endpoint for the app status object"
+    get:
+      operationId: getStatusApplicationsApp
+      summary: "Retrieve the app status object"
+      description: "Retrieves the app status object that represents
+        Unit's per-app
+        [process and request statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the app object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusApplicationsApp"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusApplicationsApp"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/applications/{appName}/processes:
+    summary: "Endpoint for the `processes` app status object"
+    get:
+      operationId: getStatusApplicationsAppProcesses
+      summary: "Retrieve the processes app status object"
+      description: "Retrieves the `processes` app status object that represents
+        Unit's per-app
+        [process statistics](https://unit.nginx.org/usagestats/)."
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `processes` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusApplicationsAppProcesses"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusApplicationsAppProcesses"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/applications/{appName}/processes/running:
+    summary: "Endpoint for the `running` processes number"
+    get:
+      operationId: getStatusApplicationsAppProcessesRunning
+      summary: "Retrieve the running processes app status number"
+      description: "Retrieves the `running` processes number that represents
+        Unit's per-app
+        [process statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `running` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Running:
+                  value: 9
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/applications/{appName}/processes/starting:
+    summary: "Endpoint for the `starting` processes number"
+    get:
+      operationId: getStatusApplicationsAppProcessesStarting
+      summary: "Retrieve the starting processes app status number"
+      description: "Retrieves the `starting` processes number that represents
+        Unit's per-app
+        [process statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `starting` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Starting:
+                  value: 1
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/applications/{appName}/processes/idle:
+    summary: "Endpoint for the `idle` processes number"
+    get:
+      operationId: getStatusApplicationsAppProcessesIdle
+      summary: "Retrieve the idle processes app status number"
+      description: "Retrieves the `idle` processes number that represents
+        Unit's per-app
+        [process statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `idle` number exists in the configuration."
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Idle:
+                  value: 0
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/applications/{appName}/requests:
+    summary: "Endpoint for the `requests` app status object"
+    get:
+      operationId: getStatusApplicationsAppRequests
+      summary: "Retrieve the requests app status object"
+      description: "Retrieves the `requests` app status object that represents
+        Unit's per-app
+        [request statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `requests` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusApplicationsAppRequests"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusApplicationsAppRequests"
+
+  /status/applications/{appName}/requests/active:
+    summary: "Endpoint for the `active` requests number"
+    get:
+      operationId: getStatusApplicationsAppRequestsActive
+      summary: "Retrieve the active requests app status number"
+      description: "Retrieves the `active` requests number that represents
+        Unit's per-app
+        [request statistics](https://unit.nginx.org/usagestats/)."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/appName"
+
+      responses:
+        "200":
+          description: "OK; the `active` number exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                Idle:
+                  value: 15
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+components:
+  # -- PARAMETERS --
+
+  parameters:
+    appName:
+      in: path
+      description: "An application's name in the configuration."
+      name: appName
+      required: true
+      schema:
+        type: string
+
+    arrayIndex:
+      in: path
+      description: "A zero-based index in a configuration array."
+      name: arrayIndex
+      required: true
+      schema:
+        type: integer
+
+    arrayIndex2:
+      in: path
+      description: "A zero-based index in a configuration array."
+      name: arrayIndex2
+      required: true
+      schema:
+        type: integer
+
+    bundleName:
+      in: path
+      description: "A certificate bundle's name"
+      name: bundleName
+      required: true
+      schema:
+        type: string
+
+    listenerName:
+      in: path
+      description: "Listener name; a unique combination of a host IP address
+        (or a `*` wildcard to match any host IP addresses), followed by a colon
+        and a port number, such as `127.0.0.1:80` or `*:443`."
+
+      name: listenerName
+      required: true
+      schema:
+        type: string
+
+    mimeType:
+      in: path
+      description: "A MIME type name, such as `text/x-code` or
+        `application/json`."
+      name: mimeType
+      required: true
+      schema:
+        type: string
+
+  # -- EXAMPLES --
+
+  examples:
+    # -- RESPONSE EXAMPLES --
+
+    errorInvalidJson:
+      summary: "400 error response"
+      value:
+        error: "Invalid JSON."
+        detail: 'A valid JSON value is expected here.  It must be either a
+          literal (null, true, or false), a number, a string (in double quotes
+          ""), an array (with brackets []), or an object (with braces {}).'
+
+        location:
+          offset: 0
+          line: 1
+          column: 0
+
+    errorValueDoesntExist:
+      summary: "404 error response"
+      value:
+        error: "Value doesn't exist."
+
+    errorInternalError:
+      summary: "500 error response"
+      value:
+        error: "Failed to apply new configuration."
+
+    successReconfigurationDone:
+      summary: "Success response"
+      value:
+        success: "Reconfiguration done."
+
+    # -- CONFIGURATION EXAMPLES --
+
+    # /certificates
+    cert:
+      summary: "Certificate bundle or bundles"
+      value:
+        bundle:
+          key: "RSA (4096 bits)"
+          chain:
+            - subject:
+                common_name: "example.com"
+                country: "US"
+                state_or_province: "CA"
+                organization: "Acme, Inc."
+                alt_names:
+                  - "example.com"
+                  - "www.example.com"
+
+              issuer:
+                common_name: "intermediate.ca.example.com"
+                country: "US"
+                state_or_province: "CA"
+                organization: "Acme, Inc."
+
+              validity:
+                since: "Feb 22 22:45:55 2023 GMT"
+                until: "Feb 21 22:45:55 2016 GMT"
+
+            - subject:
+                common_name: "intermediate.ca.example.com"
+                country: "US"
+                state_or_province: "CA"
+                organization: "Acme Certification Authority"
+
+              issuer:
+                common_name: "root.ca.example.com"
+                country: "US"
+                state_or_province: "CA"
+                organization: "Acme Certification Authority"
+
+              validity:
+                since: "Sep 18 19:46:19 2022 GMT"
+                until: "Jun 15 19:46:19 2025 GMT"
+
+    # /certificates/{bundleName}
+    certBundle:
+      summary: "Single certificate bundle"
+      value:
+        key: "RSA (4096 bits)"
+        chain:
+          - subject:
+              common_name: "example.com"
+              country: "US"
+              state_or_province: "CA"
+              organization: "Acme, Inc."
+              alt_names:
+                - "example.com"
+                - "www.example.com"
+
+            issuer:
+              common_name: "intermediate.ca.example.com"
+              country: "US"
+              state_or_province: "CA"
+              organization: "Acme, Inc."
+
+            validity:
+              since: "Feb 22 22:45:55 2023 GMT"
+              until: "Feb 21 22:45:55 2016 GMT"
+
+          - subject:
+              common_name: "intermediate.ca.example.com"
+              country: "US"
+              state_or_province: "CA"
+              organization: "Acme Certification Authority"
+
+            issuer:
+              common_name: "root.ca.example.com"
+              country: "US"
+              state_or_province: "CA"
+              organization: "Acme Certification Authority"
+
+            validity:
+              since: "Sep 18 19:46:19 2022 GMT"
+              until: "Jun 15 19:46:19 2025 GMT"
+
+    # /certificates/{bundleName}/chain
+    certBundleChain:
+      summary: "Certificate chain"
+      value:
+        - subject:
+            common_name: "example.com"
+            country: "US"
+            state_or_province: "CA"
+            organization: "Acme, Inc."
+            alt_names:
+              - "example.com"
+              - "www.example.com"
+
+          issuer:
+            common_name: "intermediate.ca.example.com"
+            country: "US"
+            state_or_province: "CA"
+            organization: "Acme, Inc."
+
+          validity:
+            since: "Feb 22 22:45:55 2023 GMT"
+            until: "Feb 21 22:45:55 2016 GMT"
+
+        - subject:
+            common_name: "intermediate.ca.example.com"
+            country: "US"
+            state_or_province: "CA"
+            organization: "Acme Certification Authority"
+
+          issuer:
+            common_name: "root.ca.example.com"
+            country: "US"
+            state_or_province: "CA"
+            organization: "Acme Certification Authority"
+
+          validity:
+            since: "Sep 18 19:46:19 2022 GMT"
+            until: "Jun 15 19:46:19 2025 GMT"
+
+    # /certificates/{bundleName}/chain/{arrayIndex}
+    certBundleChainCert:
+      summary: "Single certificate"
+      value:
+        subject:
+          common_name: "example.com"
+          country: "US"
+          state_or_province: "CA"
+          organization: "Acme, Inc."
+          alt_names:
+            - "example.com"
+            - "www.example.com"
+
+        issuer:
+          common_name: "intermediate.ca.example.com"
+          country: "US"
+          state_or_province: "CA"
+          organization: "Acme, Inc."
+
+        validity:
+          since: "Feb 22 22:45:55 2023 GMT"
+          until: "Feb 21 22:45:55 2016 GMT"
+
+    # /certificates/{bundleName}/chain/{arrayIndex}/issuer
+    certBundleChainCertIssuer:
+      summary: "Certificate's issuer"
+      value:
+        common_name: "intermediate.ca.example.com"
+        country: "US"
+        state_or_province: "CA"
+        organization: "Acme, Inc."
+
+    # /certificates/{bundleName}/chain/{arrayIndex}/subject
+    certBundleChainCertSubj:
+      summary: "Certificate's subject"
+      value:
+        common_name: "example.com"
+        country: "US"
+        state_or_province: "CA"
+        organization: "Acme, Inc."
+        alt_names:
+          - "example.com"
+          - "www.example.com"
+
+    # /certificates/{bundleName}/chain/{arrayIndex}/validity
+    certBundleChainCertValidity:
+      summary: "Certificate's validity"
+      value:
+        since: "Feb 22 22:45:55 2023 GMT"
+        until: "Feb 21 22:45:55 2016 GMT"
+
+    # /config
+    config:
+      summary: "The entire /config section of the API"
+      value:
+        access_log: "/var/log/unit/access.log"
+
+        applications:
+          nodejsapp:
+            type: "external"
+            working_directory: "/www/app/node-app/"
+            executable: "app.js"
+            user: "www"
+            group: "www"
+            arguments:
+              - "--tmp-files"
+              - "/tmp/node-cache"
+
+          pythonapp:
+            type: "python 3.11"
+            processes: 16
+            working_directory: "/www/app/python-app/"
+            path: "blog"
+            module: "blog.wsgi"
+            user: "www"
+            group: "www"
+            stderr: "stderr.log"
+            isolation:
+              rootfs: "/www/"
+
+        routes:
+          local:
+            - action:
+                share: "/www/local/"
+
+          global:
+            - match:
+                host: "backend.example.com"
+
+              action:
+                pass: "applications/pythonapp"
+
+            - action:
+                pass: "applications/nodejsapp"
+
+        listeners:
+          127.0.0.1:8080:
+            pass: "routes/local"
+
+          "*:443":
+            pass: "routes/global"
+            tls:
+              certificate: "bundle"
+              conf_commands:
+                ciphersuites: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+                minprotocol: "TLSv1.3"
+
+              session:
+                cache_size: 10240
+                timeout: 60
+                tickets:
+                  - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+                  - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+
+            forwarded:
+              client_ip: "X-Forwarded-For"
+              recursive: false
+              source:
+                - "192.0.2.0/24"
+                - "198.51.100.0/24"
+
+        settings:
+          http:
+            body_read_timeout: 30
+            discard_unsafe_fields: true
+            header_read_timeout: 30
+            idle_timeout: 180
+            log_route: true
+            max_body_size: 8388608
+            send_timeout: 30
+            server_version: false
+
+    # /config/access_log
+    configAccessLogBasic:
+      summary: "Basic access_log string"
+      value: "/var/log/unit/access.log"
+
+    # /config/access_log
+    configAccessLogComplex:
+      summary: "Complex access_log object"
+      value:
+        path: "/var/log/unit/access.log"
+        format: '$remote_addr - - [$time_local] "$request_line" $status
+          $body_bytes_sent "$header_referer" "$header_user_agent"'
+
+    # /config/applications/{appName}
+    configApplication:
+      summary: "Individual Unit application"
+      value:
+        type: "python 3.11"
+        processes: 16
+        working_directory: "/www/app/python-app/"
+        path: "blog"
+        module: "blog.wsgi"
+        user: "www"
+        group: "www"
+        stderr: "stderr.log"
+        stdout: "stdout.log"
+        isolation:
+          rootfs: "/www/"
+
+    # /config/applications
+    configApplications:
+      summary: "Entire Unit applications section"
+      value:
+        nodejsapp:
+          type: "external"
+          working_directory: "/www/app/node-app/"
+          executable: "app.js"
+          user: "www"
+          group: "www"
+          arguments:
+            - "--tmp-files"
+            - "/tmp/node-cache"
+
+        pythonapp:
+          type: "python 3.11"
+          processes: 16
+          working_directory: "/www/app/python-app/"
+          path: "blog"
+          module: "blog.wsgi"
+          user: "www"
+          group: "www"
+          stderr: "stderr.log"
+          isolation:
+            rootfs: "/www/"
+
+    # /config/listeners
+    configListeners:
+      summary: "Multiple listeners"
+      value:
+        127.0.0.1:8080:
+          pass: "applications/wp_emea_dev"
+        "*:443":
+          pass: "applications/php_app/target"
+          tls:
+            certificate: "bundle"
+            conf_commands:
+              ciphersuites: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+              minprotocol: "TLSv1.3"
+            session:
+              cache_size: 10240
+              timeout: 60
+              tickets:
+                - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+                - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+          forwarded:
+            client_ip: "X-Forwarded-For"
+            recursive: false
+            source:
+              - "192.0.2.0/24"
+              - "198.51.100.0/24"
+
+    # /config/listeners/{listenerName}
+    configListenerSimple:
+      summary: "Simple listener object"
+      value:
+        pass: "applications/wp_emea_dev"
+
+    # /config/listeners/{listenerName}
+    configListenerComplex:
+      summary: "Elaborate listener object"
+      value:
+        pass: "applications/php_app/target"
+        tls:
+          certificate: "bundle"
+          conf_commands:
+            ciphersuites: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+            minprotocol: "TLSv1.3"
+          session:
+            cache_size: 10240
+            timeout: 60
+            tickets:
+              - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+              - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+        forwarded:
+          client_ip: "X-Forwarded-For"
+          recursive: false
+          protocol: "http"
+          source:
+            - "192.0.2.0/24"
+            - "198.51.100.0/24"
+
+    # /config/listeners/{listenerName}/forwarded
+    configListenerForwarded:
+      summary: "Originating IP identification configuration object"
+      value:
+        client_ip: "X-Forwarded-For"
+        recursive: false
+        source:
+          - "192.0.2.0/24"
+          - "198.51.100.0/24"
+
+    # /config/listeners/{listenerName}/forwarded/source
+    configListenerForwardedSourceArray:
+      summary: "Array of source address patterns"
+      value:
+        - "192.0.2.0/24"
+        - "198.51.100.0/24"
+
+    # /config/listeners/{listenerName}/forwarded/source
+    configListenerForwardedSourceString:
+      summary: "Single source address pattern"
+      value: "192.0.2.0/24"
+
+    # /config/listeners/{listenerName}/forwarded/client_ip
+    configListenerForwardedClientIp:
+      summary: "Client IP headers expected by a listener"
+      value: "X-Forwarded-For"
+
+    # /config/listeners/{listenerName}/forwarded/protocol
+    configListenerForwardedProtocol:
+      summary: "Protocol header expected by a listener"
+      value: "http"
+
+    # /config/listeners/{listenerName}/pass
+    configListenerPassApp:
+      summary: "Application destination in a listener"
+      value: "applications/wp_emea_dev"
+
+    # /config/listeners/{listenerName}/pass
+    configListenerPassRoute:
+      summary: "Route destination in a listener"
+      value: "routes/staticsite"
+
+    # /config/listeners/{listenerName}/pass
+    configListenerPassAppTarget:
+      summary: "App target destination in a listener"
+      value: "applications/php_app/index_target"
+
+    # /config/listeners/{listenerName}/tls
+    configListenerTls:
+      summary: "TLS object in a listener"
+      value:
+        certificate: "bundle"
+        conf_commands:
+          ciphersuites: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+          minprotocol: "TLSv1.3"
+        session:
+          cache_size: 10240
+          timeout: 60
+          tickets:
+            - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+            - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+
+    # /config/listeners/{listenerName}/tls/certificate
+    configListenerTlsCertificateArray:
+      summary: "Array of certificate bundle names"
+      value:
+        - bundle_old
+        - bundle_new
+
+    # /config/listeners/{listenerName}/tls/certificate
+    configListenerTlsCertificateString:
+      summary: "Single certificate bundle name"
+      value: bundle
+
+    # /config/listeners/{listenerName}/tls/conf_commands
+    configListenerTlsConfCommands:
+      summary: "TLS configuration commands in an object"
+      value:
+        ciphersuites: "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+        minprotocol: "TLSv1.3"
+
+    # /config/listeners/{listenerName}/tls/session
+    configListenerTlsSession:
+      summary: "Session settings object"
+      value:
+        cache_size: 10240
+        timeout: 60
+        tickets:
+          - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+          - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+
+    # /config/listeners/{listenerName}/tls/session/tickets
+    configListenerTlsSessionTicketsBool:
+      summary: "Boolean value that enables or disables random tickets"
+      value: true
+
+    # /config/listeners/{listenerName}/tls/session/tickets
+    configListenerTlsSessionTicketsString:
+      summary: "Single session ticket key"
+      value: "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+
+    # /config/listeners/{listenerName}/tls/session/tickets
+    configListenerTlsSessionTicketsArray:
+      summary: "Multiple session ticket keys"
+      value:
+        - "IAMkP16P8OBuqsijSDGKTpmxrzfFNPP4EdRovXH2mqstXsodPC6MqIce5NlMzHLP"
+        - "Ax4bv/JvMWoQG+BfH0feeM9Qb32wSaVVKOj1+1hmyU8ORMPHnf3Tio8gLkqm2ifC"
+
+    # /config/routes
+    configRoutes:
+      summary: "Routes array"
+      value:
+        - action:
+            pass: "applications/${host}_php_handler"
+
+          match:
+            arguments:
+              mode: "strict"
+              fullAccess: "true"
+
+            uri: "~^/data/www/.*\\.php(/.*)?$"
+
+        - action:
+            share: "/www/data$uri"
+
+          match:
+            headers:
+              - User-Agent: "curl*"
+
+            source:
+              - "!192.168.1.1"
+              - "!10.1.1.0/16"
+              - "192.168.1.0/24"
+              - "2001:0db8::/32"
+
+        - action:
+            return: 301
+            location: "https://www.example.com"
+
+    # /config/settings
+    configSettings:
+      summary: "Global settings"
+      value:
+        http:
+          body_read_timeout: 30
+          discard_unsafe_fields: true
+          header_read_timeout: 30
+          idle_timeout: 180
+          log_route: true
+          max_body_size: 8388608
+          send_timeout: 30
+          server_version: false
+          static:
+            mime_types:
+              "text/x-code":
+                - ".c"
+                - ".h"
+
+    # /config/settings/http
+    configSettingsHttp:
+      summary: "HTTP settings"
+      value:
+        body_read_timeout: 30
+        discard_unsafe_fields: true
+        header_read_timeout: 30
+        idle_timeout: 180
+        log_route: true
+        max_body_size: 8388608
+        send_timeout: 30
+        server_version: false
+        static:
+          mime_types:
+            "text/x-code":
+              - ".c"
+              - ".h"
+
+    # /config/settings/http/static
+    configSettingsHttpStatic:
+      summary: "Static content settings"
+      value:
+        mime_types:
+          "text/x-code":
+            - ".c"
+            - ".h"
+
+    # /config/settings/http/static/mime_types/{optionName}
+    configSettingsHttpStaticMimeType:
+      summary: "Individual MIME type"
+      value:
+        - ".c"
+        - ".h"
+
+    # /config/settings/http/static/mime_types
+    configSettingsHttpStaticMimeTypes:
+      summary: "MIME types recognized by Unit"
+      value:
+        "text/x-code":
+          - ".c"
+          - ".h"
+
+    # /status
+    status:
+      summary: "Regular status object"
+      value:
+        connections:
+          accepted: 1067
+          active: 13
+          idle: 4
+          closed: 1050
+        requests:
+          total: 1307
+        applications:
+          wp:
+            processes:
+              running: 9
+              starting: 1
+              idle: 0
+            requests:
+              active: 15
+
+    # /status/connections
+    statusConnections:
+      summary: "Regular connections status object"
+      value:
+        accepted: 1067
+        active: 13
+        idle: 4
+        closed: 1050
+
+    # /status/applications
+    statusApplications:
+      summary: "Regular applications status object"
+      value:
+        wp:
+          processes:
+            running: 9
+            starting: 1
+            idle: 0
+          requests:
+            active: 15
+
+    # /status/applications/{appName}
+    statusApplicationsApp:
+      summary: "Regular app status object"
+      value:
+        processes:
+          running: 9
+          starting: 1
+          idle: 0
+        requests:
+          active: 15
+
+    # /status/applications/{appName}/processes
+    statusApplicationsAppProcesses:
+      summary: "Regular app processes status object"
+      value:
+        running: 9
+        starting: 1
+        idle: 0
+
+    # /status/applications/{appName}/requests
+    statusApplicationsAppRequests:
+      summary: "Regular app requests status object"
+      value:
+        active: 15
+
+    # /status/requests
+    statusRequests:
+      summary: "Regular requests status object"
+      value:
+        total: 1307
+
+  # -- RESPONSES --
+
+  responses:
+    responseOkDeleted:
+      description: "OK; the value was deleted."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/jsonSuccessMessage"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/successReconfigurationDone"
+
+    responseOkUpdated:
+      description: "OK; the value was updated."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/jsonSuccessMessage"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/successReconfigurationDone"
+
+    responseBadRequest:
+      description: "Bad Request; invalid JSON payload was provided.
+        This may occur if the payload supplied doesn't match the JSON schema for
+        the respective configuration section."
+
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/jsonErrorMessage"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/errorInvalidJson"
+
+    responseNotFound:
+      description: "Not Found; the value does not exist in the configuration.
+        This may occur if any part of the path is non-existent."
+
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/jsonErrorMessage"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/errorValueDoesntExist"
+
+    responseInternalError:
+      description: "Internal server error; the configuration wasn't applied.
+        This may occur with misconfigured paths, wrong permissions, etc."
+
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/jsonErrorMessage"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/errorInternalError"
+
+  # -- SCHEMAS --
+
+  schemas:
+    # -- GENERIC REUSABLE OBJECTS --
+
+    stringArray:
+      type: array
+      description: "An array of strings."
+      items:
+        type: string
+
+    stringOrStringArray:
+      description: "A string or an array of strings."
+      oneOf:
+        - type: string
+        - $ref: "#/components/schemas/stringArray"
+
+    jsonSuccessMessage:
+      type: object
+      description: "JSON message on success."
+      additionalProperties:
+        type: string
+
+    jsonErrorMessage:
+      type: object
+      description: "JSON message on error."
+      additionalProperties:
+        type: string
+
+    # Configuration sections as data types; hugely reliant on each other
+
+    # /certificates
+    cert:
+      type: object
+      description: "An object whose options represent certificate bundles."
+      additionalProperties:
+        $ref: "#/components/schemas/certBundle"
+
+    # /certificates/{bundleName}
+    certBundle:
+      type: object
+      description: "An object whose options represent a certificate bundle."
+      properties:
+        key:
+          type: string
+          description: "Certificate bundle's key type, i. e. RSA, ECDSA, etc."
+
+        chain:
+          $ref: "#/components/schemas/certBundleChain"
+
+    # /certificates/{bundleName}/chain
+    certBundleChain:
+      type: array
+      description: "An array whose items represent certificates in a bundle."
+      items:
+        $ref: "#/components/schemas/certBundleChainCert"
+
+    # /certificates/{bundleName}/chain/{certIndex}
+    certBundleChainCert:
+      type: object
+      description: "An object that represents an individual certificate."
+      properties:
+        subject:
+          $ref: "#/components/schemas/certBundleChainCertSubj"
+
+        issuer:
+          $ref: "#/components/schemas/certBundleChainCertIssuer"
+
+        validity:
+          $ref: "#/components/schemas/certBundleChainCertValidity"
+
+    # /certificates/{bundleName}/chain/{certIndex}/subject
+    certBundleChainCertSubj:
+      type: object
+      description: "An object that represents a certificate's subject."
+      properties:
+        common_name:
+          type: string
+
+        country:
+          type: string
+
+        state_or_province:
+          type: string
+
+        organization:
+          type: string
+
+        alt_names:
+          $ref: "#/components/schemas/stringArray"
+
+    # /certificates/{bundleName}/chain/{certIndex}/issuer
+    certBundleChainCertIssuer:
+      type: object
+      description: "An object that represents a certificate's issuer."
+      properties:
+        common_name:
+          type: string
+
+        country:
+          type: string
+
+        state_or_province:
+          type: string
+
+        organization:
+          type: string
+
+    # /certificates/{bundleName}/chain/{certIndex}/validity
+    certBundleChainCertValidity:
+      type: object
+      description: "An object that represents the validity of a certificate."
+      properties:
+        since:
+          type: string
+
+        until:
+          type: string
+
+    # /config
+    config:
+      type: object
+      description: "The entire /config section of the API."
+      properties:
+        access_log:
+          $ref: "#/components/schemas/configAccessLog"
+
+        applications:
+          $ref: "#/components/schemas/configApplications"
+
+        routes:
+          $ref: "#/components/schemas/configRoutes"
+
+        listeners:
+          $ref: "#/components/schemas/configListeners"
+
+        settings:
+          $ref: "#/components/schemas/configSettings"
+
+    # /config/access_log
+    configAccessLog:
+      description: "Configures the access log."
+      anyOf:
+        - type: string
+        - $ref: "#/components/schemas/configAccessLogObject"
+
+    # /config/access_log
+    configAccessLogObject:
+      description: "Configures the access log."
+      type: object
+      properties:
+        format:
+          type: string
+          description: "Sets the log format. Besides arbitrary text, can contain
+            any variables Unit supports."
+
+          default: '$remote_addr - - [$time_local] "$request_line" $status
+            $body_bytes_sent "$header_referer" "$header_user_agent"'
+
+        path:
+          type: string
+          description: "Pathname of the access log file."
+
+    # /config/applications
+    configApplications:
+      type: object
+      description: "An object whose options define individual applications."
+      additionalProperties:
+        $ref: "#/components/schemas/configApplication"
+
+    # /config/applications/{appName}
+    configApplication:
+      type: object
+      description: "An object that defines an individual application."
+      anyOf:
+        - $ref: "#/components/schemas/configApplicationExternal"
+        - $ref: "#/components/schemas/configApplicationJava"
+        - $ref: "#/components/schemas/configApplicationPerl"
+        - $ref: "#/components/schemas/configApplicationPHP"
+        - $ref: "#/components/schemas/configApplicationPython"
+        - $ref: "#/components/schemas/configApplicationRuby"
+
+      discriminator:
+        propertyName: type
+        mapping:
+          external: "#/components/schemas/configApplicationExternal"
+          java: "#/components/schemas/configApplicationJava"
+          perl: "#/components/schemas/configApplicationPerl"
+          php: "#/components/schemas/configApplicationPHP"
+          python: "#/components/schemas/configApplicationPython"
+          ruby: "#/components/schemas/configApplicationRuby"
+
+    # ABSTRACT BASE SCHEMA, NOT PRESENT IN THE CONFIGURATION; STORES COMMON OPTIONS
+    configApplicationCommon:
+      type: object
+      description: "Common application object options."
+      required:
+        - type
+
+      properties:
+        type:
+          type: string
+          description: "Application type and language version."
+          enum: [external, java, perl, php, python, ruby]
+
+        environment:
+          type: object
+          description: "Environment variables to be passed to the app."
+          additionalProperties:
+            type: string
+
+        group:
+          type: string
+          description: "Group name that runs the app process."
+
+        isolation:
+          type: object
+          description: "Manages the isolation of an application process."
+          properties:
+            automount:
+              type: object
+              description: "Controls mount behavior if rootfs is enabled."
+              properties:
+                language_deps:
+                  type: boolean
+                  description: "Controls whether the language runtime
+                    dependencies are automounted."
+
+                  default: true
+
+                procfs:
+                  type: boolean
+                  description: "Controls whether the procfs is automounted."
+                  default: true
+
+                tmpfs:
+                  type: boolean
+                  description: "Controls whether the tmpfs is automounted."
+                  default: true
+
+            cgroup:
+              type: object
+              description: "Defines the app’s cgroup."
+              required:
+                - path
+
+              properties:
+                path:
+                  type: string
+                  description: "Configures absolute or relative path of the app
+                    in the cgroups v2 hierarchy."
+
+            gidmap:
+              type: array
+              description: "Array of group ID mapping objects."
+              items:
+                type: object
+                description: "Group ID mapping object."
+                required:
+                  - container
+                  - host
+                  - size
+
+                properties:
+                  container:
+                    type: integer
+                    description: "Starts the group ID mapping range in the
+                      app’s namespace."
+
+                  host:
+                    type: integer
+                    description: "Starts the group ID mapping range in the
+                      OS namespace."
+
+                  size:
+                    type: integer
+                    description: "Size of the ID range in both namespaces."
+
+            namespaces:
+              type: object
+              properties:
+                cgroup:
+                  type: boolean
+                  description: "Creates a new cgroup namespace for the app."
+                  default: false
+
+                credential:
+                  type: boolean
+                  description: "Creates a new user namespace for the app."
+                  default: false
+
+                mount:
+                  type: boolean
+                  description: "Creates a new mount namespace for the app."
+                  default: false
+
+                network:
+                  type: boolean
+                  description: "Creates a new network namespace for the app."
+                  default: false
+
+                pid:
+                  type: boolean
+                  description: "Creates a new PID namespace for the app."
+                  default: false
+
+                uname:
+                  type: boolean
+                  description: "Creates a new UTS namespace for the app."
+                  default: false
+
+            rootfs:
+              type: string
+              description: "pathname of the directory to be used as the new
+                file system root for the app."
+
+            uidmap:
+              type: array
+              description: "Array of user ID mapping objects."
+              items:
+                type: object
+                description: "User ID mapping object."
+                required:
+                  - container
+                  - host
+                  - size
+
+                properties:
+                  container:
+                    type: integer
+                    description: "Starts the user ID mapping range in the
+                      app’s namespace."
+
+                  host:
+                    type: integer
+                    description: "Starts the user ID mapping range in the
+                      OS namespace."
+
+                  size:
+                    type: integer
+                    description: "Size of the ID range in both namespaces."
+
+        limits:
+          type: object
+          description: "Governs the life cycle of an application process."
+          properties:
+            requests:
+              type: integer
+              description: "Maximum number of requests an app process
+                can serve."
+
+            timeout:
+              type: integer
+              description: "Request timeout in seconds."
+
+        processes:
+          description: "Governs the behavior of app processes."
+          anyOf:
+            - type: integer
+            - type: object
+              properties:
+                idle_timeout:
+                  type: integer
+                  description: "Number of seconds Unit waits for before
+                    terminating an idle process that exceeds `spare`."
+
+                max:
+                  type: integer
+                  description: "Maximum number of application processes that
+                    Unit maintains (busy and idle)."
+
+                  default: 1
+
+                idle:
+                  type: integer
+                  description: "Minimum number of idle processes that Unit tries
+                    to maintain for an app."
+
+          default: 1
+
+        user:
+          type: string
+          description: "Username that runs the app process."
+
+        stderr:
+          type: string
+          description: "Filename where Unit redirects the app's stderr stream."
+
+        stdout:
+          type: string
+          description: "Filename where Unit redirects the app's stdout stream."
+
+        working_directory:
+          type: string
+          description: "The app’s working directory."
+
+    configApplicationExternal:
+      description: "Go or Node.js application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - executable
+
+          properties:
+            executable:
+              type: string
+              description: "Pathname of the app, absolute or relative
+                to `working_directory`."
+
+            arguments:
+              description: "Command-line arguments to be passed to the app."
+              $ref: "#/components/schemas/stringArray"
+
+    configApplicationJava:
+      description: "Java application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - webapp
+
+          properties:
+            webapp:
+              type: string
+              description: "Pathname of the application’s .war file
+                (packaged or unpackaged)."
+
+            classpath:
+              description: "Paths to your app’s required libraries
+                (may point to directories or individual .jar files)."
+
+              $ref: "#/components/schemas/stringArray"
+
+            options:
+              desription: "JVM runtime options."
+              $ref: "#/components/schemas/stringArray"
+
+            thread_stack_size:
+              type: integer
+              description: "Stack size of a worker thread in bytes."
+
+            threads:
+              type: integer
+              description: "Number of worker threads per app process."
+              default: 1
+
+    configApplicationPerl:
+      description: "Perl application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - script
+
+          properties:
+            script:
+              type: string
+              description: "PSGI script path."
+
+            thread_stack_size:
+              type: integer
+              description: "Stack size of a worker thread in bytes."
+
+            threads:
+              type: integer
+              description: "Number of worker threads per app process."
+              default: 1
+
+    configApplicationPHP:
+      description: "PHP application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - root
+
+          properties:
+            root:
+              type: string
+              description: "Base directory of the app’s file structure."
+
+            index:
+              type: string
+              description: "Filename added to URI paths that point to
+                directories if no `script` is set."
+
+              default: "index.php"
+
+            options:
+              type: object
+              description: "Defines the php.ini location and options."
+              properties:
+                admin:
+                  type: object
+                  description: "Extra directives set in PHP_INI_SYSTEM mode."
+
+                  additionalProperties:
+                    type: string
+
+                file:
+                  type: string
+                  description: "Pathname of the php.ini file."
+
+                user:
+                  type: object
+                  description: "Extra directives set in PHP_INI_USER mode."
+                  additionalProperties:
+                    type: string
+
+            script:
+              type: string
+              description: "Filename of a `root`-based PHP script that serves
+                all requests to the app."
+
+            targets:
+              type: object
+              description: "Application sections with custom `root`, `script`,
+                and `index` values."
+
+              additionalProperties:
+                type: object
+                required:
+                  - root
+
+                properties:
+                  root:
+                    type: string
+                    description: "Base directory of the target’s
+                      file structure."
+
+                  index:
+                    type: string
+                    description: "Filename added to URI paths that point to
+                      directories if no `script` is set."
+
+                    default: "index.php"
+
+                  script:
+                    type: string
+                    description: "Filename of a `root`-based PHP script that
+                      serves all requests to the target."
+
+    configApplicationPython:
+      description: "Python application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - module
+
+          properties:
+            module:
+              type: string
+              description: "App’s module name."
+
+            callable:
+              type: string
+              description: "Name of the `module`-based callable that Unit runs
+                as the app."
+
+              default: "application"
+
+            home:
+              type: string
+              description: "Path to the app’s virtual environment, absolute or
+                relative to `working_directory`."
+
+            path:
+              description: "Additional Python module lookup paths."
+              anyOf:
+                - type: string
+                - $ref: "#/components/schemas/stringArray"
+
+            prefix:
+              type: string
+              description: "SCRIPT_NAME context value for WSGI or the
+                root_path context value for ASGI."
+
+            protocol:
+              description: "Hints Unit that the app uses a certain interface."
+              enum:
+                - "asgi"
+                - "wsgi"
+
+            targets:
+              type: object
+              description: "App sections with custom `module` and
+                `callable` values."
+
+              additionalProperties:
+                type: object
+                required:
+                  - module
+
+                properties:
+                  module:
+                    type: string
+                    description: "Target's module name."
+
+                  callable:
+                    type: string
+                    description: "Name of the `module`-based callable that Unit
+                      runs as the target."
+
+                    default: "application"
+
+                  prefix:
+                    type: string
+                    description: "SCRIPT_NAME context value for WSGI or the
+                      root_path context value for ASGI."
+
+            thread_stack_size:
+              type: integer
+              description: "Stack size of a worker thread in bytes."
+
+            threads:
+              type: integer
+              description: "Number of worker threads per app process."
+              default: 1
+
+    configApplicationRuby:
+      description: "Ruby application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - script
+
+          properties:
+            script:
+              type: string
+              description: "Rack script pathname, including the .ru extension."
+
+            hooks:
+              type: string
+              description: "Pathname of the .rb file setting the event hooks
+                invoked during the app’s lifecycle."
+
+            threads:
+              type: integer
+              description: "Number of worker threads per app process."
+              default: 1
+
+    #/config/routes
+    configRoutes:
+      description: "Configures the routes."
+      anyOf:
+        - $ref: "#/components/schemas/configRouteArray"
+        - $ref: "#/components/schemas/configRoutesObject"
+
+    #/config/routes/{routeName} or /config/routes
+    configRouteArray:
+      type: array
+      description: "An array whose items define individual route steps."
+      items:
+        $ref: "#/components/schemas/configRouteStep"
+
+    #/config/routes
+    configRoutesObject:
+      type: object
+      description: "An object whose options define individual routes."
+      additionalProperties:
+        description: "Individual route arrays."
+        $ref: "#/components/schemas/configRouteArray"
+
+    #/config/routes/{stepIndex}
+    #/config/routes/{routeName}/{stepIndex}
+    configRouteStep:
+      type: object
+      description: "An object whose options define a step's
+        conditions and action."
+
+      required:
+        - action
+
+      properties:
+        action:
+          description: "Defines how matching requests are handled."
+          $ref: "#/components/schemas/configRouteStepAction"
+
+        match:
+          description: "Defines the step’s conditions to be matched."
+          $ref: "#/components/schemas/configRouteStepMatch"
+
+    #/config/routes/{stepIndex}/match
+    #/config/routes/{routeName}/{stepIndex}/match
+    configRouteStepMatch:
+      type: object
+      description: "An object whose options define a step's conditions."
+      properties:
+        arguments:
+          description: "Arguments supplied with the request’s query string."
+          anyOf:
+            - $ref: "#/components/schemas/configRouteStepMatchObject"
+            - $ref: "#/components/schemas/configRouteStepMatchObjectArray"
+
+        cookies:
+          description: "Cookies supplied with the request."
+          anyOf:
+            - $ref: "#/components/schemas/configRouteStepMatchObject"
+            - $ref: "#/components/schemas/configRouteStepMatchObjectArray"
+
+        destination:
+          description: "Target IP address and optional port of the request."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        headers:
+          description: "Header fields supplied with the request."
+          anyOf:
+            - $ref: "#/components/schemas/configRouteStepMatchObject"
+            - $ref: "#/components/schemas/configRouteStepMatchObjectArray"
+
+        host:
+          description: "Host header field."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        method:
+          description: "Method from the request line."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        query:
+          description: "Query string."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        scheme:
+          description: "URI scheme. Accepts only two patterns,
+            either `http` or `https`."
+
+          enum:
+            - "http"
+            - "https"
+
+        source:
+          description: "Source IP address and optional port of the request."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        uri:
+          description: "Request target."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+    #/config/routes/{stepIndex}/match/[arguments|cookies|headers]
+    #/config/routes/{routeName}/{stepIndex}/match/[arguments|cookies|headers]
+    configRouteStepMatchObject:
+      type: object
+      description: "An object whose options define a set of conditions."
+      additionalProperties:
+        $ref: "#/components/schemas/stringOrStringArray"
+
+    #/config/routes/{stepIndex}/match/[arguments|cookies|headers]
+    #/config/routes/{routeName}/{stepIndex}/match/[arguments|cookies|headers]
+    configRouteStepMatchObjectArray:
+      type: array
+      description: "An array whose items define sets of conditions."
+      items:
+        $ref: "#/components/schemas/configRouteStepMatchObject"
+
+    #/config/routes/{stepIndex}/action
+    #/config/routes/{routeName}/{stepIndex}/action
+    configRouteStepAction:
+      type: object
+      description: "An object whose options define a step's action."
+      oneOf:
+        - $ref: "#/components/schemas/configRouteStepActionPass"
+        - $ref: "#/components/schemas/configRouteStepActionProxy"
+        - $ref: "#/components/schemas/configRouteStepActionReturn"
+        - $ref: "#/components/schemas/configRouteStepActionShare"
+
+    #/config/routes/{stepIndex}/action/pass
+    #/config/routes/{routeName}/{stepIndex}/action/pass
+    configRouteStepActionPass:
+      type: object
+      description: "An object whose single option defines a step's pass action."
+      required:
+        - pass
+      properties:
+        pass:
+          type: string
+          description: "Destination to which the action passes
+            incoming requests."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/proxy
+    #/config/routes/{routeName}/{stepIndex}/action/proxy
+    configRouteStepActionProxy:
+      type: object
+      description: "An object whose single option defines a step's proxy
+        action."
+      required:
+        - proxy
+      properties:
+        proxy:
+          type: string
+          description: "Socket address of an HTTP server to where the request
+            is proxied."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/return
+    #/config/routes/{routeName}/{stepIndex}/action/return
+    configRouteStepActionReturn:
+      type: object
+      description: "An object whose single option defines a step's
+        return action."
+
+      required:
+        - return
+
+      properties:
+        return:
+          type: integer
+          description: "Defines the HTTP response status code to be returned."
+
+        location:
+          type: string
+          description: "URI; used if the return value implies redirection."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/share
+    #/config/routes/{routeName}/{stepIndex}/action/share
+    configRouteStepActionShare:
+      type: object
+      description: "An object whose single option defines a step's
+        share action."
+
+      required:
+        - share
+
+      properties:
+        share:
+          description: "Lists file paths that are tried until a file is found."
+          $ref: "#/components/schemas/stringOrStringArray"
+
+        index:
+          type: string
+          description: "Filename; tried if share is a directory."
+          default: "index.html"
+
+        fallback:
+          description: "Used if the request can’t be served by share or index."
+          $ref: "#/components/schemas/configRouteStepAction"
+
+        types:
+          description: "Used to filter the shared files."
+          $ref: "#/components/schemas/stringArray"
+
+        chroot:
+          type: string
+          description: "Directory pathname that restricts the shareable paths."
+
+        follow_symlinks:
+          type: boolean
+          description: "Turns on and off symbolic link resolution."
+          default: true
+
+        traverse_mounts:
+          type: boolean
+          description: "Turns on and off mount point resolution."
+          default: true
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/rewrite
+    #/config/routes/{routeName}/{stepIndex}/action/rewrite
+    configRouteStepActionRewrite:
+      type: string
+      description: "Updates the URI of the incoming request before the action
+        is applied."
+
+    #/config/routes/{stepIndex}/action/response_headers
+    #/config/routes/{routeName}/{stepIndex}/action/response_headers
+    configRouteStepActionResponseHeaders:
+      type: object
+      description: "Updates the header fields of Unit’s response before the
+        action is taken."
+      additionalProperties:
+        type: string
+
+    # /config/listeners/
+    configListeners:
+      type: object
+      description: "An object whose options are listeners."
+      additionalProperties:
+        $ref: "#/components/schemas/configListener"
+
+    # /config/listeners/{listenerName}
+    configListener:
+      type: object
+      description: "An individual listener."
+      properties:
+        tls:
+          $ref: "#/components/schemas/configListenerTls"
+        forwarded:
+          $ref: "#/components/schemas/configListenerForwarded"
+        pass:
+          type: string
+          description: "Destination to which the listener passes
+            incoming requests."
+
+    # /config/listeners/{listenerName}/tls/certificate
+    configListenerTlsCertificate:
+      description: "Refers to one or more certificate bundles uploaded earlier."
+      anyOf:
+        - type: string
+        - $ref: "#/components/schemas/stringArray"
+
+    # /config/listeners/{listenerName}/tls/conf_commands
+    configListenerTlsConfCommands:
+      type: object
+      description: "Defines the SSL configuration commands to be set for
+        the listener."
+      additionalProperties:
+        type: string
+
+    # /config/listeners/{listenerName}/tls
+    configListenerTls:
+      type: object
+      description: "Defines SSL/TLS settings for the listener."
+      required:
+        - certificate
+
+      properties:
+        conf_commands:
+          $ref: "#/components/schemas/configListenerTlsConfCommands"
+
+        session:
+          $ref: "#/components/schemas/configListenerTlsSession"
+
+        certificate:
+          $ref: "#/components/schemas/configListenerTlsCertificate"
+
+    # /config/listeners/{listenerName}/tls/session
+    configListenerTlsSession:
+      type: object
+      description: "Configures the TLS session cache and tickets for
+        the listener."
+
+      properties:
+        cache_size:
+          type: integer
+          description: "Number of sessions in the TLS session cache."
+          default: 0
+
+        timeout:
+          type: integer
+          description: "Session timeout for the TLS session cache in seconds."
+          default: 300
+
+        tickets:
+          $ref: "#/components/schemas/configListenerTlsSessionTickets"
+
+    # /config/listeners/{listenerName}/tls/session/tickets
+    configListenerTlsSessionTickets:
+      description: "Configures TLS session tickets."
+      anyOf:
+        - type: boolean
+        - type: string
+        - $ref: "#/components/schemas/stringArray"
+
+      default: false
+
+    # /config/listeners/{listenerName}/forwarded
+    configListenerForwarded:
+      type: object
+      description: "Configures client IP address and protocol replacement."
+      required:
+        - source
+
+      properties:
+        client_ip:
+          type: string
+          description: "Defines the HTTP header fields to expect in the request;
+            uses the `X-Forwarded-For` format."
+
+        source:
+          description: "Defines address-based patterns for trusted addresses."
+          anyOf:
+            - type: string
+            - $ref: "#/components/schemas/stringArray"
+
+        recursive:
+          type: boolean
+          description: "Controls how the `client_ip` fields are traversed."
+          default: false
+
+        protocol:
+          description: "Defines the relevant HTTP header field to expect in the
+            request; uses the `X-Forwarded-Proto` format."
+
+          enum:
+            - "http"
+            - "https"
+            - "on"
+
+    # /config/settings
+    configSettings:
+      type: object
+      description: "An object whose single option represents global
+        Unit settings."
+
+      properties:
+        http:
+          description: "Represents global HTTP settings in Unit."
+          $ref: "#/components/schemas/configSettingsHttp"
+
+    # /config/settings/http
+    configSettingsHttp:
+      type: object
+      description: "An object whose options represent global HTTP settings
+        in Unit."
+
+      properties:
+        body_read_timeout:
+          type: integer
+          description: "Maximum number of seconds to read data from the body of
+            a client’s request."
+
+          default: 30
+
+        discard_unsafe_fields:
+          type: boolean
+          description: "If `true`, Unit only processes header names made of
+            alphanumerics and hyphens."
+
+          default: true
+
+        header_read_timeout:
+          type: integer
+          description: "Maximum number of seconds to read the header of a
+            client’s request."
+
+          default: 30
+
+        idle_timeout:
+          type: integer
+          description: "Maximum number of seconds between requests in a
+            keep-alive connection."
+
+          default: 180
+
+        log_route:
+          type: boolean
+          description: "Enables or disables router logging."
+          default: false
+
+        max_body_size:
+          type: integer
+          description: "Maximum number of bytes in the body of a
+            client’s request."
+
+          default: 8388608
+
+        send_timeout:
+          type: integer
+          description: "Maximum number of seconds to transmit data as a
+            response to the client."
+          default: 30
+
+        server_version:
+          type: boolean
+          description: "Enables or disables version numbers in Unit's `Server`
+            header fields."
+
+          default: true
+
+        static:
+          description: "Configures static asset handling."
+          $ref: "#/components/schemas/configSettingsHttpStatic"
+
+    # /config/settings/http/static
+    configSettingsHttpStatic:
+      type: object
+      description: "An object whose single option defines specific MIME types."
+      properties:
+        mime_types:
+          $ref: "#/components/schemas/configSettingsHttpStaticMimeTypes"
+
+    # /config/settings/http/static/mime_types
+    configSettingsHttpStaticMimeTypes:
+      type: object
+      description: "An object whose options define individual MIME types."
+      additionalProperties:
+        $ref: "#/components/schemas/configSettingsHttpStaticMimeType"
+
+    # /config/settings/http/static/mime_types/{mimeType}
+    configSettingsHttpStaticMimeType:
+      description: "An entity that defines an individual MIME type by
+        listing file extensions."
+
+      anyOf:
+        - type: string
+        - $ref: "#/components/schemas/stringArray"
+
+    # /status
+    status:
+      description: "Represents Unit's usage statistics."
+      type: object
+      properties:
+        connections:
+          $ref: "#/components/schemas/statusConnections"
+
+        requests:
+          $ref: "#/components/schemas/statusRequests"
+
+        applications:
+          $ref: "#/components/schemas/statusApplications"
+
+    # /status/applications
+    statusApplications:
+      description: "Lists Unit's application process and request statistics."
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/statusApplicationsApp"
+
+    # /status/applications/{appName}
+    statusApplicationsApp:
+      description: "Represents Unit's per-app process and request statistics."
+      type: object
+      properties:
+        processes:
+          $ref: "#/components/schemas/statusApplicationsAppProcesses"
+
+        requests:
+          $ref: "#/components/schemas/statusApplicationsAppRequests"
+
+    # /status/applications/{appName}/processes
+    statusApplicationsAppProcesses:
+      description: "Represents Unit's per-app process statistics."
+      type: object
+      properties:
+        running:
+          type: integer
+          description: "Current running app processes."
+
+        starting:
+          type: integer
+          description: "Current starting app processes."
+
+        idle:
+          type: integer
+          description: "Current idle app processes."
+
+    # /status/applications/{appName}/requests
+    statusApplicationsAppRequests:
+      description: "Represents Unit's per-app request statistics."
+      type: object
+      properties:
+        active:
+          type: integer
+          description: "Active app requests."
+
+    # /status/requests
+    statusRequests:
+      description: "Represents Unit's per-instance request statistics."
+      type: object
+      properties:
+        total:
+          type: integer
+          description: "Total non-API requests during the instance’s lifetime."
+
+    # /status/connections
+    statusConnections:
+      description: "Represents Unit's per-instance connection statistics."
+      type: object
+      properties:
+        accepted:
+          type: integer
+          description: "Total accepted connections during the
+            instance’s lifetime."
+
+        active:
+          type: integer
+          description: "Current active connections for the instance."
+
+        idle:
+          type: integer
+          description: "Current idle connections for the instance."
+
+        closed:
+          type: integer
+          description: "Total closed connections during
+            the instance’s lifetime."
+
+# -- TAGS --
+
+tags:
+  - name: access log
+    description: Everything about the access log in the /config section
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#access-log
+
+  - name: apps
+    description: Everything about applications
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#applications
+
+  - name: certificates
+    description:
+      Everything about the /certificates section in Unit's control API
+      in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/certificates/
+
+  - name: config
+    description: Everything about the /config section in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/configuration/
+
+  - name: control
+    description: Everything about the /control section in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/controlapi/
+
+  - name: listeners
+    description: Everything about listeners in the /config section
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#listeners
+
+  - name: routes
+    description: Everything about routes in the /config section
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#routes
+
+  - name: settings
+    description: Everything about the global settings in the /config section
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#settings
+
+  - name: status
+    description: Everything about the /status section in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/usagestats/
+
+  - name: tls
+    description: Everything about SSL/TLS in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/certificates/
+
+  - name: xff
+    description: Everything about X-Forwarded-* handling in Unit's control API
+    externalDocs:
+      url: https://unit.nginx.org/configuration/#ip-protocol-forwarding
+
+externalDocs:
+  description: "Find us on GitHub"
+  url: "https://github.com/nginx/unit"

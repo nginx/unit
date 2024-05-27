@@ -1,0 +1,244 @@
+# distribution specific definitions
+%define bdir %{_builddir}/%{name}-%{version}
+%define dotests 0
+
+%if 0%{?rhel}%{?fedora}
+BuildRequires: gcc
+%if 0%{?amzn2}
+BuildRequires: openssl11-devel
+%else
+BuildRequires: openssl-devel
+%endif
+%endif
+
+%if 0%{?rhel}
+%if 0%{?amzn} == 0
+%define dist .el%{?rhel}
+%endif
+%endif
+
+%define CC_OPT %{optflags} -fPIC
+%define LD_OPT -Wl,-z,relro -Wl,-z,now -pie
+
+%define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
+
+Provides: nginx-unit
+
+Name: unit
+Summary: NGINX Unit
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+License: ASL 2.0
+Vendor: %%PACKAGE_VENDOR%%
+URL: https://unit.nginx.org/
+Group: System Environment/Daemons
+
+Source0: unit-%{version}.tar.gz
+Source1: unit.service
+Source2: unit-debug.service
+Source3: unit.example.config
+Source4: unit.logrotate
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: systemd
+Requires(post):    systemd
+Requires(preun):   systemd
+Requires(postun):  systemd
+
+BuildRequires: pcre2-devel
+BuildRequires: pkgconfig
+BuildRequires: clang
+BuildRequires: llvm
+
+Provides: unit-r%{version}
+
+%description
+NGINX Unit is a runtime and delivery environment for modern distributed
+applications. It runs the application code in multiple languages
+(PHP, Python, Go, etc.), and tightly couples it with traffic delivery
+in and out of the application. Take this application server and proxy
+directly in the cloud / container environments and fully control your app
+dynamically via an API.
+
+%if (0%{?fedora}) || (0%{?rhel} >= 8)
+%define _debugsource_template %{nil}
+%endif
+
+%package devel
+Summary: NGINX Unit (development files)
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+Group: Development/Libraries
+Requires: unit == %%VERSION%%-%%RELEASE%%%{?dist}.ngx
+%description devel
+Library and include files required for NGINX Unit modules development.
+
+%prep
+%setup -q
+
+%build
+%{__make} %{?_smp_mflags} -C pkg/contrib .njs
+
+PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modulesdir=%{_libdir}/unit/debug-modules \
+	--libdir=%{_libdir} \
+	--cc-opt="%{CC_OPT}" \
+	--ld-opt="%{LD_OPT}" \
+	--debug
+%{__make} %{?_smp_mflags}
+%{__make} %{?_smp_mflags} build/lib/libunit.a
+%{__mv} build build-debug
+
+PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modulesdir=%{_libdir}/unit/modules \
+	--libdir=%{_libdir} \
+	--cc-opt="%{CC_OPT}" \
+	--ld-opt="%{LD_OPT}"
+%{__make} %{?_smp_mflags}
+%{__mv} build build-nodebug
+
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{__make} %{?_smp_mflags} -C pkg/contrib .libunit-wasm
+%endif
+
+%install
+%{__rm} -rf %{buildroot}
+%{__ln_s} build-nodebug build
+DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
+%{__mkdir} -p %{buildroot}%{_bindir}
+%{__install} -m755 %{bdir}/tools/unitc \
+    %{buildroot}%{_bindir}/unitc
+%{__install} -m755 %{bdir}/tools/setup-unit \
+    %{buildroot}%{_bindir}/setup-unit
+%{__install} -m755 %{bdir}/build-debug/sbin/unitd \
+    %{buildroot}%{_sbindir}/unitd-debug
+%{__install} -m644 %{bdir}/build-debug/lib/libunit.a \
+    %{buildroot}%{_libdir}/libunit-debug.a
+%{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
+%{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
+%{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
+%{__mkdir} -p %{buildroot}%{_localstatedir}/log/unit
+%{__mkdir} -p %{buildroot}%{_localstatedir}/run/unit
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
+%{__install} -m 644 -p %{SOURCE4} \
+    %{buildroot}%{_sysconfdir}/logrotate.d/unit
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
+%{__install} -m 644 -p %{SOURCE3} \
+    %{buildroot}%{_datadir}/doc/unit/examples/example.config
+%{__install} -m 644 -p CHANGES \
+    %{buildroot}%{_datadir}/doc/unit/
+%{__install} -m 644 -p NOTICE \
+    %{buildroot}%{_datadir}/doc/unit/COPYRIGHT
+%{__install} -m 644 -p README.md \
+    %{buildroot}%{_datadir}/doc/unit/
+%{__install} -m 644 -p CONTRIBUTING.md \
+    %{buildroot}%{_datadir}/doc/unit/
+
+%{__rm} -rf %{buildroot}%{_initrddir}/
+%{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
+%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/unit-debug.service
+
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{__mkdir} -p %{buildroot}%{_includedir}/unit/
+%{__install} -m 644 pkg/contrib/libunit-wasm/src/c/libunit-wasm.a %{buildroot}%{_libdir}/
+%{__install} -m 644 pkg/contrib/libunit-wasm/src/c/include/unit/unit-wasm.h %{buildroot}%{_includedir}/unit/
+%endif
+
+QA_SKIP_BUILD_ROOT=1
+export QA_SKIP_BUILD_ROOT
+
+%check
+%if %{dotests}
+cd %{bdir} && make tests && ./build/tests
+%endif
+%{__rm} -rf %{buildroot}/usr/src
+cd %{bdir}
+grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
+cat /dev/null > debugsources.list
+
+%clean
+%{__rm} -rf %{buildroot}
+
+%post
+getent group unit >/dev/null || groupadd -r unit
+getent passwd unit >/dev/null || \
+    useradd -r -g unit -s /sbin/nologin \
+    -d /nonexistent -c "unit user" unit
+if [ $1 -eq 1 ]; then
+    /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
+    /usr/bin/systemctl preset unit-debug.service >/dev/null 2>&1 ||:
+    cat <<BANNER
+----------------------------------------------------------------------
+
+Thank you for installing NGINX Unit!
+
+Additional modules are available in standalone packages.
+To see the available modules, run "yum list available unit-\*".
+
+Online documentation is available at https://unit.nginx.org/
+
+----------------------------------------------------------------------
+BANNER
+fi
+
+%preun
+if [ $1 -eq 0 ]; then
+    /usr/bin/systemctl --no-reload disable unit.service >/dev/null 2>&1 ||:
+    /usr/bin/systemctl stop unit.service >/dev/null 2>&1 ||:
+fi
+
+%postun
+/usr/bin/systemctl daemon-reload >/dev/null 2>&1 ||:
+if [ $1 -ge 1 ]; then
+    /usr/bin/systemctl try-restart unit.service >/dev/null 2>&1 ||:
+fi
+
+%triggerpostun -- unit < 1.22.0
+cat <<BANNER
+----------------------------------------------------------------------
+
+WARNING:
+
+Since version 1.22.0, Unit's non-privileged processes run as unit:unit by
+default.  Review your system permissions and Unit configuration so apps and
+routes that relied on these processes running as nobody:nogroup stay working.
+
+More info: https://unit.nginx.org/installation/#official-packages
+
+----------------------------------------------------------------------
+BANNER
+
+%files
+%defattr(-,root,root,-)
+%attr(0755,root,root) %{_bindir}/unitc
+%attr(0755,root,root) %{_bindir}/setup-unit
+%attr(0755,root,root) %{_sbindir}/unitd
+%attr(0755,root,root) %{_sbindir}/unitd-debug
+%{_unitdir}/unit.service
+%{_unitdir}/unit-debug.service
+%dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
+%dir %{_datadir}/doc/unit
+%{_datadir}/doc/unit/*
+%dir %{_libdir}/unit/modules
+%dir %{_libdir}/unit/debug-modules
+%dir %{_sharedstatedir}/unit
+%dir %attr(0755,root,root) %{_localstatedir}/log/unit
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
+%{_mandir}/man8/unitd.8*
+
+%files devel
+%{_libdir}/libunit.a
+%{_libdir}/libunit-debug.a
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{_libdir}/libunit-wasm.a
+%dir %{_includedir}/unit
+%{_includedir}/unit/*.h
+%endif
+%{_includedir}/nxt_*.h
+%{_datadir}/pkgconfig/unit.pc
+
+%changelog

@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+<!DOCTYPE configuration SYSTEM "change_log_conf.dtd" >
+
+<configuration>
+
+<generic>
+<length>76</length>
+<start>    *) </start>
+<indent>       </indent>
+</generic>
+
+<rpm>
+<length>76</length>
+<start>- </start>
+<indent>  </indent>
+</rpm>
+
+<deb>
+<length>76</length>
+<start>  * </start>
+<indent>    </indent>
+</deb>
+
+<changes>
+    <title>Changes with </title>
+    <length>65</length>
+
+    <bugfix>Bugfix</bugfix>
+    <feature>Feature</feature>
+    <change>Change</change>
+    <security>Security</security>
+    <workaround>Workaround</workaround>
+
+    <month> Jan </month>
+    <month> Feb </month>
+    <month> Mar </month>
+    <month> Apr </month>
+    <month> May </month>
+    <month> Jun </month>
+    <month> Jul </month>
+    <month> Aug </month>
+    <month> Sep </month>
+    <month> Oct </month>
+    <month> Nov </month>
+    <month> Dec </month>
+
+    <day>Sun</day>
+    <day>Mon</day>
+    <day>Tue</day>
+    <day>Wed</day>
+    <day>Thu</day>
+    <day>Fri</day>
+    <day>Sat</day>
+</changes>
+
+</configuration>

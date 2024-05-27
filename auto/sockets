@@ -1,0 +1,280 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+if [ $NXT_INET6 = YES ]; then
+
+    nxt_feature="AF_INET6"
+    nxt_feature_name=NXT_INET6
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <stdio.h>
+                      #include <sys/socket.h>
+                      #include <sys/types.h>
+                      #include <netinet/in.h>
+
+                      int main(void) {
+                          struct sockaddr_in6  sin6;
+
+                          sin6.sin6_family = AF_INET6;
+                          printf(\"%d\", sin6.sin6_family);
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# FreeBSD, MacOSX, NetBSD, OpenBSD.
+
+nxt_feature="sockaddr.sa_len"
+nxt_feature_name=NXT_SOCKADDR_SA_LEN
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      struct sockaddr  sa;
+
+                      sa.sa_len = 0;
+                      printf(\"%d\", sa.sa_len);
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct sockaddr size"
+nxt_feature_name=NXT_HAVE_SOCKADDR
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(struct sockaddr));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct sockaddr_in size"
+nxt_feature_name=NXT_HAVE_SOCKADDR_IN
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/types.h>
+                  #include <netinet/in.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(struct sockaddr_in));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct sockaddr_in6 size"
+nxt_feature_name=NXT_HAVE_SOCKADDR_IN6
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/types.h>
+                  #include <netinet/in.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(struct sockaddr_in6));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct sockaddr_un size"
+nxt_feature_name=NXT_HAVE_SOCKADDR_UN
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/types.h>
+                  #include <sys/un.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(struct sockaddr_un));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct sockaddr_storage size"
+nxt_feature_name=NXT_HAVE_SOCKADDR_STORAGE
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      printf(\"%d\", (int) sizeof(struct sockaddr_storage));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="socketpair(AF_UNIX, SOCK_SEQPACKET)"
+nxt_feature_name=NXT_HAVE_AF_UNIX_SOCK_SEQPACKET
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      int  pair[2];
+
+                      if (socketpair(AF_UNIX, SOCK_SEQPACKET, 0, pair) != 0)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct msghdr.msg_control"
+nxt_feature_name=NXT_HAVE_MSGHDR_MSG_CONTROL
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      struct  msghdr  msg;
+
+                      printf(\"%d\", (int) sizeof(msg.msg_control));
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no msghdr.msg_control struct member.
+    $echo
+    exit 1;
+fi
+
+
+if [ $NXT_SYSTEM != DragonFly ]; then
+    nxt_feature="sockopt SO_PASSCRED"
+    nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PASSCRED
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#define _GNU_SOURCE
+                      #include <sys/socket.h>
+
+                      int main(void) {
+                          return SO_PASSCRED == 0;
+                      }"
+    . auto/feature
+
+
+    if [ $nxt_found = yes ]; then
+        nxt_feature="struct ucred"
+        nxt_feature_name=NXT_HAVE_UCRED
+        nxt_feature_run=
+        nxt_feature_incs=
+        nxt_feature_libs=
+        nxt_feature_test="#define _GNU_SOURCE
+                          #include <sys/socket.h>
+                          #include <sys/un.h>
+
+                          int main(void) {
+                              return sizeof(struct ucred);
+                          }"
+        . auto/feature
+    fi
+
+
+    nxt_feature="struct cmsgcred"
+    nxt_feature_name=NXT_HAVE_MSGHDR_CMSGCRED
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#define _GNU_SOURCE
+                      #include <sys/socket.h>
+
+                      int main(void) {
+                          return sizeof(struct cmsgcred);
+                      }"
+    . auto/feature
+fi
+
+
+nxt_feature="sys/filio.h"
+nxt_feature_name=NXT_HAVE_SYS_FILIO_H
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/filio.h>
+
+                  int main(void) {
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="ioctl(FIONBIO)"
+nxt_feature_name=NXT_HAVE_FIONBIO
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <unistd.h>
+                  #include <sys/socket.h>
+                  #include <sys/ioctl.h>
+
+                  int main(void) {
+                      int  nb;
+
+                      nb = 0;
+                      ioctl(-1, FIONBIO, &nb);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# socket(SOCK_NONBLOCK), Linux 2.6.27/glibc 2.10, NetBSD 6.0, FreeBSD 9.2.
+
+nxt_feature="socket(SOCK_NONBLOCK)"
+nxt_feature_name=NXT_HAVE_SOCK_NONBLOCK
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# accept4(), Linux 2.6.28/glibc 2.10, NetBSD 6.0, FreeBSD 9.2.
+
+nxt_feature="accept4()"
+nxt_feature_name=NXT_HAVE_ACCEPT4
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdlib.h>
+                  #include <sys/socket.h>
+
+                  int main(void) {
+                      accept4(0, NULL, NULL, SOCK_NONBLOCK);
+                      return 0;
+                  }"
+. auto/feature

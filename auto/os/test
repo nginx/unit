@@ -1,0 +1,101 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_SYSTEM=`uname -s 2>/dev/null`
+
+
+case "$NXT_SYSTEM" in
+
+    Linux)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        # Linux uname -p can return "unknown".
+        NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
+        echo=echo
+        CC=${CC:-cc}
+        AR=${AR:-ar}
+        ;;
+
+    FreeBSD | NetBSD | OpenBSD | DragonFly)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
+        echo=echo
+        CC=${CC:-cc}
+        AR=${AR:-ar}
+        ;;
+
+    SunOS)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
+        echo=echo
+        CC=${CC:-gcc}
+        AR=${AR:-ar}
+
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE"
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE_EXTENDED=1"
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D__EXTENSIONS__"
+        NXT_TEST_LIBS="-lsocket"
+        ;;
+
+    Darwin)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
+        echo=echo
+        CC=${CC:-cc}
+        AR=${AR:-ar}
+        ;;
+
+    AIX)
+        NXT_SYSTEM_VERSION="`uname -v 2>/dev/null`.`uname -r 2>/dev/null`"
+        NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
+        echo=echo
+        CC=${CC:-gcc}
+        AR=${AR:-ar}
+        ;;
+
+    HP-UX)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
+        echo=echo
+        CC=${CC:-gcc}
+        AR=${AR:-ar}
+
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE"
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE_EXTENDED"
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_HPUX_ALT_XOPEN_SOCKET_API"
+        ;;
+
+    QNX)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
+        echo=echo
+        CC=${CC:-gcc}
+        AR=${AR:-ar}
+        ;;
+
+    MINGW*)
+        # MinGW /bin/sh builtin "echo" omits newline under Wine
+        # for some reason, so use a portable echo.c program built
+        # using MinGW GCC with only msvcrt.dll dependence.
+
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
+        echo=auto/echo/echo.exe
+        CC=${CC:-cl}
+        AR=${AR:-ar}
+        NXT_WINDOWS=YES
+        ;;
+
+    *)
+        NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
+        NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
+        echo=echo
+        CC=${CC:-gcc}
+        AR=${AR:-ar}
+        ;;
+
+esac
+
+$echo "configuring Unit $NXT_VERSION"                                         \
+      "for $NXT_SYSTEM $NXT_SYSTEM_VERSION $NXT_SYSTEM_PLATFORM"

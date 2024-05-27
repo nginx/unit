@@ -1,0 +1,46 @@
+MODULES+=			python37
+MODULE_SUFFIX_python37=		python3.7
+
+MODULE_SUMMARY_python37=	Python 3.7 module for NGINX Unit
+
+MODULE_VERSION_python37=	$(VERSION)
+MODULE_RELEASE_python37=	1
+
+MODULE_CONFARGS_python37=	python --config=python3.7-config
+MODULE_MAKEARGS_python37=	python3.7
+MODULE_INSTARGS_python37=	python3.7-install
+
+MODULE_SOURCES_python37=	unit.example-python-app \
+				unit.example-python3.7-config
+
+BUILD_DEPENDS_python37=	python3.7-dev
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python37)
+
+MODULE_BUILD_DEPENDS_python37=,python3.7-dev
+
+define MODULE_PREINSTALL_python37
+	mkdir -p debian/unit-python3.7/usr/share/doc/unit-python3.7/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python3.7/usr/share/doc/unit-python3.7/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python3.7-config debian/unit-python3.7/usr/share/doc/unit-python3.7/examples/unit.config
+endef
+export MODULE_PREINSTALL_python37
+
+define MODULE_POST_python37
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python37) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_python37)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python37

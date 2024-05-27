@@ -1,0 +1,239 @@
+
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+
+        --config=*)    NXT_PYTHON_CONFIG="$value"                            ;;
+        --module=*)    NXT_PYTHON_MODULE="$value"                            ;;
+        --lib-path=*)  NXT_PYTHON_LIB_PATH="$value"                          ;;
+
+        --help)
+            cat << END
+
+    --config=FILE         set python-config filename
+    --module=NAME         set unit python module name
+    --lib-path=DIRECTORY  set directory path to libpython.so library
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Python option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+NXT_PYTHON_CONFIG=${NXT_PYTHON_CONFIG=python-config}
+NXT_PYTHON=${NXT_PYTHON_CONFIG%-config*}
+NXT_PYTHON_MODULE=${NXT_PYTHON_MODULE=${NXT_PYTHON##*/}}
+NXT_PYTHON_LIB_PATH=${NXT_PYTHON_LIB_PATH=}
+
+
+$echo "configuring Python module"
+$echo "configuring Python module ..." >> $NXT_AUTOCONF_ERR
+
+nxt_found=no
+
+if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    if ${NXT_PYTHON_CONFIG} --embed >/dev/null 2>&1; then
+        NXT_PYTHON_CONFIG="${NXT_PYTHON_CONFIG} --embed"
+    fi
+
+    NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
+    NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
+
+    if [ "$NXT_PYTHON_LIB_PATH" != "" ]; then
+        # "python-config --ldflags" may not contain path to libpython.
+        NXT_PYTHON_LDFLAGS="-L$NXT_PYTHON_LIB_PATH -Wl,-rpath,$NXT_PYTHON_LIB_PATH"
+    else
+        NXT_PYTHON_LDFLAGS=""
+    fi
+
+    nxt_feature="Python"
+    nxt_feature_name=""
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
+    nxt_feature_libs="${NXT_PYTHON_LIBS} $NXT_PYTHON_LDFLAGS"
+    nxt_feature_test="
+        #include <Python.h>
+
+        int main(void) {
+            Py_Initialize();
+            return 0;
+        }"
+
+    . auto/feature
+
+else
+    $echo "checking for Python ... not found"
+fi
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no Python found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="Python version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
+nxt_feature_libs="${NXT_PYTHON_LIBS} $NXT_PYTHON_LDFLAGS"
+nxt_feature_test="
+    #include <Python.h>
+    #include <stdio.h>
+
+    int main(void) {
+        printf(\"%s\", PY_VERSION);
+        return 0;
+    }"
+
+. auto/feature
+
+
+if grep ^$NXT_PYTHON_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_PYTHON_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+
+NXT_PYTHON_MOUNTS_HEADER=nxt_${NXT_PYTHON_MODULE}_mounts.h
+
+$NXT_PYTHON -c 'import os.path
+import sys
+pyver = "python" + str(sys.version_info[0]) + "." + str(sys.version_info[1])
+
+print("static const nxt_fs_mount_t  nxt_python_mounts[] = {")
+
+pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", NXT_FS_BIND, (u_char *) \"bind\", 0, NULL, 1, 1},"
+base = None
+for p in sys.path:
+    if len(p) > 0:
+        if os.path.basename(p) == pyver:
+            base = p
+
+if base is None:
+    raise Exception("failed to compute sys.path mount points")
+
+print(pattern % (base, base))
+
+for p in sys.path:
+    if len(p) > 0:
+        if not p.startswith(base):
+            print(pattern % (p, p))
+
+print("};\n\n")
+
+' > $NXT_BUILD_DIR/include/$NXT_PYTHON_MOUNTS_HEADER
+
+
+$echo " + Python module: ${NXT_PYTHON_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_PYTHON_MODULE_SRCS=" \
+    src/python/nxt_python.c \
+    src/python/nxt_python_asgi.c \
+    src/python/nxt_python_asgi_http.c \
+    src/python/nxt_python_asgi_lifespan.c \
+    src/python/nxt_python_asgi_str.c \
+    src/python/nxt_python_asgi_websocket.c \
+    src/python/nxt_python_wsgi.c \
+"
+
+# The python module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_PYTHON_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_PYTHON_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/python
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_PYTHON_MOUNTS_H=\"$NXT_PYTHON_MOUNTS_HEADER\" \\
+           \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
+	$nxt_dep_flags \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_PYTHON_MODULE}
+.PHONY: ${NXT_PYTHON_MODULE}-install
+.PHONY: ${NXT_PYTHON_MODULE}-uninstall
+
+all: ${NXT_PYTHON_MODULE}
+
+${NXT_PYTHON_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so:	$nxt_objs
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ \\
+	$nxt_objs $NXT_PYTHON_LIBS $NXT_PYTHON_LDFLAGS $NXT_LD_OPT
+
+
+install: ${NXT_PYTHON_MODULE}-install
+
+${NXT_PYTHON_MODULE}-install: ${NXT_PYTHON_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+
+
+uninstall: ${NXT_PYTHON_MODULE}-uninstall
+
+${NXT_PYTHON_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_PYTHON_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

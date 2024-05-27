@@ -1,0 +1,13 @@
+
+case "$NXT_CC_NAME" in
+
+    *)
+        nxt_gen_dep_flags() {
+            $echo "-MMD -MF $NXT_BUILD_DIR/$nxt_dep -MT $NXT_BUILD_DIR/$nxt_obj"
+        }
+
+        nxt_gen_dep_post() {
+            $echo ""
+        }
+    ;;
+esac

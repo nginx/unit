@@ -1,0 +1,141 @@
+
+# Copyright (C) Max Romanov
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+NXT_GO=go
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --go=*)       NXT_GO="$value"                                        ;;
+        --go-path=*)  NXT_GO_PATH="$value"                                   ;;
+
+        --help)
+            cat << END
+
+    --go=NAME        set go executable
+    --go-path=PATH   set GOPATH variable to install package
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Go option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+$echo "configuring Go package"
+$echo "configuring Go package ..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "checking for Go ..."
+$echo "checking for Go ..." >> $NXT_AUTOCONF_ERR
+
+
+if /bin/sh -c "${NXT_GO} version" >> $NXT_AUTOCONF_ERR 2>&1; then
+    $echo " found"
+
+    NXT_GO_VERSION="`${NXT_GO} version`"
+    $echo " + ${NXT_GO_VERSION}"
+
+else
+    $echo
+    $echo $0: error: no Go found.
+    $echo
+    exit 1;
+fi
+
+
+NXT_GO_PATH=${NXT_GO_PATH=`${NXT_GO} env GOPATH`}
+NXT_GO_PATH=${NXT_GO_PATH:-${PWD}/${NXT_BUILD_DIR}/${NXT_GO}}
+
+NXT_GO_PKG=unit.nginx.org/go
+
+$echo " + Go package path: \"${NXT_GO_PATH}\""
+
+if grep ^$NXT_GO: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_GO\" package configured.
+    $echo
+    exit 1;
+fi
+
+NXT_GO_LDFLAGS=
+
+for o in ${CFLAGS} ${NXT_CC_OPT}; do
+    case "$o" in
+      -fsanitize* | -L* | -l*) NXT_GO_LDFLAGS="${NXT_GO_LDFLAGS} $o" ;;
+    esac
+done
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_GO}
+.PHONY: ${NXT_GO}-install
+.PHONY: ${NXT_GO}-install-src
+.PHONY: ${NXT_GO}-uninstall
+
+GOPATH =	$NXT_GO_PATH
+GOOS =		`${NXT_GO} env GOOS`
+GOARCH =	`${NXT_GO} env GOARCH`
+
+NXT_GO_DST =	${NXT_GO_PATH%%:*}
+
+install: ${NXT_GO}-install
+
+${NXT_GO}:
+
+${NXT_GO}-install: ${NXT_GO}-install-src ${NXT_GO}-install-env
+	cd \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG} && \
+    GOPATH=\$(DESTDIR)\$(GOPATH) ${NXT_GO} build ${NXT_GO_PKG}
+
+${NXT_GO}-install-src:
+	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
+	install -p -m644 ./go/* \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/
+
+${NXT_GO}-install-env: \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go \
+    ${NXT_VERSION_H} ${NXT_BUILD_DIR}/lib/${NXT_LIB_UNIT_STATIC}
+
+\$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go:
+	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
+	$echo "package unit" > \$@
+	$echo "/*" >> \$@
+	$echo "#cgo CFLAGS: ${CFLAGS} ${NXT_CC_OPT}" >> \$@
+	$echo "#cgo CPPFLAGS: -I${PWD}/src -I${PWD}/${NXT_BUILD_DIR}/include" >> \$@
+	$echo "#cgo LDFLAGS: -L${PWD}/${NXT_BUILD_DIR}/lib ${NXT_GO_LDFLAGS} ${NXT_LD_OPT}" >> \$@
+	$echo "*/" >> \$@
+	$echo 'import "C"' >> \$@
+
+
+uninstall: ${NXT_GO}-uninstall
+
+${NXT_GO}-uninstall:
+	rm -rf \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
+	rm -rf \$(DESTDIR)\$(NXT_GO_DST)/pkg/\$(GOOS)_\$(GOARCH)/${NXT_GO_PKG}
+
+END

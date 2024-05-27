@@ -1,0 +1,54 @@
+MODULES+=			jsc_common
+MODULE_SUFFIX_jsc_common=	jsc-common
+
+MODULE_SUMMARY_jsc_common=	Java shared packages for NGINX Unit
+
+MODULE_VERSION_jsc_common=	$(VERSION)
+MODULE_RELEASE_jsc_common=	1
+
+JAVA_ARCH_jsc_common=	$(shell /usr/lib/jvm/java-1.8.0/bin/java -XshowSettings 2>&1 | grep -F -e os.arch | sed -e 's/^.*= //')
+
+ifeq ($(OSVER),amazonlinux2023)
+MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-17-amazon-corretto --lib-path=/usr/lib/jvm/java-17-amazon-corretto/lib --jars=/usr/share/unit-jsc-common/
+else ifeq ($(OSVER),fedora39)
+MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-17-openjdk --lib-path=/usr/lib/jvm/java-17-openjdk/lib --jars=/usr/share/unit-jsc-common/
+else
+MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-1.8.0 --lib-path=/usr/lib/jvm/jre-1.8.0/lib/$(JAVA_ARCH_jsc_common) --jars=/usr/share/unit-jsc-common/
+endif
+MODULE_INSTARGS_jsc_common=	java-shared-install
+
+MODULE_SOURCES_jsc_common=	COPYRIGHT.unit-jsc-common
+
+ifeq ($(OSVER),amazonlinux2023)
+BUILD_DEPENDS_jsc_common=	java-17-amazon-corretto-devel curl
+else ifeq ($(OSVER),fedora39)
+BUILD_DEPENDS_jsc_common=	java-17-openjdk-devel curl
+else
+BUILD_DEPENDS_jsc_common=	java-1.8.0-openjdk-devel curl
+endif
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc_common)
+
+define MODULE_DEFINITIONS_jsc_common
+BuildArch: noarch
+endef
+export MODULE_DEFINITIONS_jsc_common
+
+define MODULE_FILES_jsc_common
+%dir %{_datadir}/unit-jsc-common
+%{_datadir}/unit-jsc-common/*
+endef
+export MODULE_FILES_jsc_common
+
+define MODULE_POST_jsc_common
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc_common) have been installed.
+
+Please find licenses and related information here:
+  /usr/share/doc/unit-jsc-common/COPYRIGHT
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc_common

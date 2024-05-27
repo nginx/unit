@@ -1,0 +1,200 @@
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+# Linux clone syscall.
+
+NXT_ISOLATION=NO
+NXT_HAVE_LINUX_NS=NO
+NXT_HAVE_CLONE_NEWUSER=NO
+NXT_HAVE_MOUNT=NO
+NXT_HAVE_UNMOUNT=NO
+NXT_HAVE_ROOTFS=NO
+
+nsflags="USER NS PID NET UTS CGROUP"
+
+nxt_feature="Linux unshare()"
+nxt_feature_name=NXT_HAVE_LINUX_NS
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <sched.h>
+
+                  int main(void) {
+                      return unshare(0);
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_LINUX_NS=YES
+
+    # Test all isolation flags
+    for flag in $nsflags; do
+        nxt_feature="CLONE_NEW${flag}"
+        nxt_feature_name=NXT_HAVE_CLONE_NEW${flag}
+        nxt_feature_run=no
+        nxt_feature_incs=
+        nxt_feature_libs=
+        nxt_feature_test="#define _GNU_SOURCE
+                          #include <sys/wait.h>
+                          #include <sys/syscall.h>
+                          #include <sched.h>
+
+                          int main(void) {
+                              return CLONE_NEW$flag;
+                         }"
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            if [ $flag = "USER" ]; then
+                NXT_HAVE_CLONE_NEWUSER=YES
+            fi
+
+            if [ "$NXT_ISOLATION" = "NO" ]; then
+                NXT_ISOLATION=$flag
+            else
+                NXT_ISOLATION="$NXT_ISOLATION $flag"
+            fi
+        fi
+    done
+fi
+
+
+nxt_feature="Linux pivot_root()"
+nxt_feature_name=NXT_HAVE_LINUX_PIVOT_ROOT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/syscall.h>
+                  #if !defined(__linux__)
+                  # error
+                  #endif
+
+                  int main(void) {
+                      return SYS_pivot_root;
+                  }"
+. auto/feature
+
+
+nxt_feature="<mntent.h>"
+nxt_feature_name=NXT_HAVE_MNTENT_H
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <mntent.h>
+
+                  int main(void) {
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="prctl(PR_SET_NO_NEW_PRIVS)"
+nxt_feature_name=NXT_HAVE_PR_SET_NO_NEW_PRIVS
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/prctl.h>
+
+                  int main(void) {
+                      return PR_SET_NO_NEW_PRIVS;
+                  }"
+. auto/feature
+
+
+nxt_feature="prctl(PR_SET_CHILD_SUBREAPER)"
+nxt_feature_name=NXT_HAVE_PR_SET_CHILD_SUBREAPER
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/prctl.h>
+
+                  int main(void) {
+                      return PR_SET_CHILD_SUBREAPER;
+                  }"
+. auto/feature
+
+
+nxt_feature="Linux mount()"
+nxt_feature_name=NXT_HAVE_LINUX_MOUNT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mount.h>
+
+                  int main(void) {
+                      return mount(\"/\", \"/\", \"bind\",
+                                   MS_BIND | MS_REC, \"\");
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_MOUNT=YES
+fi
+
+
+if [ $nxt_found = no ]; then
+    nxt_feature="FreeBSD nmount()"
+    nxt_feature_name=NXT_HAVE_FREEBSD_NMOUNT
+    nxt_feature_run=no
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/mount.h>
+
+                    int main(void) {
+                        return nmount((void *)0, 0, 0);
+                    }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_MOUNT=YES
+    fi
+fi
+
+
+nxt_feature="Linux umount2()"
+nxt_feature_name=NXT_HAVE_LINUX_UMOUNT2
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mount.h>
+
+                  int main(void) {
+                      return umount2((void *)0, 0);
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_UNMOUNT=YES
+fi
+
+if [ $nxt_found = no ]; then
+    nxt_feature="unmount()"
+    nxt_feature_name=NXT_HAVE_UNMOUNT
+    nxt_feature_run=no
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/mount.h>
+
+                    int main(void) {
+                        return unmount((void *)0, 0);
+                    }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_UNMOUNT=YES
+    fi
+fi
+
+if [ $NXT_HAVE_MOUNT = YES -a $NXT_HAVE_UNMOUNT = YES ]; then
+    NXT_HAVE_ROOTFS=YES
+
+    cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_HAVE_ISOLATION_ROOTFS
+#define NXT_HAVE_ISOLATION_ROOTFS  1
+#endif
+
+END
+
+fi

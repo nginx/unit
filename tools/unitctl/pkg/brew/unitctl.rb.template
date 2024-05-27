@@ -1,0 +1,29 @@
+class Unitctl < Formula
+  desc "CLI interface to the NGINX UNIT Control API"
+  homepage "https://github.com/nginxinc/unit-rust-sdk"
+  version "$VERSION"
+  package_name = "$PACKAGE_NAME"
+  src_repo = "$SRC_REPO"
+
+  if OS.mac? and Hardware::CPU.intel?
+      url "#{src_repo}/releases/download/v#{version}/#{package_name}_v#{version}_x86_64-apple-darwin.tar.gz"
+      sha256 "$X86_64_APPLE_DARWIN_SHA256"
+  elsif OS.mac? and Hardware::CPU.arm?
+      url "#{src_repo}/releases/download/v#{version}/#{package_name}_#{version}_aarch64-apple-darwin.tar.gz"
+      sha256 "$AARCH64_APPLE_DARWIN_SHA256"
+  elsif OS.linux? and Hardware::CPU.intel?
+      url "#{src_repo}/releases/download/v#{version}/#{package_name}_#{version}_x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "$X86_64_UNKNOWN_LINUX_GNU_SHA256"
+  elsif OS.linux? and Hardware::CPU.arm? and Hardware::CPU.is_64_bit?
+      url "#{src_repo}/releases/download/v#{version}/#{package_name}_#{version}_aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "$AARCH64_UNKNOWN_LINUX_GNU_SHA256"
+  else
+      odie "Unsupported architecture"
+  end
+
+
+  def install
+    bin.install "unitctl"
+    man1.install "unitctl.1.gz"
+  end
+end

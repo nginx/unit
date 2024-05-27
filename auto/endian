@@ -1,0 +1,31 @@
+# Copyright (C) Igor Sysoev
+# Copyright (C) Andrew Clayton
+# Copyright (C) NGINX, Inc.
+
+
+nxt_feature="endianness"
+nxt_feature_name=
+nxt_feature_run=value
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdint.h>
+                  #include <stdio.h>
+
+                  int main(void) {
+                      int i = 0x11223344;
+                      uint8_t *p;
+
+                      p = (uint8_t *)&i;
+                      if (*p == 0x44)
+                          printf(\"little endian\");
+                      else
+                          printf(\"big endian\");
+                      return 0;
+                  }"
+. auto/feature
+
+if [ "$nxt_feature_value" = "little endian" ]; then
+    nxt_have=NXT_HAVE_LITTLE_ENDIAN . auto/have
+else
+    nxt_have=NXT_HAVE_BIG_ENDIAN . auto/have
+fi

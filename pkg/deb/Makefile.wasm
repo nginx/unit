@@ -1,0 +1,47 @@
+MODULES+=		wasm
+MODULE_SUFFIX_wasm=	wasm
+
+MODULE_SUMMARY_wasm=	WASM module for NGINX Unit
+
+MODULE_VERSION_wasm=	$(VERSION)
+MODULE_RELEASE_wasm=	1
+
+MODULE_CONFARGS_wasm=	wasm --include-path=\$$(CURDIR)/pkg/contrib/wasmtime/crates/c-api/include --lib-path=\$$(CURDIR)/pkg/contrib/wasmtime/target/release \&\& ./configure wasm-wasi-component
+MODULE_MAKEARGS_wasm=	wasm wasm-wasi-component CFLAGS=\"\$$(shell grep ^CFLAGS \$$(BUILDDIR_\$$*)/build/Makefile | cut -d' ' -f 3-) -Wno-missing-prototypes\"
+MODULE_INSTARGS_wasm=	wasm-install wasm-wasi-component-install
+
+MODULE_SOURCES_wasm=
+
+BUILD_DEPENDS_wasm=
+MODULE_BUILD_DEPENDS_wasm=
+MODULE_DEPENDS_wasm=
+
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_wasm)
+
+define MODULE_PREBUILD_wasm
+	\$$(MAKE) -C pkg/contrib .wasmtime
+endef
+export MODULE_PREBUILD_wasm
+
+define MODULE_PREINSTALL_wasm
+endef
+export MODULE_PREINSTALL_wasm
+
+define MODULE_POSTINSTALL_wasm
+	mkdir -p debian/unit-wasm/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/
+	install -m 755 -p pkg/contrib/wasmtime/target/release/libwasmtime.so debian/unit-wasm/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/
+endef
+export MODULE_POSTINSTALL_wasm
+
+define MODULE_POST_wasm
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_wasm) has been installed.
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_wasm

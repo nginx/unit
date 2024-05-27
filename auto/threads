@@ -1,0 +1,258 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+case "$NXT_SYSTEM" in
+
+    Linux)
+        NXT_PTHREAD="-lpthread"
+    ;;
+
+    FreeBSD)
+        # FreeBSD libc supports only pthread stubs.
+        NXT_PTHREAD="-lpthread"
+    ;;
+
+    SunOS)
+        case "$NXT_SYSTEM_VERSION" in
+        5.8 | 5.9)
+            NXT_PTHREAD="-lpthread"
+        ;;
+        *)
+            # Solaris 10 libpthread.so.1 is a filter to libc.so.1.
+            NXT_PTHREAD=
+        ;;
+        esac
+    ;;
+
+    Darwin)
+        # MacOSX libpthread.dylib is a symlink to libSystem.dylib.
+        NXT_PTHREAD=
+    ;;
+
+    *)
+        NXT_PTHREAD="-lpthread"
+    ;;
+esac
+
+
+# Linux, FreeBSD.
+
+nxt_feature="pthread_yield()"
+nxt_feature_name=NXT_HAVE_PTHREAD_YIELD
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=$NXT_PTHREAD
+nxt_feature_test="#define _GNU_SOURCE
+              #include <pthread.h>
+
+              int main(void) {
+                  pthread_yield();
+                  return 0;
+              }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX.
+
+    nxt_feature="pthread_yield_np()"
+    nxt_feature_name=NXT_HAVE_PTHREAD_YIELD_NP
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=$NXT_PTHREAD
+    nxt_feature_test="#include <pthread.h>
+
+                  int main(void) {
+                      pthread_yield_np();
+                      return 0;
+                  }"
+    . auto/feature
+fi
+
+
+# FreeBSD, Solaris, AIX.
+
+nxt_feature="pthread spinlock"
+nxt_feature_name=NXT_HAVE_PTHREAD_SPINLOCK
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=$NXT_PTHREAD
+nxt_feature_test="#include <pthread.h>
+
+              int main(void) {
+                  pthread_spinlock_t  lock;
+
+                  if (pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE) != 0)
+                      return 1;
+                  if (pthread_spin_lock(&lock) != 0)
+                      return 1;
+                  if (pthread_spin_unlock(&lock) != 0)
+                      return 1;
+                  if (pthread_spin_destroy(&lock) != 0)
+                      return 1;
+                  return 0;
+              }"
+. auto/feature
+
+
+if [ $nxt_found = yes ]; then
+
+    # Linux glibc uses 0 as pthread_spinlock_t initial value on the most
+    # platforms.  However, on i386 and x86_64 the initial value is 1.
+
+    nxt_feature="pthread spinlock zero initial value"
+    nxt_feature_name=NXT_HAVE_PTHREAD_SPINLOCK_ZERO
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=$NXT_PTHREAD
+    nxt_feature_test="#include <pthread.h>
+
+                      pthread_spinlock_t  lock = 0;
+
+                      int main(void) {
+                          if (pthread_spin_trylock(&lock) != 0)
+                              return 1;
+                          if (pthread_spin_unlock(&lock) != 0)
+                              return 1;
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+nxt_feature="sem_timedwait()"
+nxt_feature_name=NXT_HAVE_SEM_TIMEDWAIT
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <semaphore.h>
+
+                  int main(void) {
+                      sem_t            sem;
+                      struct timespec  ts;
+
+                      if (sem_init(&sem, 0, 0) != 0)
+                          return 1;
+                      if (sem_post(&sem) != 0)
+                          return 1;
+
+                      ts.tv_sec = 0;
+                      ts.tv_nsec = 0;
+                      if (sem_timedwait(&sem, &ts) != 0)
+                          return 1;
+
+                      if (sem_destroy(&sem) != 0)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    if [ -n "$NXT_PTHREAD" ]; then
+
+        # Linux requires libpthread.
+
+        nxt_feature="sem_timedwait() in libpthread"
+        nxt_feature_libs=$NXT_PTHREAD
+        . auto/feature
+    fi
+
+    if [ $nxt_found = no ]; then
+
+        # Solaris 10 requires librt.
+
+        nxt_feature="sem_timedwait() in librt"
+        nxt_feature_libs="-lrt"
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            NXT_LIBRT="-lrt"
+        fi
+    fi
+fi
+
+
+# Thread Local Storage / Thread Specific Data.
+#
+# Linux, FreeBSD 5.3, Solaris.
+# MacOSX 10.7 (Lion) Clang.
+
+nxt_feature="__thread"
+nxt_feature_name=NXT_HAVE_THREAD_STORAGE_CLASS
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=$NXT_PTHREAD
+nxt_feature_test="#include <pthread.h>
+                  #include <stdlib.h>
+
+                  __thread int  key;
+
+                  void *func(void *p);
+
+                  void *func(void *p) {
+                      key = 0x9abcdef0;
+                      return NULL;
+                  }
+
+                  int main(void) {
+                      void       *n;
+                      pthread_t  pt;
+
+                      key = 0x12345678;
+                      if (pthread_create(&pt, NULL, func, NULL))
+                          return 1;
+                      if (pthread_join(pt, &n))
+                          return 1;
+                      if (key != 0x12345678)
+                          return 1;
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX GCC lacks __thread support.
+    # On NetBSD __thread causes segmentation fault.
+
+    nxt_feature="phtread_key_t"
+    nxt_feature_name=NXT_HAVE_PTHREAD_SPECIFIC_DATA
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs=$NXT_PTHREAD
+    nxt_feature_test="#include <pthread.h>
+
+                      int main(void) {
+                          pthread_key_t  key = -1;
+
+                          if (pthread_key_create(&key, NULL))
+                              return 1;
+                          if (pthread_setspecific(key, (void *) 0x12345678))
+                              return 1;
+                          if (pthread_getspecific(key) != (void *) 0x12345678)
+                              return 1;
+                          return 0;
+                      }"
+    . auto/feature
+
+
+    nxt_feature="PTHREAD_KEYS_MAX"
+    nxt_feature_name=
+    nxt_feature_run=value
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <limits.h>
+                      #include <pthread.h>
+                      #include <stdio.h>
+
+                      int main(void) {
+                          printf(\"%d\", PTHREAD_KEYS_MAX);
+                          return 0;
+                      }"
+    . auto/feature
+fi

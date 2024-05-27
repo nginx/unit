@@ -1,0 +1,4131 @@
+<?xml version="1.0" ?>
+<!DOCTYPE change_log SYSTEM "changes.dtd" >
+
+
+<change_log title="unit">
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-python3.12
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20 unit-jsc21
+                unit-wasm"
+         ver="1.33.0" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.33.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.33.0" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+if building with njs, version 0.8.3 or later is now required.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc21" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 21 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.12" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.12 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-python3.12
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20 unit-jsc21
+                unit-wasm"
+         ver="1.32.0" rev="1"
+         date="2024-02-27" time="18:00:00 +0000"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.32.0.
+</para>
+</change>
+
+
+</changes>
+
+
+<changes apply="unit" ver="1.32.0" rev="1"
+         date="2024-02-27" time="18:00:00 +0000"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
+<para>
+WebAssembly Components using WASI interfaces defined in wasi:http/proxy@0.2.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+conditional access logging.
+</para>
+</change>
+
+<change type="feature">
+<para>
+njs variables access.
+</para>
+</change>
+
+<change type="feature">
+<para>
+$request_id variable contains a string that is formed using random data and
+can be used as a unique request identifier.
+</para>
+</change>
+
+<change type="feature">
+<para>
+options to set control socket permissions.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby arrays in response headers, improving compatibility with Rack v3.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python bytearray response bodies for ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+router could crash while sending large files. Thanks to rustedsword.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+serving static files from a network filesystem could lead to error.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"uidmap" and "gidmap" isolation options validation.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+abstract UNIX socket name could be corrupted during configuration validation.
+Thanks to Alejandro Colomar.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP header field value encoding could be misinterpreted in Python module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js http.createServer() accepts and ignores the "options" argument,
+improving compatibility with strapi applications, among others.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.flushHeaders() implemented in Node.js module to make it compatible
+with Next.js.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.httpVersion variable format in Node.js module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js module handles standard library imports prefixed with "node:", making it
+possible to run newer Nuxt applications, among others.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js tarball location changed to avoid build/install errors.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Go module sets environment variables necessary for building on macOS/arm64
+systems.
+</para>
+</change>
+
+</changes>
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20
+                unit-wasm"
+         ver="1.31.1" rev="1"
+         date="2023-10-19" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.31.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.31.1" rev="1"
+         date="2023-10-19" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
+<para>
+allow to set the HTTP response status in Wasm module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+allow uploads larger than 4GiB in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+application process could crash while rewriting URLs with query strings.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests larger than about 64MiB could cause error in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+when using many headers in Java module some of them could be
+corrupted due to memory realocation issue.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.destroy() implemented in Node.js module to make it compatible
+with some frameworks that might use it.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+chunk argument of ServerResponse.write() can now be a Uint8Array to improve
+compatibility with Node.js 15.0.0 and above.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.JS unit-http NPM module now has appropriate default paths for macOS/arm64
+systems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+build on musl libc with clang.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20
+                unit-wasm"
+         ver="1.31.0" rev="1"
+         date="2023-08-31" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.31.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.31.0" rev="1"
+         date="2023-08-31" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+if building with njs, version 0.8.0 or later is now required.
+</para>
+</change>
+
+<change type="feature">
+<para>
+technology preview of WebAssembly application module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"response_headers" option to manage headers in the action and fallback.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP response header variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+ASGI lifespan state support. Thanks to synodriver.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ensure that $uri variable is not cached.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+deprecated options were unavailable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ASGI applications inaccessible over IPv6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-wasm" ver="1.31.0" rev="1"
+         date="2023-08-14" time="15:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of WASM module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20"
+         ver="1.30.0" rev="1"
+         date="2023-05-10" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.30.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc20" ver="1.30.0" rev="1"
+         date="2023-05-03" time="15:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 20 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.30.0" rev="1"
+         date="2023-05-10" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+remove Unix domain listen sockets upon reconfiguration.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic URI rewrite support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+njs loadable modules support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+per-application logging.
+</para>
+</change>
+
+<change type="feature">
+<para>
+conditional logging of route selection.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support the keys API on the request objects in njs.
+</para>
+</change>
+
+<change type="feature">
+<para>
+default values for 'make install' pathnames such as prefix;
+this allows to './configure &amp;&amp; make &amp;&amp; sudo make install'.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"server_version" setting to omit the version token from "Server" header field.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+request header field values could be corrupted in some cases; the bug had
+appeared in 1.29.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP error handling (added missing 403 and 404 errors).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Perl applications crash on second responder call.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19"
+         ver="1.29.1" rev="1"
+         date="2023-02-28" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.29.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.29.1" rev="1"
+         date="2023-02-28" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="bugfix">
+<para>
+stop creating world-writeable directories.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak related to njs.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+path parsing in PHP applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+enabled UTF-8 for Python config by default to avoid applications failing
+in some cases.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+using asyncio.get_running_loop() instead of asyncio.get_event_loop()
+when it's available to prevent errors in some Python ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+applications that make use of various low level APIs such as pthreads could
+fail to work correctly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+websocket endianness detection for obscure operating systems.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19"
+         ver="1.29.0" rev="1"
+         date="2022-12-15" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.29.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc19" ver="1.29.0" rev="1"
+         date="2022-11-18" time="15:00:00 +0400"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 19 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.11" ver="1.29.0" rev="1"
+         date="2022-12-15" time="08:00:00 -0800"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.11 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.29.0" rev="1"
+         date="2022-12-15" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+removed $uri auto-append for "share" when loading configuration.
+</para>
+</change>
+
+<change type="change">
+<para>
+prefer system crypto policy instead of hardcoding a default.
+</para>
+</change>
+
+<change type="feature">
+<para>
+njs support with the basic syntax of JS template literals.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support per-application cgroups on Linux.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the $request_time variable contains the request processing time.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"prefix" option in Python applications to set WSGI "SCRIPT_NAME"
+and ASGI root-path variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.11.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with OpenSSL 3.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8.2.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Node.js 19.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby Rack v3 support.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix error in connection statistics when using proxy.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix HTTP cookie parsing when the value contains an equals sign.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP directory URLs without a trailing '/' would give a 503 error (fixed with
+a 301 re-direct).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+missing error checks in the C API.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+report the regex status in configure summary.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
+         ver="1.28.0" rev="1"
+         date="2022-09-13" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.28.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.28.0" rev="1"
+         date="2022-09-13" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+increased the applications' startup timeout.
+</para>
+</change>
+
+<change type="change">
+<para>
+disallowed abstract Unix domain socket syntax in non-Linux systems.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic statistics API.
+</para>
+</change>
+
+<change type="feature">
+<para>
+customizable access log format.
+</para>
+</change>
+
+<change type="feature">
+<para>
+more HTTP variables support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+forwarded header to replace client address and protocol.
+</para>
+</change>
+
+<change type="feature">
+<para>
+ability to get dynamic variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for abstract Unix sockets.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for Unix sockets in address matching.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the $dollar variable translates to a literal "$" during variable substitution.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+router process could crash if index file didn't contain an extension.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+force SCRIPT_NAME in Ruby to always be an empty string.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+when isolated PID numbers reach the prototype process host PID,
+the prototype crashed.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Ruby application process could crash on SIGTERM.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Ruby application process could crash on SIGINT.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+mutex leak in the C API.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
+         ver="1.27.0" rev="1"
+         date="2022-06-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.27.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.27.0" rev="1"
+         date="2022-06-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+ability to specify a custom index file name when serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+variables support in the "location" option of the "return" action.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support empty strings in the "location" option of the "return" action.
+</para>
+</change>
+
+<change type="feature">
+<para>
+added a new variable, $request_uri, that includes both the path and the query
+parts as per RFC 3986, sections 3-4.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby Rack environment parameter "SCRIPT_NAME" support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with GCC 12.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby Sinatra applications don't work without custom logging.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the controller process could crash when a chain of more than four
+certificates was uploaded.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some Perl applications failed to process the request body, notably with Plack.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some Spring Boot applications failed to start, notably with Grails.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+incorrect Python protocol auto detection (ASGI or WSGI) for native callable
+object, notably with Falcon.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ECMAScript modules did not work with the recent Node.js versions.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
+         ver="1.26.1" rev="1"
+         date="2021-12-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.26.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.26.1" rev="1"
+         date="2021-12-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+occasionally, the Unit daemon was unable to fully terminate; the bug had
+appeared in 1.26.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a prototype process could crash on an application process exit; the bug had
+appeared in 1.26.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process crashed on reconfiguration if "access_log" was configured
+without listeners.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in the PHP module if chdir() or
+fastcgi_finish_request() was called in the OPcache preloading script.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fatal errors on DragonFly BSD; the bug had appeared in 1.26.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc18" ver="1.26.0" rev="1"
+         date="2021-11-18" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 18 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.10" ver="1.26.0" rev="1"
+         date="2021-11-18" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.10 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17"
+         ver="1.26.0" rev="1"
+         date="2021-11-18" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.26.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.26.0" rev="1"
+         date="2021-11-18" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "share" option now specifies the entire path to the files it serves,
+rather than a document root directory to be prepended to the request URI.
+</para>
+</change>
+
+<change type="feature">
+<para>
+automatic adjustment of existing configurations to the new "share" behavior
+when updating from previous versions.
+</para>
+</change>
+
+<change type="feature">
+<para>
+variables support in the "share" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+multiple paths in the "share" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+variables support in the "chroot" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+PHP opcache is shared between application processes.
+</para>
+</change>
+
+<change type="feature">
+<para>
+request routing by the query string.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router and app processes could crash when the requests limit was reached
+by asynchronous or multithreaded apps.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+established WebSocket connections could stop reading frames from the client
+after the corresponding listener had been reconfigured.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fixed building with glibc 2.34, notably Fedora 35.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17"
+         ver="1.25.0" rev="1"
+         date="2021-08-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.25.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.25.0" rev="1"
+         date="2021-08-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+client IP address replacement from a specified HTTP header field.
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS sessions cache.
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS session tickets.
+</para>
+</change>
+
+<change type="feature">
+<para>
+application restart control.
+</para>
+</change>
+
+<change type="feature">
+<para>
+process and thread lifecycle hooks in Ruby.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash on TLS connection open when multiple listeners
+with TLS certificates were configured; the bug had appeared in 1.23.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+TLS connections were rejected for configurations with multiple certificate
+bundles in a listener if the client did not use SNI.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash with frequent multithreaded application
+reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+compatibility issues with some Python ASGI apps, notably based on the Starlette
+framework.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a descriptor and memory leak occurred in the router process when an app process
+stopped or crashed.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the controller or router process could crash if the configuration contained
+a full-form IPv6 in a listener address.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process crashed when a request was passed to an empty "routes"
+or "upstreams" using a variable "pass" option.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process crashed while matching a request to an empty array of source
+or destination address patterns.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc17" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 17 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc16" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 16 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15"
+         ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.24.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+PHP added to the default MIME type list.
+</para>
+</change>
+
+<change type="feature">
+<para>
+arbitrary configuration of TLS connections via OpenSSL commands.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the ability to limit static file serving by MIME types.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for chrooting, rejecting symlinks, and rejecting mount
+point traversal on a per-request basis when serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+a loader for automatically overriding the "http" and "websocket" modules in
+Node.js.
+</para>
+</change>
+
+<change type="feature">
+<para>
+multiple "targets" in Python applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Ruby 3.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while closing a TLS connection.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred in the PHP module if
+fastcgi_finish_request() was used with the "auto_globals_jit" option enabled.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15"
+         ver="1.23.0" rev="1"
+         date="2021-03-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.23.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.23.0" rev="1"
+         date="2021-03-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+support for multiple certificate bundles on a listener via the Server Name
+Indication (SNI) TLS extension.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"--mandir" ./configure option to specify the directory for man page
+installation.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash on premature TLS connection close; the bug had
+appeared in 1.17.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a connection leak occurred on premature TLS connection close; the bug had
+appeared in 1.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a descriptor and memory leak occurred in the router process when processing
+small WebSocket frames from a client; the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a descriptor leak occurred in the router process when removing or
+reconfiguring an application; the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+persistent storage of certificates might've not worked with some filesystems in
+Linux, and all uploaded certificate bundles were forgotten after restart.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the controller process could crash while requesting information about a
+certificate with a non-DNS SAN entry.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the controller process could crash on manipulations with a certificate
+containing a SAN and no standard name attributes in subject or issuer.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Ruby module didn't respect the user locale for defaults in the Encoding
+class.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the PHP 5 module failed to build with thread safety enabled; the bug had
+appeared in 1.22.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.9" ver="1.22.0" rev="1"
+         date="2021-02-04" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.9 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15"
+         ver="1.22.0" rev="1"
+         date="2021-02-04" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.22.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.22.0" rev="1"
+         date="2021-02-04" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+the ServerRequest and ServerResponse objects of Node.js module are now
+compliant with Stream API.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for specifying multiple directories in the "path" option of Python
+apps.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurred in the router process when serving files larger than
+128K; the bug had appeared in 1.13.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+apps could stop processing new requests under high load; the bug had
+appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+app processes could terminate unexpectedly under high load; the bug had
+appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+invalid HTTP responses were generated for some unusual status codes.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were
+missing in the PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash with multithreaded apps under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby apps with multithreading configured could crash on start under load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+mount points weren't unmounted when the "mount" namespace isolation was used;
+the bug had appeared in 1.21.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while removing or reconfiguring an app that used
+WebSocket.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurring in the router process when removing or reconfiguring
+an application; the bug had appeared in 1.19.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc15" ver="1.21.0" rev="1"
+         date="2020-11-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 15 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc14" ver="1.21.0" rev="1"
+         date="2020-11-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 14 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc13" ver="1.21.0" rev="1"
+         date="2020-11-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 13 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.21.0" rev="1"
+         date="2020-11-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.21.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.21.0" rev="1"
+         date="2020-11-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+procfs is mounted by default for all languages when "rootfs" isolation is used.
+</para>
+</change>
+
+<change type="change">
+<para>
+any characters valid according to RFC 7230 are now allowed in HTTP header field
+names.
+</para>
+</change>
+
+<change type="change">
+<para>
+HTTP header fields with underscores ("_") are now discarded from requests by
+default.
+</para>
+</change>
+
+<change type="feature">
+<para>
+optional multithreaded request processing for Java, Python, Perl, and Ruby apps.
+</para>
+</change>
+
+<change type="feature">
+<para>
+regular expressions in route matching patterns.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.9.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the Python module now supports ASGI 2.0 legacy applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "protocol" option in Python applications aids choice between ASGI and WSGI.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the fastcgi_finish_request() PHP function that finalizes request processing and
+continues code execution without holding onto the client connection.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "discard_unsafe_fields" HTTP option that enables discarding request header
+fields with irregular (but still valid) characters in the field name.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "procfs" and "tmpfs" automount isolation options to disable automatic
+mounting of eponymous filesystems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash when running Go applications under high load;
+the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some language dependencies could remain mounted after using "rootfs" isolation.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues in Java applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Java module built with the musl C library couldn't run applications that
+use "rootfs" isolation.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.20.0" rev="1"
+         date="2020-10-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.20.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.20.0" rev="1"
+         date="2020-10-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the PHP module is now initialized before chrooting; this enables loading all
+extensions from the host system.
+</para>
+</change>
+
+<change type="change">
+<para>
+AVIF and APNG image formats added to the default MIME type list.
+</para>
+</change>
+
+<change type="change">
+<para>
+functional tests migrated to the pytest framework.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the Python module now fully supports applications that use the ASGI 3.0 server
+interface.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the Python module now has a built-in WebSocket server implementation for
+applications, compatible with the HTTP &amp; WebSocket ASGI Message Format 2.1
+specification.
+</para>
+</change>
+
+<change type="feature">
+<para>
+automatic mounting of an isolated "/tmp" file system into chrooted application
+environments.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the $host variable contains a normalized "Host" request value.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "callable" option sets Python application callable names.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8 RC 1. Thanks to Remi Collet.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "automount" option in the "isolation" object allows to turn off the
+automatic mounting of language module dependencies.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"pass"-ing requests to upstreams from a route was broken; the bug had appeared
+in 1.19.0.  Thanks to 洪志道 (Hong Zhi Dao) for discovering and fixing it.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash during reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurring in the router process; the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the "!" (non-empty) pattern was matched incorrectly;
+the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fixed building on platforms without sendfile() support, notably NetBSD;
+the bug had appeared in 1.16.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.19.0" rev="1"
+         date="2020-08-13" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.19.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.19.0" rev="1"
+         date="2020-08-13" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+reworked IPC between the router process and the applications to lower latencies,
+increase performance, and improve scalability.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for an arbitrary number of wildcards in route matching patterns.
+</para>
+</change>
+
+<change type="feature">
+<para>
+chunked transfer encoding in proxy responses.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic variables support in the "pass" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8 Beta 1.
+Thanks to Remi Collet.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while passing requests to an application under
+high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a number of language modules failed to build on some systems;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+time in error log messages from PHP applications could lag.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+reconfiguration requests could hang if an application had failed to start;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak during reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the daemon didn't start without language modules;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash at exit.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js applications could crash at exit.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Ruby module could be linked against a wrong library version.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.18.0" rev="1"
+         date="2020-05-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.18.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.18.0" rev="1"
+         date="2020-05-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+the "rootfs" isolation option for changing root filesystem for an application.
+</para>
+</change>
+
+<change type="feature">
+<para>
+multiple "targets" in PHP applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for percent-encoding in the "uri" and "arguments" matching options
+and in the "pass" option.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.17.0" rev="1"
+         date="2020-04-16" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.17.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.17.0" rev="1"
+         date="2020-04-16" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+a "return" action with optional "location" for immediate responses and external
+redirection.
+</para>
+</change>
+
+<change type="feature">
+<para>
+fractional weights support for upstream servers.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+accidental 502 "Bad Gateway" errors might have occurred in applications under
+high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak in the router; the bug had appeared in 1.13.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in the router process when reaching
+open connections limit.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"close() failed (9: Bad file descriptor)" alerts might have appeared in the log
+while processing large request bodies; the bug had appeared in 1.16.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+existing application processes didn't reopen the log file.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+incompatibility with some Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+broken build on DragonFly BSD; the bug had appeared in 1.16.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.16.0" rev="1"
+         date="2020-03-12" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.16.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.16.0" rev="1"
+         date="2020-03-12" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic load-balancing support with round-robin.
+</para>
+</change>
+
+<change type="feature">
+<para>
+a "fallback" option that performs an alternative action if a request can't be
+served from the "share" directory.
+</para>
+</change>
+
+<change type="feature">
+<para>
+reduced memory consumption by dumping large request bodies to disk.
+</para>
+</change>
+
+<change type="feature">
+<para>
+stripping UTF-8 BOM and JavaScript-style comments from uploaded JSON.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+negative address matching in router might work improperly in combination with
+non-negative patterns.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Java Spring applications failed to run; the bug had appeared in 1.10.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP 7.4 was broken if it was built with thread safety enabled.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+compatibility issues with some Python applications.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.15.0" rev="1"
+         date="2020-02-06" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.15.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.15.0" rev="1"
+         date="2020-02-06" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+extensions of dynamically requested PHP scripts were restricted to ".php".
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Ruby 2.7.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in the router process with multiple
+application processes under load; the bug had appeared in 1.14.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+receiving request body over TLS connection might have stalled.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.14.0" rev="1"
+         date="2019-12-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.14.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.14.0" rev="1"
+         date="2019-12-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the Go package import name changed to "unit.nginx.org/go".
+</para>
+</change>
+
+<change type="change">
+<para>
+Go package now links to libunit instead of including library sources.
+</para>
+</change>
+
+<change type="feature">
+<para>
+ability to change user and group for isolated applications when Unit daemon
+runs as an unprivileged user.
+</para>
+</change>
+
+<change type="feature">
+<para>
+request routing by source and destination addresses and ports.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory bloat on large responses.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.13" ver="1.13.0" rev="1"
+         date="2019-11-20" time="09:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.13 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.12" ver="1.13.0" rev="1"
+         date="2019-11-20" time="09:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.12 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.8" ver="1.13.0" rev="1"
+         date="2019-11-18" time="14:20:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.8 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.13.0" rev="1"
+         date="2019-11-14" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.13.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.13.0" rev="1"
+         date="2019-11-14" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic support for HTTP reverse proxying.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.8.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak in Python application processes when the close handler was used.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+threads in Python applications might not work correctly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby on Rails applications might not work on Ruby 2.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+backtraces for uncaught exceptions in Python 3 might be logged with significant
+delays.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+explicit setting a namespaces isolation option to false might have enabled it.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.12.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+compatibility with PHP 7.4.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+descriptors leak on process creation; the bug had appeared in 1.11.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+TLS connection might be closed prematurely while sending response.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred if an irregular file was requested.
+</para>
+</change>
+
+</changes>
+
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.11.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic support for serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+isolation of application processes with Linux namespaces.
+</para>
+</change>
+
+<change type="feature">
+<para>
+built-in WebSocket server implementation for Java Servlet Containers.
+</para>
+</change>
+
+<change type="feature">
+<para>
+direct addressing of API configuration options containing slashes "/"
+using URI encoding (%2F).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in Go applications under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+WebSocket support was broken if Unit was built with some linkers other than
+GNU ld (e.g. gold or LLD).
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit
+                unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.10.0" rev="2"
+         date="2019-08-23" time="12:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+missed header files added to unit development package.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.10.0" rev="1"
+         date="2019-08-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.10.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.10.0" rev="1"
+         date="2019-08-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+matching of cookies in routes made case sensitive.
+</para>
+</change>
+
+<change type="change">
+<para>
+decreased log level of common errors when clients close connections.
+</para>
+</change>
+
+<change type="change">
+<para>
+removed the Perl module's "--include=" ./configure option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+built-in WebSocket server implementation for Node.js module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+splitting PATH_INFO from request URI in PHP module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+request routing by scheme (HTTP or HTTPS).
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for multipart requests body in Java module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+improved API compatibility with Node.js 11.10 or later.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+reconfiguration failed if "listeners" or "applications" objects were missing.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+applying a large configuration might have failed.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.11" ver="1.9.0" rev="1"
+         date="2019-05-30" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.11 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.9.0" rev="1"
+         date="2019-05-30" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.9.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.9.0" rev="1"
+         date="2019-05-30" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+request routing by arguments, headers, and cookies.
+</para>
+</change>
+
+<change type="feature">
+<para>
+route matching patterns allow a wildcard in the middle.
+</para>
+</change>
+
+<change type="feature">
+<para>
+POST operation for appending elements to arrays in configuration.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for changing credentials using CAP_SETUID and CAP_SETGID capabilities
+on Linux without running main process as privileged user.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak in the router process might have happened when a client
+prematurely closed the connection.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+applying a large configuration might have failed.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PUT and DELETE operations on array elements in configuration did not work.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+request schema in applications did not reflect TLS connections.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+restored compatibility with Node.js applications that use
+ServerResponse._implicitHeader() function; the bug had appeared in 1.7.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc-common" ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java common packages for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc8" ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 8 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc10" ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 10 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc11" ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 11 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.8.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.8.0" rev="1"
+         date="2019-03-01" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+now three numbers are always used for versioning: major, minor,
+and patch versions.
+</para>
+</change>
+
+<change type="change">
+<para>
+now QUERY_STRING is always defined even if the request does not include
+the query component.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic internal request routing by Host, URI, and method.
+</para>
+</change>
+
+<change type="feature">
+<para>
+experimental support for Java Servlet Containers.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in the router process.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various potential memory leaks.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+TLS connections might have stalled.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some Perl applications might have failed to send the response body.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some compilers with specific flags might have produced non-functioning builds;
+the bug had appeared in 1.5.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js package had wrong version number when installed from sources.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.7.1" rev="1"
+         date="2019-02-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.7.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.7.1" rev="1"
+         date="2019-02-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="security">
+<para>
+a heap memory buffer overflow might have been caused in the router process by
+a specially crafted request, potentially resulting in a segmentation fault or
+other unspecified behavior (CVE-2019-7401).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+install of Go module failed without prior building of Unit daemon;
+the bug had appeared in 1.7.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.7" ver="1.7" rev="1"
+         date="2018-12-25" time="10:30:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.7 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.7" rev="1"
+         date="2018-12-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.7.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.7" rev="1"
+         date="2018-12-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+now rpath is set in Ruby module only if the library was not found in default
+search paths; this allows to meet packaging restrictions on some systems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"disable_functions" and "disable_classes" PHP options set via Control API
+did not work.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Promises on request data in Node.js were not triggered.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Node.js module if application tried to read
+request body after request.end() was called.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Node.js module if application attempted to
+send header twice.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+names of response header fields in Node.js module were erroneously treated as
+case-sensitive.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+uncatched exceptions in Node.js were not logged.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+global install of Node.js module from sources was broken on some systems;
+the bug had appeared in 1.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+traceback for exceptions during initialization of Python applications might not
+be logged.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP module build failed if PHP interpreter was built with thread safety
+enabled.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+"make install" now installs Node.js module as well if it was configured.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"--local" ./configure option to install Node.js module locally.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js module might have crashed due to broken reference counting.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+asynchronous operations in Node.js might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"freed pointer is out of pool" alerts might have appeared in log.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+module discovery did not work on 64-bit big-endian systems like IBM/S390x.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.5" rev="1"
+         date="2018-10-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.5" rev="1"
+         date="2018-10-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "type" of application object for Go was changed to "external".
+</para>
+</change>
+
+<change type="feature">
+<para>
+initial version of Node.js package with basic HTTP request-response support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with LibreSSL.
+</para>
+</change>
+
+<change type="feature">
+<para>
+--libdir and --incdir ./configure options to install libunit headers
+and static library.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+connection might be closed prematurely while sending response;
+the bug had appeared in 1.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+application processes might have stopped handling requests, producing
+"last message send failed: Resource temporarily unavailable" alerts in log;
+the bug had appeared in 1.4.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Go applications did not work when Unit was built with musl C library.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.4" rev="2"
+         date="2018-09-27" time="13:30:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+corrected instructions for launching sample application.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.4" rev="2"
+         date="2018-09-27" time="13:30:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "saveconfig" and "loadconfig" action scripts were removed.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.4" rev="1"
+         date="2018-09-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.4" rev="1"
+         date="2018-09-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the control API maps the configuration object only at "/config/".
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS support for client connections.
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS certificates storage control API.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Unit library (libunit) to streamline language module integration.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"408 Request Timeout" responses while closing HTTP keep-alive connections.
+</para>
+</change>
+
+<change type="feature">
+<para>
+improvements in OpenBSD support.
+Thanks to David Carlier.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred after reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+building on systems with non-default locale might be broken.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"header_read_timeout" might not work properly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+header fields values with non-ASCII bytes might be handled incorrectly
+in Python 3 module.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+UTF-8 characters are now allowed in request header field values.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of the request body size limit.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of various HTTP connection timeouts.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby module now automatically uses Bundler where possible.
+</para>
+</change>
+
+<change type="feature">
+<para>
+http.Flusher interface in Go module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various issues in HTTP connection errors handling.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests with body data might be handled incorrectly in PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+individual PHP configuration options specified via control API were reset
+to previous values after the first request in application process.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.2" rev="1"
+         date="2018-06-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.2.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.2" rev="1"
+         date="2018-06-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+configuration of environment variables for application processes.
+</para>
+</change>
+
+<change type="feature">
+<para>
+customization of php.ini path.
+</para>
+</change>
+
+<change type="feature">
+<para>
+setting of individual PHP configuration options.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of execution arguments for Go applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+keep-alive connections might hang after reconfiguration.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.10" ver="1.1" rev="1"
+         date="2018-05-14" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.10 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl
+                unit-ruby"
+         ver="1.1" rev="1"
+         date="2018-04-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.1" rev="1"
+         date="2018-04-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+Python applications that use the write() callable did not work.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+virtual environments created with Python 3.3 or above might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the request.Read() function in Go applications did not produce EOF
+when the whole body was read.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred while access log reopening.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in parsing of IPv6 control socket addresses.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+loading of application modules was broken on OpenBSD.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred when there were two modules
+with the same type and version; the bug had appeared in 1.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+alerts "freed pointer points to non-freeble page" might have appeared in log
+on 32-bit platforms.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl
+                unit-ruby"
+         ver="1.0" rev="1"
+         date="2018-04-12" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.0" rev="1"
+         date="2018-04-12" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+configuration object moved into "/config/" path.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic access logging.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+503 error occurred if Go application did not write response header or body.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby applications that use encoding conversions might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various stability issues.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl"
+         ver="0.7" rev="1"
+         date="2018-03-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.7.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-ruby" ver="0.7" rev="1"
+         date="2018-04-02" time="15:40:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Ruby module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.7" rev="1"
+         date="2018-03-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+Ruby application module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in discovering modules.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various race conditions on reconfiguration and during shutting down.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+tabs and trailing spaces were not allowed in header fields values.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Python module if start_response() was called
+outside of WSGI callable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred in PHP module if there was an error
+while initialization.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl"
+         ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+the main process died when the "type" application option contained version;
+the bug had appeared in 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9"
+         ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-perl" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Perl module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "workers" application option was removed, the "processes"
+application option should be used instead.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "processes" application option with prefork and dynamic
+process management support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Perl application module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in reading client request body; the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some Python applications might not have worked due to missing
+"wsgi.errors" environ variable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP chunked responses might be encoded incorrectly on 32-bit
+platforms.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+infinite looping in HTTP parser.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault in router.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9"
+         ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+compatibility with DragonFly BSD.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"configure php --lib-static" option.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP request body was not passed to application;
+the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP large header buffers allocation and deallocation fixed;
+the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some PHP applications might not have worked with relative "root" path.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.9" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.9 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.6" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.6 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7 unit-python3.4 unit-python3.5
+                unit-go unit-go1.7 unit-go1.8"
+         ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the Go package name changed to "nginx/unit".
+</para>
+</change>
+
+<change type="change">
+<para>
+in the "limits.timeout" application option: application start time and
+time in queue now are not accounted.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "limits.requests" application option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+application request processing latency optimization.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP keep-alive connections support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "home" Python virtual environment configuration option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python atexit hook support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+various Go package improvements.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various crashes fixed.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.7" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.7 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.8" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.8 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python2.7" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 2.7 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.4" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.4 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.5" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.5 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of PHP module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.2" rev="1"
+         date="2017-10-19" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+configuration persistence.
+</para>
+</change>
+
+<change type="feature">
+<para>
+improved handling of configuration errors.
+</para>
+</change>
+
+<change type="feature">
+<para>
+application "timeout" property.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+POST request for PHP were handled incorrectly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router exited abnormally if all listeners had been deleted.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router crashed under load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak in the router.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.1" rev="1"
+         date="2017-09-06" time="19:14:28 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+First public release.
+</para>
+</change>
+
+</changes>
+
+
+</change_log>

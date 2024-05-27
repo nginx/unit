@@ -1,0 +1,216 @@
+
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value=""                                                      ;;
+    esac
+
+    case "$nxt_option" in
+        --node=*)       NXT_NODE="$value"                                   ;;
+        --npm=*)        NXT_NPM="$value"                                    ;;
+        --node-gyp=*)   NXT_NODE_GYP="$value"                               ;;
+        --local=*)      NXT_NODE_LOCAL="$value"                             ;;
+
+        --help)
+            cat << END
+
+    --node=FILE        set node executable
+    --npm=FILE         set npm executable
+    --node-gyp=FILE    set node-gyp executable
+    --local=DIRECTORY  set directory path for local installation
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid Node option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+NXT_NODE=${NXT_NODE=node}
+NXT_NPM=${NXT_NPM=npm}
+NXT_NODE_GYP=${NXT_NODE_GYP=node-gyp}
+NXT_NODE_LOCAL=${NXT_NODE_LOCAL=}
+
+
+$echo "configuring nodejs module"
+$echo "configuring nodejs module..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "checking for node ..."
+$echo "checking for node ..." >> $NXT_AUTOCONF_ERR
+
+if /bin/sh -c "${NXT_NODE} -v" >> $NXT_AUTOCONF_ERR 2>&1; then
+    $echo " found"
+
+    NXT_NODE_VERSION="`${NXT_NODE} -v`"
+    $echo " + node version ${NXT_NODE_VERSION}"
+
+else
+    $echo " not found"
+    $echo
+    $echo $0: error: no Node found.
+    $echo
+    exit 1;
+fi
+
+
+$echo -n "checking for npm ..."
+$echo "checking for npm ..." >> $NXT_AUTOCONF_ERR
+
+if /bin/sh -c "${NXT_NPM} -v" >> $NXT_AUTOCONF_ERR 2>&1; then
+    $echo " found"
+
+    NXT_NPM_VERSION="`${NXT_NPM} -v`"
+    $echo " + npm version ${NXT_NPM_VERSION}"
+
+else
+    $echo " not found"
+    $echo
+    $echo $0: error: no npm found.
+    $echo
+    exit 1;
+fi
+
+
+$echo -n "checking for node-gyp ..."
+$echo "checking for node-gyp ..." >> $NXT_AUTOCONF_ERR
+
+if /bin/sh -c "${NXT_NODE_GYP} -v" >> $NXT_AUTOCONF_ERR 2>&1; then
+    $echo " found"
+
+    NXT_NODE_GYP_VERSION="`${NXT_NODE_GYP} -v`"
+    $echo " + node-gyp version ${NXT_NODE_GYP_VERSION}"
+
+else
+    $echo " not found"
+    $echo
+    $echo $0: error: no node-gyp found.
+    $echo
+    exit 1;
+fi
+
+if grep ^$NXT_NODE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_NODE\" package configured.
+    $echo
+    exit 1;
+fi
+
+
+NXT_NODE_TMP=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http
+NXT_NODE_TMP_G=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http-g
+NXT_NODE_TARBALL=${NXT_BUILD_DIR}/src/${NXT_NODE}-unit-http.tar.gz
+NXT_NODE_TARBALL_G=${NXT_BUILD_DIR}/src/${NXT_NODE}-unit-http-g.tar.gz
+NXT_NODE_VERSION_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/version.h
+NXT_NODE_PACKAGE_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/package.json
+NXT_NODE_EXPORTS="export UNIT_SRC_PATH=${PWD}/src \
+    && export UNIT_BUILD_PATH=${PWD}/${NXT_BUILD_DIR} \
+    && export UNIT_LIB_STATIC_PATH=${PWD}/${NXT_BUILD_DIR}/lib/libunit.a"
+
+if [ -n "$NXT_NODE_LOCAL" ]; then
+    NXT_NODE_INSTALL=local-install
+else
+    NXT_NODE_INSTALL=install
+fi
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_NODE}
+.PHONY: ${NXT_NODE}-copy
+.PHONY: ${NXT_NODE}-copy-g
+.PHONY: ${NXT_NODE}-install
+.PHONY: ${NXT_NODE}-uninstall
+.PHONY: ${NXT_NODE}-local-check
+.PHONY: ${NXT_NODE}-local-install
+.PHONY: ${NXT_NODE}-build
+.PHONY: ${NXT_NODE}-publish
+
+${NXT_NODE}: ${NXT_NODE}-copy $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	${NXT_NODE_EXPORTS} && \\
+	cd ${NXT_NODE_TMP} && ${NXT_NODE_GYP} configure build clean
+
+${NXT_NODE}-copy: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
+	mkdir -p ${NXT_NODE_TMP}
+	cp -rp src/nodejs/unit-http/* ${NXT_NODE_TMP}/
+	cp -p ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE} ${NXT_NODE_TMP}/
+	rm -f ${NXT_NODE_TMP}/binding_pub.gyp
+
+${NXT_NODE}-copy-g: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
+	mkdir -p ${NXT_NODE_TMP_G}
+	cp -rp src/nodejs/unit-http/* ${NXT_NODE_TMP_G}/
+	cp -p ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE} ${NXT_NODE_TMP_G}/
+	mv ${NXT_NODE_TMP_G}/binding_pub.gyp ${NXT_NODE_TMP_G}/binding.gyp
+
+${NXT_NODE_VERSION_FILE}: ${NXT_VERSION_H}
+	mkdir -p ${NXT_BUILD_DIR}/src/${NXT_NODE}
+	$echo '#define NXT_NODE_VERNUM \$(NXT_VERNUM)' > $NXT_NODE_VERSION_FILE
+
+${NXT_NODE_PACKAGE_FILE}: ${NXT_VERSION_H} src/nodejs/unit-http/package.json
+	mkdir -p ${NXT_BUILD_DIR}/src/${NXT_NODE}
+	sed -e "s|%%VERSION%%|\$(NXT_VERSION)|" \
+		src/nodejs/unit-http/package.json > ${NXT_NODE_PACKAGE_FILE}
+
+${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
+	cd ${NXT_NODE_TMP} && npm pack
+	mv ${NXT_NODE_TMP}/unit-http-\$(NXT_VERSION).tgz ${NXT_NODE_TARBALL}
+
+${NXT_NODE_TARBALL_G}: ${NXT_NODE}-copy-g
+	cd ${NXT_NODE_TMP_G} && npm pack
+	mv ${NXT_NODE_TMP_G}/unit-http-\$(NXT_VERSION).tgz ${NXT_NODE_TARBALL_G}
+
+
+install: ${NXT_NODE}-$NXT_NODE_INSTALL
+
+${NXT_NODE}-install: ${NXT_NODE_TARBALL_G} libunit-install
+	${NXT_NPM} install -g --unsafe-perm ${PWD}/${NXT_NODE_TARBALL_G}
+
+${NXT_NODE}-uninstall:
+	${NXT_NPM} uninstall -g unit-http
+
+${NXT_NODE}-local-check:
+	@test -n "\$(DESTDIR)$NXT_NODE_LOCAL" \\
+	|| (echo; \\
+	    echo "error: to make ${NXT_NODE}-local-install you need either"; \\
+	    echo "    to configure --local option"; \\
+	    echo "    or to set DESTDIR environment variable."; \\
+	    echo; \\
+	    exit 1)
+
+${NXT_NODE}-local-install: ${NXT_NODE_TARBALL} ${NXT_NODE}-local-check \
+    $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
+	${NXT_NODE_EXPORTS} && \\
+	mkdir -p \$(DESTDIR)${NXT_NODE_LOCAL} && \\
+	cd \$(DESTDIR)${NXT_NODE_LOCAL} && \\
+	${NXT_NPM} install ${PWD}/${NXT_NODE_TARBALL}
+
+
+${NXT_NODE}-build: ${NXT_NODE}
+
+${NXT_NODE}-publish: ${NXT_NODE}
+	cd ${NXT_NODE_TMP} && ${NXT_NPM} publish
+
+END

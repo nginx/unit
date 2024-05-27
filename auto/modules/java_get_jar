@@ -1,0 +1,46 @@
+
+# Copyright (C) NGINX, Inc.
+
+# NXT_JAR_NAME=
+# NXT_JAR_VERSION=
+# NXT_JAR_NAMESPACE=
+# NXT_JAR_REPO=http://central.maven.org/maven2/
+# NXT_JAR_LOCAL_REPO=$HOME/.m2/repository/
+
+NXT_JAR_FILE=${NXT_JAR_NAME}-${NXT_JAR_VERSION}.jar
+NXT_JAR_LOCAL_DIR="${NXT_JAR_LOCAL_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}"
+NXT_JAR_LOCAL="${NXT_JAR_LOCAL_DIR}/${NXT_JAR_FILE}"
+NXT_JAR_LOCAL_TMP="${NXT_JAR_LOCAL_DIR}/.${NXT_JAR_FILE}.$$"
+NXT_JAR_URL=${NXT_JAR_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}/${NXT_JAR_FILE}
+
+NXT_JAR_CHK_FILE="$NXT_BUILD_DIR/$NXT_JAR_FILE"
+. auto/modules/java_chk_sha512
+
+if [ ! -f "$NXT_BUILD_DIR/$NXT_JAR_FILE" ]; then
+    NXT_JAR_CHK_FILE=$NXT_JAR_LOCAL
+    . auto/modules/java_chk_sha512
+
+    if [ ! -f "${NXT_JAR_LOCAL}" ]; then
+        $echo "getting remote $NXT_JAR_FILE ... "
+        $echo "getting remote $NXT_JAR_FILE ..." >> $NXT_AUTOCONF_ERR
+
+        mkdir -p "${NXT_JAR_LOCAL_DIR}"
+        curl --progress-bar "$NXT_JAR_URL" -o "$NXT_JAR_LOCAL_TMP"
+
+        NXT_JAR_CHK_FILE=$NXT_JAR_LOCAL_TMP
+        . auto/modules/java_chk_sha512
+
+        mv "$NXT_JAR_LOCAL_TMP" "$NXT_JAR_LOCAL"
+    else
+        $echo "getting local $NXT_JAR_FILE"
+        $echo "getting local $NXT_JAR_FILE ..." >> $NXT_AUTOCONF_ERR
+    fi
+
+    cp "$NXT_JAR_LOCAL" "$NXT_BUILD_DIR/$NXT_JAR_FILE"
+fi
+
+NXT_JAVA_BUILD_CP="${NXT_JAVA_BUILD_CP}:$NXT_BUILD_DIR/$NXT_JAR_FILE"
+NXT_JAVA_INSTALL_JARS="$NXT_JAVA_INSTALL_JARS $NXT_BUILD_DIR/$NXT_JAR_FILE"
+NXT_JAVA_UNINSTALL_JARS="$NXT_JAVA_UNINSTALL_JARS \$(DESTDIR)$NXT_JARS/$NXT_JAR_FILE"
+
+$echo "    \"$NXT_JAR_FILE\"," >> $NXT_JAVA_JARS

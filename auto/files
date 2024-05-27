@@ -1,0 +1,83 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Linux 2.6, FreeBSD 8.2, 9.1, Solaris 11.
+
+nxt_feature="posix_fadvise()"
+nxt_feature_name=NXT_HAVE_POSIX_FADVISE
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+
+                  int main(void) {
+                      (void) posix_fadvise(0, 0, 0, POSIX_FADV_WILLNEED);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# FreeBSD 8.0.
+
+nxt_feature="fcntl(F_READAHEAD)"
+nxt_feature_name=NXT_HAVE_READAHEAD
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+
+                  int main(void) {
+                      (void) fcntl(0, F_READAHEAD, 1024);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# MacOSX, FreeBSD 8.0.
+
+nxt_feature="fcntl(F_RDAHEAD)"
+nxt_feature_name=NXT_HAVE_RDAHEAD
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+
+                  int main(void) {
+                      (void) fcntl(0, F_RDAHEAD, 1);
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="openat2()"
+nxt_feature_name=NXT_HAVE_OPENAT2
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <fcntl.h>
+                  #include <unistd.h>
+                  #include <sys/syscall.h>
+                  #include <linux/openat2.h>
+                  #include <string.h>
+
+                  int main(void) {
+                      struct open_how  how;
+
+                      memset(&how, 0, sizeof(how));
+
+                      how.flags = O_RDONLY;
+                      how.mode = O_NONBLOCK;
+                      how.resolve = RESOLVE_IN_ROOT
+                                    | RESOLVE_NO_SYMLINKS
+                                    | RESOLVE_NO_XDEV;
+
+                      int fd = syscall(SYS_openat2, AT_FDCWD, \".\",
+                                       &how, sizeof(how));
+                      if (fd == -1)
+                          return 1;
+
+                      return 0;
+                  }"
+. auto/feature

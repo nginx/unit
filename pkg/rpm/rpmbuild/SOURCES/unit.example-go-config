@@ -1,0 +1,14 @@
+{
+	"applications": {
+		"example_go": {
+			"type": "external",
+			"executable": "/tmp/go-app"
+		}
+	},
+
+	"listeners": {
+		"*:8500": {
+			"pass": "applications/example_go"
+		}
+	}
+}

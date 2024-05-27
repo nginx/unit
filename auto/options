@@ -1,0 +1,172 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_CONFIGURE_OPTIONS=
+NXT_CFLAGS=
+NXT_CC_OPT=
+NXT_LD_OPT=
+
+NXT_DEBUG=NO
+
+NXT_INET6=YES
+NXT_UNIX_DOMAIN=YES
+
+NXT_PCRE_CFLAGS=
+NXT_PCRE_LIB=
+
+NXT_REGEX=YES
+NXT_TRY_PCRE2=YES
+
+NXT_TLS=NO
+NXT_OPENSSL=NO
+NXT_GNUTLS=NO
+NXT_CYASSL=NO
+NXT_POLARSSL=NO
+
+NXT_NJS=NO
+
+NXT_TEST_BUILD_EPOLL=NO
+NXT_TEST_BUILD_EVENTPORT=NO
+NXT_TEST_BUILD_DEVPOLL=NO
+NXT_TEST_BUILD_POLLSET=NO
+
+NXT_TEST_BUILD_FREEBSD_SENDFILE=NO
+NXT_TEST_BUILD_LINUX_SENDFILE=NO
+NXT_TEST_BUILD_MACOSX_SENDFILE=NO
+NXT_TEST_BUILD_SOLARIS_SENDFILEV=NO
+NXT_TEST_BUILD_AIX_SEND_FILE=NO
+NXT_TEST_BUILD_HPUX_SENDFILE=NO
+
+NXT_TESTS=NO
+
+NXT_HELP=NO
+
+for nxt_option
+do
+    case "$nxt_option" in
+        -*=*) value=`$echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --cc=*)                          CC="$value"                         ;;
+        --cc-opt=*)                      NXT_CC_OPT="$value"                 ;;
+        --ld-opt=*)                      NXT_LD_OPT="$value"                 ;;
+
+        --prefix=*)                      NXT_PREFIX="$value"                 ;;
+        --exec-prefix=*)                 NXT_EXEC_PREFIX="$value"            ;;
+        --bindir=*)                      NXT_BINDIR="$value"                 ;;
+        --sbindir=*)                     NXT_SBINDIR="$value"                ;;
+        --includedir=*)                  NXT_INCLUDEDIR="$value"             ;;
+        --incdir=*)
+            >&2 echo "[warn] option --incdir is deprecated; use --includedir"
+            NXT_INCLUDEDIR="$value"
+        ;;
+        --libdir=*)                      NXT_LIBDIR="$value"                 ;;
+        --modulesdir=*)                  NXT_MODULESDIR="$value"             ;;
+        --modules=*)
+            >&2 echo "[warn] option --modules is deprecated; use --modulesdir"
+            NXT_MODULESDIR="$value"
+        ;;
+        --datarootdir=*)                 NXT_DATAROOTDIR="$value"            ;;
+        --mandir=*)                      NXT_MANDIR="$value"                 ;;
+        --pkgconfigdir=*)                NXT_PKGCONFIGDIR="$value"           ;;
+        --localstatedir=*)               NXT_LOCALSTATEDIR="$value"          ;;
+        --statedir=*)                    NXT_STATEDIR="$value"               ;;
+        --state=*)
+            >&2 echo "[warn] option --state is deprecated; use --statedir"
+            NXT_STATEDIR="$value"
+        ;;
+        --logdir=*)                      NXT_LOGDIR="$value"                 ;;
+        --runstatedir=*)                 NXT_RUNSTATEDIR="$value"            ;;
+        --tmpdir=*)                      NXT_TMPDIR="$value"                 ;;
+        --tmp=*)
+            >&2 echo "[warn] option --tmp is deprecated; use --tmpdir"
+            NXT_TMPDIR="$value"
+        ;;
+
+        --pid=*)                         NXT_PID="$value"                    ;;
+        --log=*)                         NXT_LOG="$value"                    ;;
+
+        --control=*)                     NXT_CONTROL="$value"                ;;
+
+        --user=*)                        NXT_USER="$value"                   ;;
+        --group=*)                       NXT_GROUP="$value"                  ;;
+
+        --debug)                         NXT_DEBUG=YES                       ;;
+
+        --no-ipv6)                       NXT_INET6=NO                        ;;
+        --no-unix-sockets)               NXT_UNIX_DOMAIN=NO                  ;;
+
+        --no-regex)                      NXT_REGEX=NO                        ;;
+        --no-pcre2)                      NXT_TRY_PCRE2=NO                    ;;
+
+        --openssl)                       NXT_OPENSSL=YES                     ;;
+        --gnutls)                        NXT_GNUTLS=YES                      ;;
+        --cyassl)                        NXT_CYASSL=YES                      ;;
+        --polarssl)                      NXT_POLARSSL=YES                    ;;
+
+        --njs)                           NXT_NJS=YES                         ;;
+
+        --test-build-epoll)              NXT_TEST_BUILD_EPOLL=YES            ;;
+        --test-build-eventport)          NXT_TEST_BUILD_EVENTPORT=YES        ;;
+        --test-build-devpoll)            NXT_TEST_BUILD_DEVPOLL=YES          ;;
+        --test-build-pollset)            NXT_TEST_BUILD_POLLSET=YES          ;;
+
+        --test-build-freebsd-sendfile)   NXT_TEST_BUILD_FREEBSD_SENDFILE=YES ;;
+        --test-build-linux-sendfile)     NXT_TEST_BUILD_LINUX_SENDFILE=YES   ;;
+        --test-build-solaris-sendfilev)  NXT_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
+        --test-build-macosx-sendfile)    NXT_TEST_BUILD_MACOSX_SENDFILE=YES  ;;
+        --test-build-aix-send_file)      NXT_TEST_BUILD_AIX_SEND_FILE=YES    ;;
+        --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
+
+        --tests)                         NXT_TESTS=YES                       ;;
+
+        --help)
+            . auto/help
+            exit 0
+        ;;
+
+        *)
+            $echo
+            $echo $0: error: invalid option \"$nxt_option\".
+            $echo Run \"$0 --help\" to see available options.
+            $echo
+            exit 1
+        ;;
+    esac
+
+    nxt_opt=`$echo $nxt_option | sed -e "s/\(--[^=]*=\)\(.* .*\)/\1'\2'/"`
+
+    NXT_CONFIGURE_OPTIONS="$NXT_CONFIGURE_OPTIONS $nxt_opt"
+
+done
+
+
+NXT_PREFIX="${NXT_PREFIX-"/usr/local"}"
+
+NXT_EXEC_PREFIX="${NXT_EXEC_PREFIX-"$NXT_PREFIX"}"
+NXT_BINDIR="${NXT_BINDIR-"$NXT_EXEC_PREFIX/bin"}"
+NXT_SBINDIR="${NXT_SBINDIR-"$NXT_EXEC_PREFIX/sbin"}"
+
+NXT_INCLUDEDIR="${NXT_INCLUDEDIR-"$NXT_PREFIX/include"}"
+
+NXT_LIBDIR="${NXT_LIBDIR-"$NXT_PREFIX/lib"}"
+NXT_MODULESDIR="${NXT_MODULESDIR-"$NXT_LIBDIR/unit/modules"}"
+
+NXT_DATAROOTDIR="${NXT_DATAROOTDIR-"$NXT_PREFIX/share"}"
+NXT_MANDIR="${NXT_MANDIR-"$NXT_DATAROOTDIR/man"}"
+NXT_PKGCONFIGDIR="${NXT_PKGCONFIGDIR-"$NXT_DATAROOTDIR/pkgconfig"}"
+
+NXT_LOCALSTATEDIR="${NXT_LOCALSTATEDIR-"$NXT_PREFIX/var"}"
+NXT_STATEDIR="${NXT_STATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
+NXT_LOGDIR="${NXT_LOGDIR-"$NXT_LOCALSTATEDIR/log/unit"}"
+NXT_LOG="${NXT_LOG-"$NXT_LOGDIR/unit.log"}"
+NXT_RUNSTATEDIR="${NXT_RUNSTATEDIR-"$NXT_LOCALSTATEDIR/run/unit"}"
+NXT_CONTROL="${NXT_CONTROL-"unix:$NXT_RUNSTATEDIR/control.unit.sock"}"
+NXT_PID="${NXT_PID-"$NXT_RUNSTATEDIR/unit.pid"}"
+
+NXT_TMPDIR="${NXT_TMPDIR-"/tmp"}"

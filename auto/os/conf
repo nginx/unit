@@ -1,0 +1,278 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# To support dynamically loaded modules libnxt library must be a shared
+# object itself because an application linked with static libnxt library
+# may lack code required by the modules.  Dynamic linkers allow to specify
+# relative path in SONAME library entry or in RPATH executable entry.
+#
+# Solaris 7, Linux 2.2, and FreeBSD 7.3 support $ORIGIN variable.
+# MacOSX supports @executable_path variable.
+# NetBSD does not support $ORIGIN variable.
+#
+# "ar -r" is enough to create a static library, ranlib is surplus.
+# "ar -c" disables the "creating archive" warning.
+
+
+case "$NXT_SYSTEM" in
+
+    Linux)
+        nxt_have=NXT_LINUX . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared -Wl,-soname,libnxt.so"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared \
+                               -Wl,-soname,\\\$\$ORIGIN/libnxt.so"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"
+    ;;
+
+    FreeBSD)
+        nxt_have=NXT_FREEBSD . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared -Wl,-soname,libnxt.so"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared \
+                               -Wl,-soname,\\\$\$ORIGIN/libnxt.so"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        # "-Wl,-z,origin" enables $ORIGIN processing.
+        NXT_SHARED_LOCAL_EXEC_LINK="-Wl,-z,origin"
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
+    ;;
+
+    SunOS)
+        nxt_have=NXT_SOLARIS . auto/have
+
+        case "$NXT_CC_NAME" in
+
+            SunC):
+                NXT_STATIC_LINK="\$(AR) -r -c"
+                NXT_SHARED_LINK="\$(CC) -G -h libnxt.so"
+                NXT_SHARED_LOCAL_LINK="\$(CC) -G -h \\\$\$ORIGIN/libnxt.so"
+                NXT_MODULE_LINK="\$(CC) -G"
+            ;;
+
+            *)
+                NXT_STATIC_LINK="\$(AR) -r -c"
+                NXT_SHARED_LINK="\$(CC) -shared -Wl,-soname,libnxt.so"
+                NXT_SHARED_LOCAL_LINK="\$(CC) -shared \
+                                       -Wl,-soname,\\\$\$ORIGIN/libnxt.so"
+                NXT_MODULE_LINK="\$(CC) -shared"
+            ;;
+        esac
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_EXEC_LINK="\$(CC)"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="-lsocket $NXT_LIBSENDFILE"
+        NXT_LIBS="$NXT_LIBS $NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"
+    ;;
+
+    Darwin)
+        nxt_have=NXT_MACOSX . auto/have
+
+        # HFS+ volumes are caseless by default.
+        nxt_have=NXT_HAVE_CASELESS_FILESYSTEM . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -dynamiclib"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -dynamiclib \
+                               -install_name @executable_path/libnxt.dylib"
+        NXT_MODULE_LINK="\$(CC) -dynamiclib -undefined dynamic_lookup"
+
+        NXT_EXEC_LINK="\$(CC)"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.dylib"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.dylib"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        # MacOSX libm.dylib is a symlink to libSystem.dylib.
+        NXT_LIBM=
+        NXT_LIBS=
+
+    ;;
+
+    NetBSD)
+        nxt_have=NXT_NETBSD . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
+    ;;
+
+    OpenBSD)
+        nxt_have=NXT_OPENBSD . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_PTHREAD"
+    ;;
+
+    DragonFly)
+        nxt_have=NXT_DRAGONFLY . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
+    ;;
+
+    AIX)
+        nxt_have=NXT_AIX . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -G"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -G"
+        NXT_MODULE_LINK="\$(CC) -G"
+
+        NXT_EXEC_LINK="\$(CC)"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_PTHREAD"
+    ;;
+
+    HP-UX)
+        nxt_have=NXT_HPUX . auto/have
+
+        NXT_EXEC_LINK="\$(CC)"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_PTHREAD $NXT_LIBHG"
+    ;;
+
+    QNX)
+        nxt_have=NXT_QNX . auto/have
+
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        NXT_EXEC_LINK="\$(CC)"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_PTHREAD"
+    ;;
+
+    *)
+        NXT_STATIC_LINK="\$(AR) -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/lib/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"
+    ;;
+esac

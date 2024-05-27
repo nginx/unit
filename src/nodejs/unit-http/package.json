@@ -1,0 +1,15 @@
+{
+    "name": "unit-http",
+    "version": "%%VERSION%%",
+    "description": "HTTP module for NGINX Unit",
+    "main": "http.js",
+    "scripts": {
+        "clean": "node-gyp clean",
+        "configure": "node-gyp configure",
+        "build": "node-gyp build",
+        "install": "node-gyp configure build"
+    },
+    "author": "Alexander Borisov",
+    "license": "Apache-2.0",
+    "gypfile": true
+}
