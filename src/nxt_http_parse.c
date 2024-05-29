@@ -1182,6 +1182,7 @@ nxt_http_fields_hash(nxt_lvlhsh_t *hash,
 
     lhq.replace = 0;
     lhq.proto = &nxt_http_fields_hash_proto;
+    lhq.pool = NULL;
 
     for (i = 0; i < count; i++) {
         key = NXT_HTTP_FIELD_HASH_INIT;
