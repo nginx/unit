@@ -2,6 +2,7 @@
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![CI](https://github.com/nginx/unit/actions/workflows/ci.yml/badge.svg)](https://github.com/nginx/unit/actions/workflows/ci.yml "GitHub workflow CI")
+[![GitHub Discussions](https://img.shields.io/badge/GitHub-discussions-009639)](https://github.com/nginx/unit/discussions "GitHub Discussions")
 
 ## Universal Web App Server
 
