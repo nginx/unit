@@ -2,6 +2,13 @@ name: ci
 
 on:
   pull_request:
+    paths:
+      - configure
+      - 'auto/**'
+      - 'go/**'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/ci.yml'
   push:
     branches: master
     paths:
