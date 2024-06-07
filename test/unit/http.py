@@ -67,7 +67,7 @@ class HTTP1:
 
                     headers['Content-Type'] = content_type
 
-                if 'Content-Length' not in headers:
+                if 'Content-Length' not in headers and 'Transfer-Encoding' not in headers:
                     headers['Content-Length'] = len(body)
 
             for header, value in headers.items():
