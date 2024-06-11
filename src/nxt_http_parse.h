@@ -96,11 +96,8 @@ struct nxt_http_field_s {
 
 
 typedef struct {
-    u_char                    *pos;
     nxt_mp_t                  *mem_pool;
-
     uint64_t                  chunk_size;
-
     uint8_t                   state;
     uint8_t                   last;         /* 1 bit */
     uint8_t                   chunk_error;  /* 1 bit */
