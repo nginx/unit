@@ -157,6 +157,7 @@ struct nxt_http_request_s {
     nxt_list_t                      *fields;
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
+    nxt_http_field_t                *chunked_field;
     nxt_http_field_t                *cookie;
     nxt_http_field_t                *referer;
     nxt_http_field_t                *user_agent;
@@ -204,6 +205,7 @@ struct nxt_http_request_s {
     uint8_t                         inconsistent; /* 1 bit  */
     uint8_t                         error;        /* 1 bit  */
     uint8_t                         websocket_handshake;  /* 1 bit */
+    uint8_t                         chunked;  /* 1 bit */
 };
 
 

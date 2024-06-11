@@ -540,14 +540,57 @@ static const nxt_http_request_state_t  nxt_http_request_body_state
 };
 
 
+static nxt_int_t
+nxt_http_request_chunked_transform(nxt_http_request_t *r)
+{
+    size_t            size;
+    u_char            *p, *end;
+    nxt_http_field_t  *f;
+
+    r->chunked_field->skip = 1;
+
+    size = r->body->file_end;
+
+    f = nxt_list_zero_add(r->fields);
+    if (nxt_slow_path(f == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_http_field_name_set(f, "Content-Length");
+
+    p = nxt_mp_nget(r->mem_pool, NXT_OFF_T_LEN);
+    if (nxt_slow_path(p == NULL)) {
+        return NXT_ERROR;
+    }
+
+    f->value = p;
+    end = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%uz", size);
+    f->value_length = end - p;
+
+    r->content_length = f;
+    r->content_length_n = size;
+
+    return NXT_OK;
+}
+
+
 static void
 nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_int_t           ret;
     nxt_http_action_t   *action;
     nxt_http_request_t  *r;
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+    if (r->chunked) {
+        ret = nxt_http_request_chunked_transform(r);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
+    }
 
     nxt_http_request_action(task, r, action);
 }

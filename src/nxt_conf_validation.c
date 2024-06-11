@@ -368,6 +368,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     }, {
         .name       = nxt_string("server_version"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("chunked_transform"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     },
 
     NXT_CONF_VLDT_END
