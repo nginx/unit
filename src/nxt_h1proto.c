@@ -856,7 +856,6 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 {
     size_t             size, body_length, body_buffer_size, body_rest;
     ssize_t            res;
-    nxt_str_t          *tmp_path, tmp_name;
     nxt_buf_t          *in, *b;
     nxt_conn_t         *c;
     nxt_h1proto_t      *h1p;
@@ -894,6 +893,8 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
                                body_length);
 
     if (body_length > body_buffer_size) {
+        nxt_str_t  *tmp_path, tmp_name;
+
         tmp_path = &r->conf->socket_conf->body_temp_path;
 
         tmp_name.length = tmp_path->length + tmp_name_pattern.length;
@@ -901,23 +902,11 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         b = nxt_buf_file_alloc(r->mem_pool,
                                body_buffer_size + sizeof(nxt_file_t)
                                + tmp_name.length + 1, 0);
+        if (nxt_slow_path(b == NULL)) {
+            status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+            goto error;
+        }
 
-    } else {
-        /* This initialization required for CentOS 6, gcc 4.4.7. */
-        tmp_path = NULL;
-        tmp_name.length = 0;
-
-        b = nxt_buf_mem_alloc(r->mem_pool, body_buffer_size, 0);
-    }
-
-    if (nxt_slow_path(b == NULL)) {
-        status = NXT_HTTP_INTERNAL_SERVER_ERROR;
-        goto error;
-    }
-
-    r->body = b;
-
-    if (body_length > body_buffer_size) {
         tmp_name.start = nxt_pointer_to(b->mem.start, sizeof(nxt_file_t));
 
         memcpy(tmp_name.start, tmp_path->start, tmp_path->length);
@@ -946,7 +935,16 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
                   &tmp_name, b->file->fd);
 
         unlink((char *) tmp_name.start);
+
+    } else {
+        b = nxt_buf_mem_alloc(r->mem_pool, body_buffer_size, 0);
+        if (nxt_slow_path(b == NULL)) {
+            status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+            goto error;
+        }
     }
+
+    r->body = b;
 
     body_rest = body_length;
 
