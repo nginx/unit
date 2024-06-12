@@ -1,0 +1,16 @@
+POST /path/to/very/interesting/article/on.this.site?arg1=value&arg2=value2&very_big_arg=even_bigger_value HTTP/1.1
+Host: www.example.com
+User-Agent: Mozilla/5.0 (X11; Gentoo Linux x86_64; rv:42.0) Firefox/42.0
+Accept: text/html,application/json,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4
+Accept-Encoding: gzip, deflate, br
+If-Modified-Since: Wed, 31 Dec 1986 16:00:00 GMT
+Referer: https://example.org/path/to/not-interesting/article.html
+Cookie: name=value; name2=value2; some_big_cookie=Olr+/9hoA0og/dAcHH1p8sEFAHAAAAAElFTkSuQmCC
+Connection: keep-alive
+Content-Length: 0
+Upgrade-Insecure-Requests: 1
+Pragma: no-cache
+Cache-Control: no-cache
+X-Forwarded-For: 192.0.2.0, 198.51.100.0, 203.0.113.0
+

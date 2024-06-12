@@ -1,0 +1,5 @@
+GET / HTTP/1.1
+X-Good-Header: value
+X-Unknown-Header: value
+X-Bad-Header: value
+
