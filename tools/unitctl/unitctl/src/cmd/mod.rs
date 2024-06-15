@@ -1,3 +1,4 @@
+pub(crate) mod applications;
 pub(crate) mod edit;
 pub(crate) mod execute;
 pub(crate) mod import;

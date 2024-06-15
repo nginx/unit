@@ -15,9 +15,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::control_socket_address::ControlSocket;
 use unit_openapi::apis::configuration::Configuration;
-use unit_openapi::apis::{Error as OpenAPIError, StatusApi};
-use unit_openapi::apis::{ListenersApi, ListenersApiClient, StatusApiClient};
-use unit_openapi::models::{ConfigListener, Status};
+use unit_openapi::apis::{
+    ApplicationsApi, ApplicationsApiClient, AppsApi, AppsApiClient, Error as OpenAPIError, ListenersApi,
+    ListenersApiClient, StatusApi, StatusApiClient,
+};
+use unit_openapi::models::{ConfigApplication, ConfigListener, Status};
 
 const USER_AGENT: &str = concat!("UNIT CLI/", env!("CARGO_PKG_VERSION"), "/rust");
 
@@ -274,6 +276,46 @@ impl UnitClient {
                 Err(Box::new(UnitClientError::OpenAPIError { source: err }))
             }
         })
+    }
+
+    pub fn applications_api(&self) -> Box<dyn ApplicationsApi + 'static> {
+        new_openapi_client!(self, ApplicationsApiClient, ApplicationsApi)
+    }
+
+    pub async fn applications(&self) -> Result<HashMap<String, ConfigApplication>, Box<UnitClientError>> {
+        self.applications_api().get_applications().await.or_else(|err| {
+            if let OpenAPIError::Hyper(hyper_error) = err {
+                Err(Box::new(UnitClientError::new(
+                    hyper_error,
+                    self.control_socket.to_string(),
+                    "/applications".to_string(),
+                )))
+            } else {
+                Err(Box::new(UnitClientError::OpenAPIError { source: err }))
+            }
+        })
+    }
+
+    pub async fn per_application_api(&self) -> Box<dyn AppsApi + 'static> {
+        new_openapi_client!(self, AppsApiClient, AppsApi)
+    }
+
+    pub async fn restart_application(&self, name: &String) -> Result<HashMap<String, String>, Box<UnitClientError>> {
+        self.per_application_api()
+            .await
+            .get_app_restart(name.as_str())
+            .await
+            .or_else(|err| {
+                if let OpenAPIError::Hyper(hyper_error) = err {
+                    Err(Box::new(UnitClientError::new(
+                        hyper_error,
+                        self.control_socket.to_string(),
+                        format!("/control/applications/{}/restart", name),
+                    )))
+                } else {
+                    Err(Box::new(UnitClientError::OpenAPIError { source: err }))
+                }
+            })
     }
 
     pub async fn is_running(&self) -> bool {

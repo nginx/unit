@@ -31,13 +31,13 @@ their own makefile targets. Alternatively, all available binary targets can be
 built with `make all`. See the below example for illustration:
 
 ```
-[ava@calliope cli]$ make list-targets
+$ make list-targets
 x86_64-unknown-linux-gnu
 
-[ava@calliope cli]$ make x86_64-unknown-linux-gnu
+$ make x86_64-unknown-linux-gnu
 ▶ building unitctl with flags [--quiet --release --bin unitctl --target x86_64-unknown-linux-gnu]
 
-[ava@calliope cli]$ file ./target/x86_64-unknown-linux-gnu/release/unitctl
+$ file ./target/x86_64-unknown-linux-gnu/release/unitctl
 ./target/x86_64-unknown-linux-gnu/release/unitctl: ELF 64-bit LSB pie executable,
 x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
 BuildID[sha1]=ef4b094ffd549b39a8cb27a7ba2cc0dbad87a3bc, for GNU/Linux 4.4.0,
@@ -90,6 +90,26 @@ To the subcommand `unitctl instances new` the user must provide three things:
    will deploy. Custom repos and images can be deployed in this manner.
 
 After deployment the user will have one Unit container running on the host network.
+
+### Lists active applications and provides means to restart them
+Listing applications:
+```
+$ unitctl app list
+{
+  "wasm": {
+    "type": "wasm-wasi-component",
+    "component": "/www/wasmapp-proxy-component.wasm"
+  }
+}
+```
+
+Restarting an application:
+```
+$ unitctl app reload wasm
+{
+  "success": "Ok"
+}
+```
 
 ### Lists active listeners from running Unit processes
 ```

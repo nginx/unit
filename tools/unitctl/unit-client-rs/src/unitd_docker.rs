@@ -1,19 +1,16 @@
 use std::collections::HashMap;
 use std::fs::read_to_string;
-use std::path::{PathBuf, MAIN_SEPARATOR};
 use std::io::stderr;
+use std::path::{PathBuf, MAIN_SEPARATOR};
 
+use crate::control_socket_address::ControlSocket;
 use crate::futures::StreamExt;
 use crate::unit_client::UnitClientError;
 use crate::unitd_process::UnitdProcess;
-use crate::control_socket_address::ControlSocket;
 
 use bollard::container::{Config, ListContainersOptions, StartContainerOptions};
 use bollard::image::CreateImageOptions;
-use bollard::models::{
-    ContainerCreateResponse, HostConfig, Mount,
-    MountTypeEnum, ContainerSummary,
-};
+use bollard::models::{ContainerCreateResponse, ContainerSummary, HostConfig, Mount, MountTypeEnum};
 use bollard::secret::ContainerInspectResponse;
 use bollard::Docker;
 
@@ -156,22 +153,18 @@ impl UnitdContainer {
                     // cant do this functionally because of the async call
                     let mut mapped = vec![];
                     for ctr in summary {
-                        if unitd_command_re.is_match(&ctr.clone().command
-                            .or(Some(String::new()))
-                            .unwrap()) {
-                                let mut c = UnitdContainer::from(&ctr);
-                                if let Some(names) = ctr.names {
-                                    if names.len() > 0 {
-                                        let name = names[0].strip_prefix("/")
-                                            .or(Some(names[0].as_str())).unwrap();
-                                        if let Ok(cir) = docker
-                                            .inspect_container(name, None).await {
-                                                c.details = Some(cir);
-                                            }
+                        if unitd_command_re.is_match(&ctr.clone().command.or(Some(String::new())).unwrap()) {
+                            let mut c = UnitdContainer::from(&ctr);
+                            if let Some(names) = ctr.names {
+                                if names.len() > 0 {
+                                    let name = names[0].strip_prefix("/").or(Some(names[0].as_str())).unwrap();
+                                    if let Ok(cir) = docker.inspect_container(name, None).await {
+                                        c.details = Some(cir);
                                     }
                                 }
-                                mapped.push(c);
                             }
+                            mapped.push(c);
+                        }
                     }
                     mapped
                 }
@@ -196,11 +189,11 @@ impl UnitdContainer {
 
         // either return translated path or original prefixed with "container"
         if keys.len() > 0 {
-            let mut matches = self.mounts[&keys[0]]
-                .clone()
-                .join(cp.as_path()
-                      .strip_prefix(keys[0].clone())
-                      .expect("error checking path prefix"));
+            let mut matches = self.mounts[&keys[0]].clone().join(
+                cp.as_path()
+                    .strip_prefix(keys[0].clone())
+                    .expect("error checking path prefix"),
+            );
             /* Observed on M1 Mac that Docker on OSX
              * adds a bunch of garbage to the mount path
              * converting it into a useless directory
@@ -208,15 +201,14 @@ impl UnitdContainer {
              */
             if cfg!(target_os = "macos") {
                 let mut abs = PathBuf::from(String::from(MAIN_SEPARATOR));
-                let m = matches.strip_prefix("/host_mnt/private")
-                    .unwrap_or(matches.strip_prefix("/host_mnt")
-                               .unwrap_or(matches.as_path()));
+                let m = matches
+                    .strip_prefix("/host_mnt/private")
+                    .unwrap_or(matches.strip_prefix("/host_mnt").unwrap_or(matches.as_path()));
                 // make it absolute again
                 abs.push(m);
                 matches = abs;
             }
-            matches.to_string_lossy()
-                .to_string()
+            matches.to_string_lossy().to_string()
         } else {
             format!("<container>:{}", cp.display())
         }
@@ -264,10 +256,7 @@ pub async fn deploy_new_container(
             let mut mounts = vec![];
             // if a unix socket is specified, mounts its directory
             if socket.is_local_socket() {
-                let mount_path = PathBuf::from(socket.clone())
-                    .as_path()
-                    .to_string_lossy()
-                    .to_string();
+                let mount_path = PathBuf::from(socket.clone()).as_path().to_string_lossy().to_string();
                 mounts.push(Mount {
                     typ: Some(MountTypeEnum::BIND),
                     source: Some(mount_path),
@@ -290,22 +279,22 @@ pub async fn deploy_new_container(
                 Some(CreateImageOptions {
                     from_image: image.as_str(),
                     ..Default::default()
-                }), None, None
+                }),
+                None,
+                None,
             );
             while let Some(res) = stream.next().await {
                 if let Ok(info) = res {
                     if let Some(id) = info.id {
                         if let Some(_) = totals.get_mut(&id) {
-                            if let Some(delta) = info.progress_detail
-                                .and_then(|detail| detail.current) {
-                                    pb.add(delta as u64);
-                                }
+                            if let Some(delta) = info.progress_detail.and_then(|detail| detail.current) {
+                                pb.add(delta as u64);
+                            }
                         } else {
-                            if let Some(total) = info.progress_detail
-                                .and_then(|detail| detail.total) {
-                                    totals.insert(id, total);
-                                    pb.total += total as u64;
-                                }
+                            if let Some(total) = info.progress_detail.and_then(|detail| detail.total) {
+                                totals.insert(id, total);
+                                pb.total += total as u64;
+                            }
                         }
                     }
                 }
@@ -357,27 +346,27 @@ pub async fn deploy_new_container(
                 .await
             {
                 // somehow our container doesnt exist
-                Err(e) => Err(UnitClientError::UnitdDockerError{
-                    message: e.to_string()
-                }),
+                Err(e) => Err(UnitClientError::UnitdDockerError { message: e.to_string() }),
                 // here it is!
                 Ok(info) => {
                     if info.len() < 1 {
                         return Err(UnitClientError::UnitdDockerError {
                             message: "couldnt find new container".to_string(),
                         });
-                    } else if info[0].names.is_none() ||
-                        info[0].names.clone().unwrap().len() < 1 {
-                            return Err(UnitClientError::UnitdDockerError {
-                                message: "new container has no name".to_string(),
-                            });
-                        }
+                    } else if info[0].names.is_none() || info[0].names.clone().unwrap().len() < 1 {
+                        return Err(UnitClientError::UnitdDockerError {
+                            message: "new container has no name".to_string(),
+                        });
+                    }
 
                     // start our container
-                    match docker.start_container(
-                        info[0].names.clone().unwrap()[0].strip_prefix(MAIN_SEPARATOR).unwrap(),
-                        None::<StartContainerOptions<String>>,
-                    ).await {
+                    match docker
+                        .start_container(
+                            info[0].names.clone().unwrap()[0].strip_prefix(MAIN_SEPARATOR).unwrap(),
+                            None::<StartContainerOptions<String>>,
+                        )
+                        .await
+                    {
                         Err(err) => Err(UnitClientError::UnitdDockerError {
                             message: err.to_string(),
                         }),
@@ -439,14 +428,8 @@ mod tests {
             ctr.host_path("/path/to/conf".to_string())
         );
         if cfg!(target_os = "macos") {
-            assert_eq!(
-                "/6/test".to_string(),
-                ctr.host_path("/var/test".to_string())
-            );
-            assert_eq!(
-                "/7/test".to_string(),
-                ctr.host_path("/var/var/test".to_string())
-            );
+            assert_eq!("/6/test".to_string(), ctr.host_path("/var/test".to_string()));
+            assert_eq!("/7/test".to_string(), ctr.host_path("/var/var/test".to_string()));
         }
     }
 

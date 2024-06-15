@@ -23,7 +23,7 @@ CARGO              ?= cargo
 DOCKER             ?= docker
 DOCKER_BUILD_FLAGS ?= --load
 CHECKSUM           ?= sha256sum
-OPENAPI_GENERATOR_VERSION ?= 6.6.0
+OPENAPI_GENERATOR_VERSION ?= 7.6.0
 
 # Define platform targets based off of the current host OS
 # If running MacOS, then build for MacOS platform targets installed in rustup
@@ -137,7 +137,7 @@ openapi-clean: ## Clean up generated OpenAPI files
 	$Q find "$(CURDIR)/unit-openapi/src/apis" \
 		! -name 'error.rs' -type f -exec rm -f {} +
 	$Q $(info $(M) cleaning up generated OpenAPI models code)
-	$Q rm -rf "$(CURDIR)/unit-openapi/src/models/*"
+	$Q rm -rf "$(CURDIR)/unit-openapi/src/models"
 
 include $(CURDIR)/build/package.mk
 include $(CURDIR)/build/container.mk
