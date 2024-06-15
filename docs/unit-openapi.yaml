@@ -4730,6 +4730,9 @@ components:
           isolation:
             rootfs: "/www/"
 
+        wasiapp:
+          type: "wasm-wasi-component"
+
     # /config/listeners
     configListeners:
       summary: "Multiple listeners"
@@ -5304,6 +5307,8 @@ components:
         - $ref: "#/components/schemas/configApplicationPHP"
         - $ref: "#/components/schemas/configApplicationPython"
         - $ref: "#/components/schemas/configApplicationRuby"
+        - $ref: "#/components/schemas/configApplicationWasm"
+        - $ref: "#/components/schemas/configApplicationWasi"
 
       discriminator:
         propertyName: type
@@ -5314,6 +5319,8 @@ components:
           php: "#/components/schemas/configApplicationPHP"
           python: "#/components/schemas/configApplicationPython"
           ruby: "#/components/schemas/configApplicationRuby"
+          wasm: "#/components/schemas/configApplicationWasm"
+          wasm-wasi-component: "#/components/schemas/configApplicationWasi"
 
     # ABSTRACT BASE SCHEMA, NOT PRESENT IN THE CONFIGURATION; STORES COMMON OPTIONS
     configApplicationCommon:
@@ -5326,7 +5333,7 @@ components:
         type:
           type: string
           description: "Application type and language version."
-          enum: [external, java, perl, php, python, ruby]
+          enum: [external, java, perl, php, python, ruby, wasm, wasm-wasi-component]
 
         environment:
           type: object
@@ -5591,6 +5598,82 @@ components:
               type: integer
               description: "Number of worker threads per app process."
               default: 1
+
+    configApplicationWasm:
+      description: "WASM application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - module
+            - request_handler
+            - malloc_handler
+            - free_handler
+
+          properties:
+            module:
+              type: string
+              description: "Path to WebAssembly module."
+
+            request_handler:
+              type: string
+              description: "Name of request handling function."
+
+            malloc_handler:
+              type: string
+              description: "Name of memory allocator function."
+
+            free_handler:
+              type: string
+              description: "Name of memory free function."
+
+            access:
+              type: object
+              properties:
+                filesystem:
+                  $ref: "#/components/schemas/stringArray"
+                  description:  "Host directories this application may have access to."
+
+            module_init_handler:
+              type: string
+              description: "Name of function called to initialize module."
+
+            module_end_handler:
+              type: string
+              description: "Name of function called to teardown module."
+
+            request_init_handler:
+              type: string
+              description: "Name of function called to initialize request."
+
+            request_end_handler:
+              type: string
+              description: "Name of function called to teardown request."
+
+            response_end_handler:
+              type: string
+              description: "Name of function called to teardown response."
+
+
+    configApplicationWasi:
+      description: "WASI application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - component
+
+          properties:
+            component:
+              type: string
+              description: "Path to wasm wasi component application."
+
+            access:
+              type: object
+              properties:
+                filesystem:
+                  $ref: "#/components/schemas/stringArray"
+                  description:  "Host directories this application may have access to."
 
     configApplicationPHP:
       description: "PHP application on Unit."

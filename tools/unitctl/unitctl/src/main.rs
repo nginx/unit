@@ -8,7 +8,7 @@ extern crate unit_client_rs;
 
 use clap::Parser;
 
-use crate::cmd::{edit, execute as execute_cmd, import, instances, listeners, status};
+use crate::cmd::{applications, edit, execute as execute_cmd, import, instances, listeners, status};
 use crate::output_format::OutputFormat;
 use crate::unitctl::{Commands, UnitCtl};
 use crate::unitctl_error::UnitctlError;
@@ -29,6 +29,8 @@ async fn main() -> Result<(), UnitctlError> {
 
     match cli.command {
         Commands::Instances(args) => instances::cmd(args).await,
+
+        Commands::App(ref args) => applications::cmd(&cli, args).await,
 
         Commands::Edit { output_format } => edit::cmd(&cli, output_format).await,
 
@@ -66,6 +68,9 @@ fn eprint_error(error: &UnitctlError) {
             UnitClientError::SocketPermissionsError { .. } => {
                 eprintln!("{}", source);
                 eprintln!("Try running again with the same permissions as the unit control socket");
+            }
+            UnitClientError::OpenAPIError { source } => {
+                eprintln!("OpenAPI Error: {}", source);
             }
             _ => {
                 eprintln!("Unit client error: {}", source);

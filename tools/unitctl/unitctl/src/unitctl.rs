@@ -41,9 +41,9 @@ pub(crate) struct UnitCtl {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Commands {
-    #[command(about = "List all running UNIT processes")]
+    #[command(about = "List all running Unit processes")]
     Instances(InstanceArgs),
-    #[command(about = "Open current UNIT configuration in editor")]
+    #[command(about = "Open current Unit configuration in editor")]
     Edit {
         #[arg(
             required = false,
@@ -60,7 +60,7 @@ pub(crate) enum Commands {
         #[arg(required = true, help = "Directory to import from")]
         directory: PathBuf,
     },
-    #[command(about = "Sends raw JSON payload to UNIT")]
+    #[command(about = "Sends raw JSON payload to Unit")]
     Execute {
         #[arg(
             required = false,
@@ -90,7 +90,7 @@ pub(crate) enum Commands {
         #[arg(required = true, short = 'p', long = "path")]
         path: String,
     },
-    #[command(about = "Get the current status of UNIT")]
+    #[command(about = "Get the current status of Unit")]
     Status {
         #[arg(
             required = false,
@@ -114,6 +114,8 @@ pub(crate) enum Commands {
         )]
         output_format: OutputFormat,
     },
+    #[command(about = "List all configured Unit applications")]
+    App(ApplicationArgs),
 }
 
 #[derive(Debug, Args)]
@@ -135,7 +137,7 @@ pub struct InstanceArgs {
 #[derive(Debug, Subcommand)]
 #[command(args_conflicts_with_subcommands = true)]
 pub enum InstanceCommands {
-    #[command(about = "deploy a new docker instance of unitd")]
+    #[command(about = "deploy a new docker instance of Unit")]
     New {
         #[arg(required = true, help = "Path to mount control socket to host")]
         socket: String,
@@ -149,6 +151,35 @@ pub enum InstanceCommands {
         )]
         image: String,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct ApplicationArgs {
+    #[arg(
+        required = false,
+        global = true,
+        short = 't',
+        long = "output-format",
+        default_value = "text",
+        help = "Output format: text, yaml, json, json-pretty (default)"
+    )]
+    pub output_format: OutputFormat,
+
+    #[command(subcommand)]
+    pub command: ApplicationCommands,
+}
+
+#[derive(Debug, Subcommand)]
+#[command(args_conflicts_with_subcommands = true)]
+pub enum ApplicationCommands {
+    #[command(about = "reload a running application")]
+    Reload {
+        #[arg(required = true, help = "name of application")]
+        name: String,
+    },
+
+    #[command(about = "list running applications")]
+    List {},
 }
 
 fn parse_control_socket_address(s: &str) -> Result<ControlSocket, ClapError> {
