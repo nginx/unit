@@ -15,12 +15,13 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-Type=simple
+Type=forking
 Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
-ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
+ExecStart=/usr/sbin/unitd $UNITD_OPTIONS
 ExecReload=
 RuntimeDirectory=unit
 RuntimeDirectoryMode=0755
+PIDFile=/run/unit/unit.pid
 
 [Install]
 WantedBy=multi-user.target
