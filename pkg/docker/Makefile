@@ -83,17 +83,17 @@ RUN_wasm ?=       /bin/true
 
 define MODULE_PREBUILD_wasm
 apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
-\ \ \ \&\& export RUST_VERSION=1.76.0 \\\n \
+\ \ \ \&\& export RUST_VERSION=1.79.0 \\\n \
 \ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
 \ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
 \ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \
 \ \ \ \&\& dpkgArch="\$$\(dpkg --print-architecture\)" \\\n \
 \ \ \ \&\& case "\$${dpkgArch##*-}" in \\\n \
-\ \ \ \ \ \ amd64\) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="0b2f6c8f85a3d02fde2efc0ced4657869d73fccfce59defb4e8d29233116e6db" ;; \\\n \
-\ \ \ \ \ \ arm64\) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="673e336c81c65e6b16dcdede33f4cc9ed0f08bde1dbe7a935f113605292dc800" ;; \\\n \
+\ \ \ \ \ \ amd64\) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="6aeece6993e902708983b209d04c0d1dbb14ebb405ddb87def578d41f920f56d" ;; \\\n \
+\ \ \ \ \ \ arm64\) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="1cffbf51e63e634c746f741de50649bbbcbd9dbe1de363c9ecef64e278dba2b2" ;; \\\n \
 \ \ \ \ \ \ *\) echo \>\&2 "unsupported architecture: \$${dpkgArch}"; exit 1 ;; \\\n \
 \ \ \ \esac \\\n \
-\ \ \ \&\& url="https://static.rust-lang.org/rustup/archive/1.26.0/\$${rustArch}/rustup-init" \\\n \
+\ \ \ \&\& url="https://static.rust-lang.org/rustup/archive/1.27.1/\$${rustArch}/rustup-init" \\\n \
 \ \ \ \&\& curl -L -O "\$$url" \\\n \
 \ \ \ \&\& echo "\$${rustupSha256} *rustup-init" | sha256sum -c - \\\n \
 \ \ \ \&\& chmod +x rustup-init \\\n \
