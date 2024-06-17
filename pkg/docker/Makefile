@@ -35,7 +35,7 @@ INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		rm -rf /root/.m2
 MODULE_PREBUILD_jsc ?= /bin/true
 
-VERSIONS_node ?=	20 21
+VERSIONS_node ?=	20 22
 VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
@@ -43,7 +43,7 @@ INSTALL_node ?=		node node-install libunit-install
 RUN_node ?=			rm -rf /root/.cache/ \&\& rm -rf /root/.npm
 MODULE_PREBUILD_node ?=	npm -g install node-gyp
 
-VERSIONS_perl ?=	5.36 5.38
+VERSIONS_perl ?=	5.38 5.40
 VARIANT_perl ?=		$(VARIANT)
 $(foreach perlversion, $(VERSIONS_perl), $(eval CONTAINER_perl$(perlversion) = perl:$(perlversion)-$(VARIANT_perl)))
 CONFIGURE_perl ?=	perl
