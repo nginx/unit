@@ -251,7 +251,7 @@ fi
 
 # Set the base curl command after testing for newer features
 #
-$RPC_CMD curl --fail-with-body --version > /dev/null
+$RPC_CMD curl --fail-with-body --version > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	CURL_CMD="$RPC_CMD curl --silent --fail-with-body"
 else
