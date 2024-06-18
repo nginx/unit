@@ -10,9 +10,7 @@ RELEASE ?= $(DEFAULT_RELEASE)
 
 PACKAGE_VENDOR = NGINX Packaging <nginx-packaging@f5.com>
 
-ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
-OSVER = centos7
-else ifeq ($(shell rpm --eval "%{?rhel}"), 8)
+ifeq ($(shell rpm --eval "%{?rhel}"), 8)
 OSVER = centos8
 else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
@@ -26,10 +24,6 @@ endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint clang llvm
 
-ifeq ($(OSVER), centos7)
-BUILD_DEPENDS_unit += which
-endif
-
 ifneq (,$(findstring $(OSVER),amazonlinux2))
 BUILD_DEPENDS_unit += libxml2 libxslt openssl11-devel
 else
@@ -39,17 +33,6 @@ endif
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
-
-ifeq ($(OSVER), centos7)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.go
-include Makefile.perl
-include Makefile.jsc-common
-include Makefile.jsc8
-include Makefile.jsc11
-endif
 
 ifeq ($(OSVER), centos8)
 include Makefile.php
