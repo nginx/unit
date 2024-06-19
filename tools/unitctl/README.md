@@ -177,6 +177,20 @@ Imported /opt/unit/config/put.json -> /config
 Imported 3 files
 ```
 
+### Export configuration from a running Unit instance
+```
+$ unitctl export -f config.tar
+```
+
+Addtionally, standard out can be used:
+```
+$ unitctl export -f -
+$ unitctl export -f - | tar xf - config.json
+$ unitctl export -f - > config.tar
+```
+
+*Note:* The exported configuration omits certificates.
+
 ### Wait for socket to become available
 ```
 $ unitctl --wait-timeout-seconds=3 --wait-max-tries=4 import /opt/unit/config`
