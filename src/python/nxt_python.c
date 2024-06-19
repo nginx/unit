@@ -400,7 +400,7 @@ static nxt_int_t
 nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     nxt_conf_value_t *conf)
 {
-    char              *callable, *module_name;
+    char              *callable, *module_name, *factory_name;
     PyObject          *module, *obj;
     nxt_str_t         str;
     nxt_conf_value_t  *value;
@@ -408,6 +408,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     static nxt_str_t  module_str = nxt_string("module");
     static nxt_str_t  callable_str = nxt_string("callable");
     static nxt_str_t  prefix_str = nxt_string("prefix");
+    static nxt_str_t  factory_str = nxt_string("factory");
 
     module = obj = NULL;
 
@@ -428,25 +429,40 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
         nxt_python_print_exception();
         goto fail;
     }
+    
+    char factory_found = 0;
+    value = nxt_conf_get_object_member(conf, &factory_str, NULL);
 
-    value = nxt_conf_get_object_member(conf, &callable_str, NULL);
-    if (value == NULL) {
-        callable = nxt_alloca(12);
-        nxt_memcpy(callable, "application", 12);
-
-    } else {
+    if (value != NULL) {
+        factory_found = 1;
         nxt_conf_get_string(value, &str);
-
-        callable = nxt_alloca(str.length + 1);
-        nxt_memcpy(callable, str.start, str.length);
-        callable[str.length] = '\0';
+        factory_name = nxt_alloca(str.length + 1);
+        nxt_memcpy(factory_name, str.start, str.length);
+        factory_name[str.length] = '\0';
+        nxt_alert(task, "factory name %s", factory_name);
+        obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
+        obj = PyObject_CallObject(obj, NULL);
     }
-
-    obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to get \"%s\" from module \"%s\"",
                   callable, module_name);
         goto fail;
+    }
+
+    if (!factory_found) {
+        value = nxt_conf_get_object_member(conf, &callable_str, NULL);
+        if (value == NULL) {
+            callable = nxt_alloca(12);
+            nxt_memcpy(callable, "application", 12);
+
+        } else {
+            nxt_conf_get_string(value, &str);
+
+            callable = nxt_alloca(str.length + 1);
+            nxt_memcpy(callable, str.start, str.length);
+            callable[str.length] = '\0';
+        }
+        obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
     }
 
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
