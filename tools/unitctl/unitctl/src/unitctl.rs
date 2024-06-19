@@ -116,6 +116,16 @@ pub(crate) enum Commands {
     },
     #[command(about = "List all configured Unit applications")]
     App(ApplicationArgs),
+
+    #[command(about = "Export the current configuration of UNIT")]
+    Export {
+        #[arg(
+            required = true,
+            short = 'f',
+            help = "tarball filename to save configuration to"
+        )]
+        filename: String
+    },
 }
 
 #[derive(Debug, Args)]
