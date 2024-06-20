@@ -186,10 +186,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "unitctl-*"
-          # false if triggered by a tag
-          prerelease: ${{github.event_name == 'workflow_dispatch' && true}}
-          tag: ${{(github.event_name == 'workflow_dispatch' && inputs.version) || github.ref_name}}
-          name: unitctl/${{(github.event_name=='workflow_dispatch' && inputs.version) || github.ref_name}}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' }}
+          tag: ${{ inputs.version && format('unitctl/{0}', inputs.version) || github.ref_name }}
           body: >
             ## Unitctl
 
