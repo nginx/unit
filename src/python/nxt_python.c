@@ -406,10 +406,10 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     nxt_bool_t        is_factory = 0;
     nxt_conf_value_t  *value;
 
-    static nxt_str_t  module_str = nxt_string("module");
-    static nxt_str_t  callable_str = nxt_string("callable");
-    static nxt_str_t  prefix_str = nxt_string("prefix");
-    static nxt_str_t  factory_flag_str = nxt_string("factory");
+    static const nxt_str_t  module_str = nxt_string("module");
+    static const nxt_str_t  callable_str = nxt_string("callable");
+    static const nxt_str_t  prefix_str = nxt_string("prefix");
+    static const nxt_str_t  factory_flag_str = nxt_string("factory");
 
     module = obj = NULL;
 
