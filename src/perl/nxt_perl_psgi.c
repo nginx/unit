@@ -407,7 +407,7 @@ nxt_perl_psgi_module_create(const char *script)
     char    *buf, *p;
     size_t  length;
 
-    static nxt_str_t  prefix = nxt_string(
+    static const nxt_str_t  prefix = nxt_string(
         "package NGINX::Unit::Sandbox;"
         "sub new {"
         "   return bless {}, $_[0];"
@@ -415,7 +415,7 @@ nxt_perl_psgi_module_create(const char *script)
         "{my $app = do \""
     );
 
-    static nxt_str_t  suffix = nxt_string_zero(
+    static const nxt_str_t  suffix = nxt_string_zero(
         "\";"
         "unless ($app) {"
         "    if($@ || $1) {die $@ || $1}"
