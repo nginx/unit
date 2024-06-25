@@ -159,7 +159,7 @@ nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
 #else
         nxt_sprintf(error, error + NXT_MAX_ERROR_STR,
                     "Unit is built without support of njs: "
-                    "\"--njs\" ./configure option is missing.");
+                    "\"--njs\" ./configure option is missing.%Z");
         return NXT_ERROR;
 #endif
 
