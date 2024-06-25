@@ -1,0 +1,21 @@
+[package]
+name = "otel"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+bench = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+opentelemetry = "0.24.0"
+opentelemetry_sdk = "0.24.0"
+lazy_static = "1.5.0"
+opentelemetry-otlp = { version = "0.17.0", features = [
+    "http-proto",
+    "reqwest-client",
+] }
+reqwest = { version = "0.12.5" }
+tokio = { version = "1", features = ["full"] }
+opentelemetry-semantic-conventions = "0.15.0"

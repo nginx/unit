@@ -178,6 +178,10 @@ static nxt_http_field_proc_t           nxt_h1p_fields[] = {
     { nxt_string("Content-Length"),    &nxt_http_request_content_length, 0 },
     { nxt_string("Authorization"),     &nxt_http_request_field,
         offsetof(nxt_http_request_t, authorization) },
+#if (NXT_HAVE_OTEL)
+    { nxt_string("Traceparent"),       &nxt_otel_parse_traceparent, 0 },
+    { nxt_string("Tracestate"),        &nxt_otel_parse_tracestate,  0 },
+#endif
 };
 
 
@@ -518,6 +522,10 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
             h1p->parser.discard_unsafe_fields = skcf->discard_unsafe_fields;
 
             nxt_h1p_conn_request_header_parse(task, c, h1p);
+#if (NXT_HAVE_OTEL)
+            nxt_otel_test_and_call_state(task, r);
+#endif
+
             return;
         }
 
@@ -1685,6 +1693,11 @@ nxt_h1p_request_discard(nxt_task_t *task, nxt_http_request_t *r,
 
     nxt_sendbuf_drain(task, wq, b);
     nxt_sendbuf_drain(task, wq, last);
+
+#if (NXT_HAVE_OTEL)
+    // TODO Phase 2: Test
+    nxt_otel_test_and_call_state(task, r);
+#endif
 }
 
 
@@ -1824,6 +1837,11 @@ nxt_h1p_conn_sent(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t          *c;
     nxt_event_engine_t  *engine;
+#if (NXT_HAVE_OTEL)
+    nxt_http_request_t  *r;
+    r = ((nxt_h1proto_t *) data)->request;
+    nxt_otel_test_and_call_state(task, r);
+#endif
 
     c = obj;
 

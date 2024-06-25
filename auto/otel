@@ -1,0 +1,31 @@
+
+# Copyright (C) NGINX, Inc.
+
+
+nxt_found=no
+NXT_HAVE_OTEL=NO
+
+# Temporary build step.
+# later we will refactor the otel rust crate into
+# its own (open source) module
+
+cd src/otel
+cargo build
+cd ../../
+
+nxt_feature="otel"
+nxt_feature_name=NXT_HAVE_OTEL
+nxt_feature_run=no
+nxt_feature_libs=""
+nxt_feature_test="int main(void){return 0;}"
+
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no OpenTelemetry library found.
+    $echo
+    exit 1;
+fi
+
+NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS -lssl -lcrypto src/otel/target/debug/libotel.a"
