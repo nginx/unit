@@ -403,11 +403,13 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     char              *callable, *module_name;
     PyObject          *module, *obj;
     nxt_str_t         str;
+    nxt_bool_t        is_factory = 0;
     nxt_conf_value_t  *value;
 
     static nxt_str_t  module_str = nxt_string("module");
     static nxt_str_t  callable_str = nxt_string("callable");
     static nxt_str_t  prefix_str = nxt_string("prefix");
+    static nxt_str_t  factory_flag_str = nxt_string("factory");
 
     module = obj = NULL;
 
@@ -449,7 +451,30 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
         goto fail;
     }
 
-    if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+    value = nxt_conf_get_object_member(conf, &factory_flag_str, NULL);
+    if (value != NULL) {
+        is_factory = nxt_conf_get_boolean(value);
+    }
+
+    if (is_factory) {
+        if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+            nxt_alert(task,
+                      "factory \"%s\" in module \"%s\" "
+                      "can not be called to fetch callable",
+                      callable, module_name);
+            goto fail;
+        }
+
+        obj = PyObject_CallObject(obj, NULL);
+        if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+            nxt_alert(task,
+                      "factory \"%s\" in module \"%s\" "
+                      "did not return callable object",
+                      callable, module_name);
+            goto fail;
+        }
+
+    } else if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"%s\" in module \"%s\" is not a callable object",
                   callable, module_name);
         goto fail;

@@ -842,6 +842,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
         .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "callable",
     }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+        .validator  = nxt_conf_vldt_targets_exclusive,
+        .u.string   = "factory",
+    }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_targets_exclusive,
@@ -866,6 +871,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[] = {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
     }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_python_prefix,
@@ -883,6 +891,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_notargets_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
