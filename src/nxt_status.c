@@ -17,17 +17,17 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
     nxt_status_app_t  *app;
     nxt_conf_value_t  *status, *obj, *apps, *app_obj;
 
-    static nxt_str_t conns_str = nxt_string("connections");
-    static nxt_str_t acc_str = nxt_string("accepted");
-    static nxt_str_t active_str = nxt_string("active");
-    static nxt_str_t idle_str = nxt_string("idle");
-    static nxt_str_t closed_str = nxt_string("closed");
-    static nxt_str_t reqs_str = nxt_string("requests");
-    static nxt_str_t total_str = nxt_string("total");
-    static nxt_str_t apps_str = nxt_string("applications");
-    static nxt_str_t procs_str = nxt_string("processes");
-    static nxt_str_t run_str = nxt_string("running");
-    static nxt_str_t start_str = nxt_string("starting");
+    static const nxt_str_t  conns_str = nxt_string("connections");
+    static const nxt_str_t  acc_str = nxt_string("accepted");
+    static const nxt_str_t  active_str = nxt_string("active");
+    static const nxt_str_t  idle_str = nxt_string("idle");
+    static const nxt_str_t  closed_str = nxt_string("closed");
+    static const nxt_str_t  reqs_str = nxt_string("requests");
+    static const nxt_str_t  total_str = nxt_string("total");
+    static const nxt_str_t  apps_str = nxt_string("applications");
+    static const nxt_str_t  procs_str = nxt_string("processes");
+    static const nxt_str_t  run_str = nxt_string("running");
+    static const nxt_str_t  start_str = nxt_string("starting");
 
     status = nxt_conf_create_object(mp, 3);
     if (nxt_slow_path(status == NULL)) {
