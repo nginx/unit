@@ -12,6 +12,7 @@ nxt_conf_value_t *
 nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
 {
     size_t            i;
+    uint32_t          idx = 0;
     nxt_str_t         name;
     nxt_int_t         ret;
     nxt_status_app_t  *app;
@@ -39,7 +40,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         return NULL;
     }
 
-    nxt_conf_set_member(status, &conns_str, obj, 0);
+    nxt_conf_set_member(status, &conns_str, obj, idx++);
 
     nxt_conf_set_member_integer(obj, &acc_str, report->accepted_conns, 0);
     nxt_conf_set_member_integer(obj, &active_str, report->accepted_conns
@@ -53,7 +54,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         return NULL;
     }
 
-    nxt_conf_set_member(status, &reqs_str, obj, 1);
+    nxt_conf_set_member(status, &reqs_str, obj, idx++);
 
     nxt_conf_set_member_integer(obj, &total_str, report->requests, 0);
 
@@ -62,7 +63,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         return NULL;
     }
 
-    nxt_conf_set_member(status, &apps_str, apps, 2);
+    nxt_conf_set_member(status, &apps_str, apps, idx++);
 
     for (i = 0; i < report->apps_count; i++) {
         app = &report->apps[i];
