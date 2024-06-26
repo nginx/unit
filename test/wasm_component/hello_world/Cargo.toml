@@ -1,0 +1,18 @@
+[package]
+name = "test-wasi-component"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bitflags = "2.4.2"
+wit-bindgen-rt = "0.21.0"
+wasi = "0.13.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:test-wasi-component"
+proxy = true
+
+[package.metadata.component.dependencies]

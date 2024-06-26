@@ -1,6 +1,7 @@
 import subprocess
 import sys
 
+from unit.check.cargo_component import check_cargo_component
 from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
@@ -28,7 +29,7 @@ def discover_available(unit):
 
     # discover modules from log file
 
-    for module in Log.findall(r'module: ([a-zA-Z]+) (.*) ".*"$'):
+    for module in Log.findall(r'module: ([a-zA-Z\-]+) (.*) ".*"$'):
         versions = option.available['modules'].setdefault(module[0], [])
         if module[1] not in versions:
             versions.append(module[1])
@@ -44,6 +45,7 @@ def discover_available(unit):
     # Discover features using check. Features should be discovered after
     # modules since some features can require modules.
 
+    option.available['features']['cargo_component'] = check_cargo_component()
     option.available['features']['chroot'] = check_chroot()
     option.available['features']['isolation'] = check_isolation()
     option.available['features']['unix_abstract'] = check_unix_abstract()
