@@ -16,5 +16,5 @@ mkdir -p build/fuzz_http_h1p_peer_seed
 mkdir -p build/fuzz_json_seed
 
 echo ""
-echo "Run: ./build/\${fuzzer} build/\${fuzzer}_seed src/fuzz/\${fuzzer}_seed_corpus"
+echo "Run: ./build/\${fuzzer} build/\${fuzzer}_seed fuzzing/\${fuzzer}_seed_corpus"
 echo ""

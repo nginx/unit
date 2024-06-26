@@ -76,6 +76,14 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         goto failed;
     }
 
+    r_controller->conn = nxt_mp_zget(mp, sizeof(nxt_conn_t));
+    if (r_controller->conn == NULL) {
+        goto failed;
+    }
+
+    nxt_main_log.level = NXT_LOG_ALERT;
+    r_controller->conn->log = nxt_main_log;
+
     nxt_http_fields_process(rp.fields, &nxt_controller_fields_hash,
                             r_controller);
 
