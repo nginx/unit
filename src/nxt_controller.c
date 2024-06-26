@@ -11,8 +11,6 @@
 #include <nxt_conf.h>
 #include <nxt_status.h>
 #include <nxt_cert.h>
-#include <nxt_script.h>
-
 
 typedef struct {
     nxt_conf_value_t  *root;
@@ -1633,7 +1631,7 @@ nxt_controller_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     req = data;
 
     if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
-        status = nxt_status_get((nxt_status_report_t *) msg->buf->mem.pos,
+        status = nxt_status_get(task, (nxt_status_report_t *) msg->buf->mem.pos,
                                 req->conn->mem_pool);
     } else {
         status = NULL;
@@ -2432,6 +2430,9 @@ nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
     nxt_buf_t      *b;
     nxt_port_t     *main_port;
     nxt_runtime_t  *rt;
+    time_t         rawtime;
+    u_char         buffer[25];
+    struct         tm *timeinfo;
 
     rt = task->thread->runtime;
 
@@ -2465,6 +2466,17 @@ nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
     (void) nxt_port_socket_write(task, main_port,
                                 NXT_PORT_MSG_CONF_STORE | NXT_PORT_MSG_CLOSE_FD,
                                  fd, 0, -1, b);
+
+    rt->conf_gen++;
+
+    time(&rawtime);
+    timeinfo = gmtime(&rawtime);  //convert to UTC
+    strftime((char*)buffer, 25, "%Y-%m-%dT%H:%M:%S.000Z", timeinfo);
+
+    rt->conf_ltime.length = nxt_strlen(buffer);
+    rt->conf_ltime.start = nxt_malloc(rt->conf_ltime.length + 1);
+
+    nxt_cpystr(rt->conf_ltime.start, buffer);
 
     return;
 

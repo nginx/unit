@@ -777,6 +777,9 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_sockaddr_t               *sa;
     nxt_file_name_str_t          file_name;
     const nxt_event_interface_t  *interface;
+    time_t                       rawtime;
+    u_char                       buffer[25];
+    struct                       tm *timeinfo;
 
     rt->daemon = 1;
     rt->engine_connections = 256;
@@ -789,6 +792,16 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->state = NXT_STATEDIR;
     rt->control = NXT_CONTROL_SOCK;
     rt->tmp = NXT_TMPDIR;
+    rt->conf_gen = 0;
+
+    time(&rawtime);
+    timeinfo = gmtime(&rawtime);  //convert to UTC
+    strftime((char*)buffer, 25, "%Y-%m-%dT%H:%M:%S.000Z", timeinfo);
+
+    rt->conf_ltime.length = nxt_strlen(buffer);
+    rt->conf_ltime.start = nxt_malloc(rt->conf_ltime.length + 1);
+
+    nxt_cpystr(rt->conf_ltime.start, buffer);
 
     nxt_memzero(&rt->capabilities, sizeof(nxt_capabilities_t));
 
