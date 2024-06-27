@@ -3,8 +3,13 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
+include /usr/share/dpkg/vendor.mk
+ifeq ($(shell $(call dpkg_vendor_derives_from,ubuntu)),yes)
+export DEB_CFLAGS_MAINT_APPEND=-fPIC
+else
 export DEB_CFLAGS_MAINT_APPEND=-Wp,-D_FORTIFY_SOURCE=2 -fPIC
+endif
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 

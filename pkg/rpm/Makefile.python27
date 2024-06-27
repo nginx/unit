@@ -13,9 +13,9 @@ MODULE_INSTARGS_python27=	python2.7-install
 MODULE_SOURCES_python27=	unit.example-python-app \
 			unit.example-python27-config
 
-ifneq (,$(findstring $(OSVER),fedora centos8))
+ifneq (,$(findstring $(OSVER),centos8))
 BUILD_DEPENDS_python27=	python2-devel
-else ifneq (,$(findstring $(OSVER),centos7 amazonlinux2))
+else ifneq (,$(findstring $(OSVER),amazonlinux2))
 BUILD_DEPENDS_python27=	python-devel
 else
 BUILD_DEPENDS_python27=	python27-devel
@@ -24,7 +24,7 @@ endif
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_python27)
 
 define MODULE_DEFINITIONS_python27
-%if (0%{?rhel} == 7) || (0%{?amzn} == 2)
+%if 0%{?amzn} == 2
 Obsoletes: unit-python
 %endif
 endef
