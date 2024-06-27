@@ -203,9 +203,12 @@ check-build-depends-%:
 	esac ; \
 	not_installed= ; \
 	for pkg in $${pkgs}; do \
-		i=$$(dpkg-query -f '$${db:Status-Status}' -W $${pkg} 2>/dev/null) ; \
+		i=$$(dpkg-query -f '$${db:Status-Status}' -W $${pkg}:$$(dpkg --print-architecture) 2>/dev/null) ; \
 		if [ $$? -ne 0 -o "$${i}" != "installed" ]; then \
-			not_installed="$${not_installed} $${pkg}" ; \
+			i=$$(dpkg-query -f '$${db:Status-Status}' -W $${pkg}:all 2>/dev/null) ; \
+			if [ $$? -ne 0 -o "$${i}" != "installed" ]; then \
+				not_installed="$${not_installed} $${pkg}" ; \
+			fi; \
 		fi ; \
 	done ; \
 	if test -n "$${not_installed}" ; then \
