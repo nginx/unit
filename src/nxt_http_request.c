@@ -936,9 +936,8 @@ nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
                 return NXT_DECLINED;
             }
 
-            nxt_tstr_query(task, r->tstr_query, rtcf->log_expr, &str);
-
-            if (nxt_slow_path(nxt_tstr_query_failed(r->tstr_query))) {
+            ret = nxt_tstr_query(task, r->tstr_query, rtcf->log_expr, &str);
+            if (nxt_slow_path(ret != NXT_OK)) {
                 return NXT_DECLINED;
             }
         }
