@@ -1633,7 +1633,8 @@ nxt_controller_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     req = data;
 
     if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
-        status = nxt_status_get((nxt_status_report_t *) msg->buf->mem.pos,
+        status = nxt_status_get(task,
+                                (nxt_status_report_t *) msg->buf->mem.pos,
                                 req->conn->mem_pool);
     } else {
         status = NULL;
