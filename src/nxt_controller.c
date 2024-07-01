@@ -1908,9 +1908,9 @@ nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 static nxt_bool_t
 nxt_controller_cert_in_use(nxt_str_t *name)
 {
-    uint32_t          next;
+    uint32_t          i, n, next;
     nxt_str_t         str;
-    nxt_conf_value_t  *listeners, *listener, *value;
+    nxt_conf_value_t  *listeners, *listener, *value, *element;
 
     static const nxt_str_t  listeners_path = nxt_string("/listeners");
     static const nxt_str_t  certificate_path = nxt_string("/tls/certificate");
@@ -1931,10 +1931,27 @@ nxt_controller_cert_in_use(nxt_str_t *name)
                 continue;
             }
 
-            nxt_conf_get_string(value, &str);
+            if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+                n = nxt_conf_array_elements_count(value);
 
-            if (nxt_strstr_eq(&str, name)) {
-                return 1;
+                for (i = 0; i < n; i++) {
+                    element = nxt_conf_get_array_element(value, i);
+
+                    nxt_conf_get_string(element, &str);
+
+                    if (nxt_strstr_eq(&str, name)) {
+                        return 1;
+                    }
+                }
+
+            } else {
+                /* NXT_CONF_STRING */
+
+                nxt_conf_get_string(value, &str);
+
+                if (nxt_strstr_eq(&str, name)) {
+                    return 1;
+                }
             }
         }
     }
