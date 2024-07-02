@@ -110,6 +110,7 @@ ${NXT_WCM_MODULE}:	${NXT_WCM_MOD_CARGO}
 
 ${NXT_WCM_MOD_CARGO}: ${NXT_WCM_DEPS}
 	$NXT_CARGO_CMD
+	@cp $NXT_WCM_MOD_CARGO build/lib/unit/modules/${NXT_WCM_MOD_NAME}
 
 install: ${NXT_WCM_MODULE}-install
 
