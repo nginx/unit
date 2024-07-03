@@ -65,7 +65,7 @@ nxt_int_t
 nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_conf_value_t *value)
 {
-    u_char                        *p;
+    char                        *p;
     nxt_int_t                     ret;
     nxt_str_t                     str;
     nxt_tstr_t                    *format;
@@ -115,7 +115,7 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
         access_log->count = 1;
 
         access_log->path.length = alcf.path.length;
-        access_log->path.start = (u_char *) access_log
+        access_log->path.start = (char *) access_log
                                  + sizeof(nxt_router_access_log_t);
 
         nxt_memcpy(access_log->path.start, alcf.path.start, alcf.path.length);

@@ -80,7 +80,7 @@ struct nxt_cgroup_s {
 
 
 typedef struct {
-    u_char                   *rootfs;
+    char                   *rootfs;
     nxt_process_automount_t  automount;
     nxt_array_t              *mounts;     /* of nxt_mount_t */
 

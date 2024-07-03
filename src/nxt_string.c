@@ -33,7 +33,7 @@ nxt_str_alloc(nxt_mp_t *mp, size_t length)
 nxt_str_t *
 nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
 {
-    u_char  *p;
+    char  *p;
 
     if (dst == NULL) {
         /* The string start is allocated aligned to be close to nxt_str_t. */
@@ -42,7 +42,7 @@ nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
             return NULL;
         }
 
-        p = (u_char *) dst;
+        p = (char *) dst;
         p += sizeof(nxt_str_t);
         dst->start = p;
 
@@ -64,7 +64,7 @@ nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
  * nxt_str_cstrz() creates a C style zero-terminated copy of a source
  * nxt_str_t.  The function is intended to create strings suitable
  * for libc and kernel interfaces so result is pointer to char instead
- * of u_char to minimize casts.
+ * of char to minimize casts.
  */
 
 char *
@@ -84,9 +84,9 @@ nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src)
 
 
 void
-nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t length)
+nxt_memcpy_lowcase(char *dst, const char *src, size_t length)
 {
-    u_char  c;
+    char  c;
 
     while (length != 0) {
         c = *src++;
@@ -97,9 +97,9 @@ nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t length)
 
 
 void
-nxt_memcpy_upcase(u_char *dst, const u_char *src, size_t length)
+nxt_memcpy_upcase(char *dst, const char *src, size_t length)
 {
-    u_char  c;
+    char  c;
 
     while (length != 0) {
         c = *src++;
@@ -109,8 +109,8 @@ nxt_memcpy_upcase(u_char *dst, const u_char *src, size_t length)
 }
 
 
-u_char *
-nxt_cpystr(u_char *dst, const u_char *src)
+char *
+nxt_cpystr(char *dst, const char *src)
 {
     for ( ;; ) {
         *dst = *src;
@@ -127,8 +127,8 @@ nxt_cpystr(u_char *dst, const u_char *src)
 }
 
 
-u_char *
-nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
+char *
+nxt_cpystrn(char *dst, const char *src, size_t length)
 {
     if (length == 0) {
         return dst;
@@ -152,9 +152,9 @@ nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 
 
 nxt_int_t
-nxt_strcasecmp(const u_char *s1, const u_char *s2)
+nxt_strcasecmp(const char *s1, const char *s2)
 {
-    u_char     c1, c2;
+    char     c1, c2;
     nxt_int_t  n;
 
     for ( ;; ) {
@@ -178,9 +178,9 @@ nxt_strcasecmp(const u_char *s1, const u_char *s2)
 
 
 nxt_int_t
-nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t length)
+nxt_strncasecmp(const char *s1, const char *s2, size_t length)
 {
-    u_char     c1, c2;
+    char     c1, c2;
     nxt_int_t  n;
 
     while (length-- != 0) {
@@ -208,9 +208,9 @@ nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t length)
 nxt_int_t
 nxt_memcasecmp(const void *p1, const void *p2, size_t length)
 {
-    u_char        c1, c2;
+    char        c1, c2;
     nxt_int_t     n;
-    const u_char  *s1, *s2;
+    const char  *s1, *s2;
 
     s1 = p1;
     s2 = p2;
@@ -239,12 +239,12 @@ nxt_memcasecmp(const void *p1, const void *p2, size_t length)
  * Zeros are ignored in both strings.
  */
 
-u_char *
-nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
+char *
+nxt_memstrn(const char *s, const char *end, const char *ss, size_t length)
 {
-    u_char  c1, c2, *s2;
+    char  c1, c2, *s2;
 
-    s2 = (u_char *) ss;
+    s2 = (char *) ss;
     c2 = *s2++;
     length--;
 
@@ -258,7 +258,7 @@ nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
             }
 
             if (memcmp(s, s2, length) == 0) {
-                return (u_char *) s - 1;
+                return (char *) s - 1;
             }
         }
     }
@@ -273,13 +273,13 @@ nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
  * Zeros are ignored in both strings.
  */
 
-u_char *
-nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss,
+char *
+nxt_memcasestrn(const char *s, const char *end, const char *ss,
     size_t length)
 {
-    u_char  c1, c2, *s2;
+    char  c1, c2, *s2;
 
-    s2 = (u_char *) ss;
+    s2 = (char *) ss;
     c2 = *s2++;
     c2 = nxt_lowcase(c2);
     length--;
@@ -295,7 +295,7 @@ nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss,
             }
 
             if (nxt_memcasecmp(s, s2, length) == 0) {
-                return (u_char *) s - 1;
+                return (char *) s - 1;
             }
         }
     }
@@ -310,14 +310,14 @@ nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss,
  * in reverse order.  Zeros are ignored in both strings.
  */
 
-u_char *
-nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
+char *
+nxt_rmemstrn(const char *s, const char *end, const char *ss, size_t length)
 {
-    u_char        c1, c2;
-    const u_char  *s1, *s2;
+    char        c1, c2;
+    const char  *s1, *s2;
 
     s1 = end - length;
-    s2 = (u_char *) ss;
+    s2 = (char *) ss;
     c2 = *s2++;
     length--;
 
@@ -326,7 +326,7 @@ nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
 
         if (c1 == c2) {
             if (memcmp(s1 + 1, s2, length) == 0) {
-                return (u_char *) s1;
+                return (char *) s1;
             }
         }
 
@@ -338,9 +338,9 @@ nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
 
 
 size_t
-nxt_str_strip(const u_char *start, u_char *end)
+nxt_str_strip(const char *start, char *end)
 {
-    u_char  *p;
+    char  *p;
 
     for (p = end - 1; p >= start; p--) {
         if (*p != '\r' && *p != '\n') {
@@ -353,9 +353,9 @@ nxt_str_strip(const u_char *start, u_char *end)
 
 
 nxt_int_t
-nxt_strverscmp(const u_char *s1, const u_char *s2)
+nxt_strverscmp(const char *s1, const char *s2)
 {
-    u_char     c1, c2;
+    char     c1, c2;
     nxt_int_t  diff;
 
     enum {
@@ -447,9 +447,9 @@ nxt_strverscmp(const u_char *s1, const u_char *s2)
 
 
 nxt_bool_t
-nxt_strvers_match(u_char *version, u_char *prefix, size_t length)
+nxt_strvers_match(char *version, char *prefix, size_t length)
 {
-    u_char  next, last;
+    char  next, last;
 
     if (length == 0) {
         return 1;
@@ -516,10 +516,10 @@ static const uint32_t  nxt_uri_escape[] = {
 };
 
 
-u_char *
-nxt_decode_uri(u_char *dst, u_char *src, size_t length)
+char *
+nxt_decode_uri(char *dst, char *src, size_t length)
 {
-    u_char   *end, ch;
+    char   *end, ch;
     uint8_t  d0, d1;
 
     nxt_prefetch(&nxt_hex2int['0']);
@@ -551,10 +551,10 @@ nxt_decode_uri(u_char *dst, u_char *src, size_t length)
 }
 
 
-u_char *
-nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length)
+char *
+nxt_decode_uri_plus(char *dst, char *src, size_t length)
 {
-    u_char   *end, ch;
+    char   *end, ch;
     uint8_t  d0, d1;
 
     nxt_prefetch(&nxt_hex2int['0']);
@@ -593,12 +593,12 @@ nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length)
 
 
 uintptr_t
-nxt_encode_uri(u_char *dst, u_char *src, size_t length)
+nxt_encode_uri(char *dst, char *src, size_t length)
 {
-    u_char      *end;
+    char      *end;
     nxt_uint_t  n;
 
-    static const u_char  hex[16] = "0123456789ABCDEF";
+    static const char  hex[16] = "0123456789ABCDEF";
 
     end = src + length;
 
@@ -639,14 +639,14 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 
 
 uintptr_t
-nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
+nxt_encode_complex_uri(char *dst, char *src, size_t length)
 {
-    u_char      *reserved, *end, ch;
+    char      *reserved, *end, ch;
     nxt_uint_t  n;
 
-    static const u_char  hex[16] = "0123456789ABCDEF";
+    static const char  hex[16] = "0123456789ABCDEF";
 
-    reserved = (u_char *) "?#\0";
+    reserved = (char *) "?#\0";
 
     end = src + length;
 
@@ -703,12 +703,12 @@ nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
 
 
 nxt_bool_t
-nxt_is_complex_uri_encoded(u_char *src, size_t length)
+nxt_is_complex_uri_encoded(char *src, size_t length)
 {
-    u_char   *reserved, *end, ch;
+    char   *reserved, *end, ch;
     uint8_t  d0, d1;
 
-    reserved = (u_char *) "?#\0";
+    reserved = (char *) "?#\0";
 
     for (end = src + length; src < end; src++) {
         ch = *src;
@@ -748,9 +748,9 @@ nxt_is_complex_uri_encoded(u_char *src, size_t length)
 
 
 ssize_t
-nxt_base64_decode(u_char *dst, u_char *src, size_t length)
+nxt_base64_decode(char *dst, char *src, size_t length)
 {
-    u_char   *end, *p;
+    char   *end, *p;
     size_t   pad;
     uint8_t  v1, v2, v3, v4;
 

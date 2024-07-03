@@ -10,7 +10,7 @@
 nxt_uint_t
 nxt_recvbuf_mem_coalesce(nxt_recvbuf_coalesce_t *rb)
 {
-    u_char     *last;
+    char     *last;
     size_t     size, total;
     nxt_int_t  n;
     nxt_buf_t  *b;

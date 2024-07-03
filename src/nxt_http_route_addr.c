@@ -9,7 +9,7 @@
 
 
 #if (NXT_INET6)
-static nxt_bool_t nxt_valid_ipv6_blocks(u_char *c, size_t len);
+static nxt_bool_t nxt_valid_ipv6_blocks(char *c, size_t len);
 #endif
 
 
@@ -17,7 +17,7 @@ nxt_int_t
 nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
     nxt_http_route_addr_pattern_t *pattern, nxt_conf_value_t *cv)
 {
-    u_char                       *delim;
+    char                       *delim;
     nxt_int_t                    ret, cidr_prefix;
     nxt_str_t                    addr, port;
     nxt_http_route_addr_base_t   *base;
@@ -68,7 +68,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
 
     if (nxt_inet6_probe(&addr)) {
 #if (NXT_INET6)
-        u_char                           *end;
+        char                           *end;
         uint8_t                          i;
         nxt_int_t                        len;
         nxt_http_route_in6_addr_range_t  *inet6;
@@ -316,9 +316,9 @@ parse_port:
 #if (NXT_INET6)
 
 static nxt_bool_t
-nxt_valid_ipv6_blocks(u_char *c, size_t len)
+nxt_valid_ipv6_blocks(char *c, size_t len)
 {
-    u_char      *end;
+    char      *end;
     nxt_uint_t  colon_gap;
 
     end = c + len;

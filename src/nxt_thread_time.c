@@ -34,8 +34,8 @@ static void nxt_time_thread(void *data);
 static void nxt_thread_time_shared(nxt_monotonic_time_t *now);
 static void nxt_thread_realtime_update(nxt_thread_t *thr,
     nxt_monotonic_time_t *now);
-static u_char *nxt_thread_time_string_no_cache(nxt_thread_t *thr,
-    nxt_time_string_t *ts, u_char *buf);
+static char *nxt_thread_time_string_no_cache(nxt_thread_t *thr,
+    nxt_time_string_t *ts, char *buf);
 static nxt_atomic_uint_t nxt_thread_time_string_slot(nxt_time_string_t *ts);
 static nxt_time_string_cache_t *nxt_thread_time_string_cache(nxt_thread_t *thr,
     nxt_atomic_uint_t slot);
@@ -222,10 +222,10 @@ nxt_thread_realtime_update(nxt_thread_t *thr, nxt_monotonic_time_t *now)
 }
 
 
-u_char *
-nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
+char *
+nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, char *buf)
 {
-    u_char                   *p;
+    char                   *p;
     struct tm                *tm;
     nxt_time_t               s;
     nxt_bool_t               update;
@@ -347,9 +347,9 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
 }
 
 
-static u_char *
+static char *
 nxt_thread_time_string_no_cache(nxt_thread_t *thr, nxt_time_string_t *ts,
-    u_char *buf)
+    char *buf)
 {
     struct tm       tm;
     nxt_realtime_t  now;

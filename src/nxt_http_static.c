@@ -10,7 +10,7 @@
 typedef struct {
     nxt_tstr_t                  *tstr;
 #if (NXT_HAVE_OPENAT2)
-    u_char                      *fname;
+    char                      *fname;
 #endif
     uint8_t                     is_const;  /* 1 bit */
 } nxt_http_static_share_t;
@@ -52,7 +52,7 @@ static void nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
 static void nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx, nxt_http_status_t status);
 #if (NXT_HAVE_OPENAT2)
-static u_char *nxt_http_static_chroot_match(u_char *chr, u_char *shr);
+static char *nxt_http_static_chroot_match(char *chr, char *shr);
 #endif
 static void nxt_http_static_extract_extension(nxt_str_t *path,
     nxt_str_t *exten);
@@ -311,7 +311,7 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx)
 {
     size_t                  length, encode;
-    u_char                  *p, *fname;
+    char                  *p, *fname;
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
@@ -407,11 +407,11 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
             }
 
         } else if (fname[0] == '/') {
-            file.name = (u_char *) "/";
+            file.name = (char *) "/";
             ret = nxt_file_open(task, &file, NXT_FILE_SEARCH, NXT_FILE_OPEN, 0);
 
         } else {
-            file.name = (u_char *) ".";
+            file.name = (char *) ".";
             file.fd = AT_FDCWD;
             ret = NXT_OK;
         }
@@ -636,7 +636,7 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
         field->value_length = length;
 
         if (encode > 0) {
-            p = (u_char *) nxt_encode_uri(p, r->path->start, r->path->length);
+            p = (char *) nxt_encode_uri(p, r->path->start, r->path->length);
 
         } else {
             p = nxt_cpymem(p, r->path->start, r->path->length);
@@ -700,8 +700,8 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
 
 #if (NXT_HAVE_OPENAT2)
 
-static u_char *
-nxt_http_static_chroot_match(u_char *chr, u_char *shr)
+static char *
+nxt_http_static_chroot_match(char *chr, char *shr)
 {
     if (*chr != *shr) {
         return NULL;
@@ -758,7 +758,7 @@ nxt_http_static_chroot_match(u_char *chr, u_char *shr)
 static void
 nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
 {
-    u_char  ch, *p, *end;
+    char  ch, *p, *end;
 
     end = path->start + path->length;
     p = end;
@@ -995,7 +995,7 @@ nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash)
     for (i = 0; i < nxt_nitems(default_types); i++) {
         type = (nxt_str_t *) &default_types[i].type;
 
-        exten.start = (u_char *) default_types[i].exten;
+        exten.start = (char *) default_types[i].exten;
         exten.length = nxt_strlen(exten.start);
 
         ret = nxt_http_static_mtypes_hash_add(mp, hash, &exten, type);

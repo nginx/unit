@@ -80,8 +80,8 @@ struct nxt_mem_zone_s {
     uint32_t               max_chunk_size;
     uint32_t               small_bitmap_min_size;
 
-    u_char                 *start;
-    u_char                 *end;
+    char                 *start;
+    char                 *end;
 
     nxt_mem_zone_slot_t    slots[];
 };
@@ -92,7 +92,7 @@ struct nxt_mem_zone_s {
 
 
 #define nxt_mem_zone_addr_page(zone, addr)                                    \
-    &zone->pages[((u_char *) addr - zone->start) >> zone->page_size_shift]
+    &zone->pages[((char *) addr - zone->start) >> zone->page_size_shift]
 
 
 #define nxt_mem_zone_page_is_free(page)                                       \
@@ -123,7 +123,7 @@ struct nxt_mem_zone_s {
     nxt_memset((p), 0x5A, size)
 
 
-static uint32_t nxt_mem_zone_pages(u_char *start, size_t zone_size,
+static uint32_t nxt_mem_zone_pages(char *start, size_t zone_size,
     nxt_uint_t page_size);
 static void *nxt_mem_zone_slots_init(nxt_mem_zone_t *zone,
     nxt_uint_t page_size);
@@ -155,7 +155,7 @@ static nxt_log_moderation_t  nxt_mem_zone_log_moderation = {
 
 
 nxt_mem_zone_t *
-nxt_mem_zone_init(u_char *start, size_t zone_size, nxt_uint_t page_size)
+nxt_mem_zone_init(char *start, size_t zone_size, nxt_uint_t page_size)
 {
     uint32_t                   pages;
     nxt_uint_t                 n;
@@ -207,9 +207,9 @@ nxt_mem_zone_init(u_char *start, size_t zone_size, nxt_uint_t page_size)
 
 
 static uint32_t
-nxt_mem_zone_pages(u_char *start, size_t zone_size, nxt_uint_t page_size)
+nxt_mem_zone_pages(char *start, size_t zone_size, nxt_uint_t page_size)
 {
-    u_char          *end;
+    char          *end;
     size_t          reserved;
     nxt_uint_t      n, pages, size, chunks, last;
     nxt_mem_zone_t  *zone;
@@ -385,7 +385,7 @@ nxt_next_highest_power_of_two(uint32_t n)
 static intptr_t
 nxt_mem_zone_rbtree_compare(nxt_rbtree_node_t *node1, nxt_rbtree_node_t *node2)
 {
-    u_char                     *start1, *end1, *start2, *end2;
+    char                     *start1, *end1, *start2, *end2;
     uint32_t                   n, size, size1, size2;
     nxt_mem_zone_free_block_t  *block1, *block2;
 
@@ -416,10 +416,10 @@ nxt_mem_zone_rbtree_compare(nxt_rbtree_node_t *node1, nxt_rbtree_node_t *node2)
 
     /* Align the blocks' start and end to the rounded size. */
     start1 = nxt_align_ptr(block1, size);
-    end1 = nxt_trunc_ptr((u_char *) block1 + size1, size);
+    end1 = nxt_trunc_ptr((char *) block1 + size1, size);
 
     start2 = nxt_align_ptr(block2, size);
-    end2 = nxt_trunc_ptr((u_char *) block2 + size2, size);
+    end2 = nxt_trunc_ptr((char *) block2 + size2, size);
 
     return (end1 - start1) - (end2 - start2);
 }
@@ -507,7 +507,7 @@ static void *
 nxt_mem_zone_alloc_small(nxt_mem_zone_t *zone, nxt_mem_zone_slot_t *slot,
     size_t size)
 {
-    u_char               *p;
+    char               *p;
     uint8_t              *map;
     nxt_mem_zone_page_t  *page;
 
@@ -647,7 +647,7 @@ nxt_mem_zone_alloc_large(nxt_mem_zone_t *zone, size_t alignment, size_t size)
 static nxt_mem_zone_page_t *
 nxt_mem_zone_alloc_pages(nxt_mem_zone_t *zone, size_t alignment, uint32_t pages)
 {
-    u_char                     *p;
+    char                     *p;
     size_t                     prev_size;
     uint32_t                   prev_pages, node_pages, next_pages;
     nxt_uint_t                 n;
@@ -669,7 +669,7 @@ nxt_mem_zone_alloc_pages(nxt_mem_zone_t *zone, size_t alignment, uint32_t pages)
     p = nxt_align_ptr(block, alignment);
     page = nxt_mem_zone_addr_page(zone, p);
 
-    prev_size = p - (u_char *) block;
+    prev_size = p - (char *) block;
 
     if (prev_size != 0) {
         prev_pages = prev_size >> zone->page_size_shift;
@@ -727,7 +727,7 @@ static nxt_mem_zone_free_block_t *
 nxt_mem_zone_find_free_block(nxt_mem_zone_t *zone, nxt_rbtree_node_t *node,
     uint32_t alignment, uint32_t pages)
 {
-    u_char                     *aligned, *end;
+    char                     *aligned, *end;
     nxt_mem_zone_free_block_t  *block, *free_block;
 
     if (node == nxt_rbtree_sentinel(&zone->free_pages)) {
@@ -747,7 +747,7 @@ nxt_mem_zone_find_free_block(nxt_mem_zone_t *zone, nxt_rbtree_node_t *node,
         aligned = nxt_align_ptr(block, alignment);
 
         if (pages == block->size) {
-            if (aligned == (u_char *) block) {
+            if (aligned == (char *) block) {
                 /* Exact match. */
                 return block;
             }
@@ -776,8 +776,8 @@ nxt_mem_zone_free(nxt_mem_zone_t *zone, void *p)
 
     nxt_thread_log_debug("mem zone free: %p", p);
 
-    if (nxt_fast_path(zone->start <= (u_char *) p
-                      && (u_char *) p < zone->end))
+    if (nxt_fast_path(zone->start <= (char *) p
+                      && (char *) p < zone->end))
     {
         page = nxt_mem_zone_addr_page(zone, p);
 
@@ -822,7 +822,7 @@ static const char *
 nxt_mem_zone_free_chunk(nxt_mem_zone_t *zone, nxt_mem_zone_page_t *page,
     void *p)
 {
-    u_char               *map;
+    char               *map;
     uint32_t             size, offset, chunk;
     nxt_mem_zone_page_t  *pg, **ppg;
     nxt_mem_zone_slot_t  *slot;
@@ -843,7 +843,7 @@ nxt_mem_zone_free_chunk(nxt_mem_zone_t *zone, nxt_mem_zone_page_t *page,
 
     if (nxt_mem_zone_page_bitmap(zone, slot)) {
         /* A page's chunks bitmap is placed at the start of the page. */
-        map = (u_char *) ((uintptr_t) p & ~((uintptr_t) zone->page_size_mask));
+        map = (char *) ((uintptr_t) p & ~((uintptr_t) zone->page_size_mask));
 
     } else {
         map = page->u.map;

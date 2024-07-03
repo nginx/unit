@@ -55,10 +55,10 @@
  */
 
 
-u_char * nxt_cdecl
-nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
+char * nxt_cdecl
+nxt_sprintf(char *buf, char *end, const char *fmt, ...)
 {
-    u_char   *p;
+    char   *p;
     va_list  args;
 
     va_start(args, fmt);
@@ -76,17 +76,17 @@ nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
  */
 
 typedef struct {
-    u_char        *end;
-    const u_char  *hex;
+    char        *end;
+    const char  *hex;
     uint32_t      width;
     int32_t       frac_width;
     uint8_t       max_width;
-    u_char        padding;
+    char        padding;
 } nxt_sprintf_t;
 
 
-static u_char *nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64);
-static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
+static char *nxt_integer(nxt_sprintf_t *spf, char *buf, uint64_t ui64);
+static char *nxt_number(nxt_sprintf_t *spf, char *buf, double n);
 
 
 /* A right way of "f == 0.0". */
@@ -94,8 +94,8 @@ static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
     (fabs(f) <= FLT_EPSILON)
 
 
-u_char *
-nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
+char *
+nxt_vsprintf(char *buf, char *end, const char *fmt, va_list args)
 {
     int                  d;
     double               f, i;
@@ -108,15 +108,15 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     nxt_msec_t           ms;
     nxt_nsec_t           ns;
     nxt_bool_t           sign;
-    const u_char         *p;
+    const char         *p;
     nxt_sprintf_t        spf;
     nxt_file_name_t      *fn;
 
-    static const u_char  hexadecimal[16] = "0123456789abcdef";
-    static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
-    static const u_char  nan[] = "[nan]";
-    static const u_char  null[] = "[null]";
-    static const u_char  infinity[] = "[infinity]";
+    static const char  hexadecimal[16] = "0123456789abcdef";
+    static const char  HEXADECIMAL[16] = "0123456789ABCDEF";
+    static const char  nan[] = "[nan]";
+    static const char  null[] = "[null]";
+    static const char  infinity[] = "[infinity]";
 
     spf.end = end;
 
@@ -153,7 +153,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
         case 's':
             fmt++;
 
-            p = va_arg(args, const u_char *);
+            p = va_arg(args, const char *);
 
             if (nxt_slow_path(p == NULL)) {
                 buf = nxt_cpymem(buf, null, nxt_length(null));
@@ -173,7 +173,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (*fmt == 's') {
                 fmt++;
-                p = va_arg(args, const u_char *);
+                p = va_arg(args, const char *);
 
                 if (nxt_slow_path(p == NULL)) {
                     buf = nxt_cpymem(buf, null, nxt_length(null));
@@ -571,12 +571,12 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 }
 
 
-static u_char *
-nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
+static char *
+nxt_integer(nxt_sprintf_t *spf, char *buf, uint64_t ui64)
 {
-    u_char  *p, *end;
+    char  *p, *end;
     size_t  length;
-    u_char  temp[NXT_INT64_T_LEN];
+    char  temp[NXT_INT64_T_LEN];
 
     p = temp + NXT_INT64_T_LEN;
 
@@ -585,7 +585,7 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 #if (NXT_32BIT)
 
         for ( ;; ) {
-            u_char    *start;
+            char    *start;
             uint32_t  ui32;
 
             /*
@@ -683,12 +683,12 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 }
 
 
-static u_char *
-nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
+static char *
+nxt_number(nxt_sprintf_t *spf, char *buf, double n)
 {
-    u_char  *p, *end;
+    char  *p, *end;
     size_t  length;
-    u_char  temp[NXT_DOUBLE_LEN];
+    char  temp[NXT_DOUBLE_LEN];
 
     p = temp + NXT_DOUBLE_LEN;
 

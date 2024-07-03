@@ -1096,7 +1096,7 @@ nxt_port_frag_start(nxt_task_t *task, nxt_port_t *port,
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);
-    lhq.key.start = (u_char *) &frag_key;
+    lhq.key.start = (char *) &frag_key;
     lhq.proto = &lvlhsh_frag_proto;
     lhq.replace = 0;
     lhq.value = fmsg;
@@ -1146,7 +1146,7 @@ nxt_port_frag_find(nxt_task_t *task, nxt_port_t *port, nxt_port_recv_msg_t *msg)
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);
-    lhq.key.start = (u_char *) &frag_key;
+    lhq.key.start = (char *) &frag_key;
     lhq.proto = &lvlhsh_frag_proto;
     lhq.pool = port->mem_pool;
 

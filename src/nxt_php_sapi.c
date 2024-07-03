@@ -97,9 +97,9 @@ static void nxt_php_disable(nxt_task_t *task, const char *type,
     nxt_str_t *value, char **ptr, nxt_php_disable_t disable);
 
 static nxt_int_t nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir);
-static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
-static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
-nxt_inline u_char *nxt_realpath(const void *c);
+static void nxt_php_str_trim_trail(nxt_str_t *str, char t);
+static void nxt_php_str_trim_lead(nxt_str_t *str, char t);
+nxt_inline char *nxt_realpath(const void *c);
 
 static nxt_int_t nxt_php_do_301(nxt_unit_request_info_t *req);
 static nxt_int_t nxt_php_handle_fs_err(nxt_unit_request_info_t *req);
@@ -112,7 +112,7 @@ static void nxt_zend_stream_init_fp(zend_file_handle *handle, FILE *fp,
     const char *filename);
 #endif
 static void nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r);
-nxt_inline void nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, u_char *dir);
+nxt_inline void nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, char *dir);
 
 static int nxt_php_startup(sapi_module_struct *sapi_module);
 static int nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
@@ -524,7 +524,7 @@ static nxt_int_t
 nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
     nxt_conf_value_t *conf)
 {
-    u_char            *tmp, *p;
+    char            *tmp, *p;
     nxt_str_t         str;
     nxt_int_t         ret;
     nxt_conf_value_t  *value;
@@ -638,7 +638,7 @@ static nxt_int_t
 nxt_php_set_ini_path(nxt_task_t *task, nxt_str_t *ini_path, char *workdir)
 {
     size_t  wdlen;
-    u_char  *p, *start;
+    char  *p, *start;
 
     if (ini_path->start[0] == '/' || workdir == NULL) {
         p = nxt_malloc(ini_path->length + 1);
@@ -901,7 +901,7 @@ nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir)
 
 
 static void
-nxt_php_str_trim_trail(nxt_str_t *str, u_char t)
+nxt_php_str_trim_trail(nxt_str_t *str, char t)
 {
     while (str->length > 0 && str->start[str->length - 1] == t) {
         str->length--;
@@ -912,7 +912,7 @@ nxt_php_str_trim_trail(nxt_str_t *str, u_char t)
 
 
 static void
-nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
+nxt_php_str_trim_lead(nxt_str_t *str, char t)
 {
     while (str->length > 0 && str->start[0] == t) {
         str->length--;
@@ -921,10 +921,10 @@ nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
 }
 
 
-nxt_inline u_char *
+nxt_inline char *
 nxt_realpath(const void *c)
 {
-    return (u_char *) realpath(c, NULL);
+    return (char *) realpath(c, NULL);
 }
 
 
@@ -1039,7 +1039,7 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
 static void
 nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 {
-    u_char     *p;
+    char     *p;
     nxt_str_t  path, script_name;
     nxt_int_t  ret;
 
@@ -1264,7 +1264,7 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
 
 nxt_inline void
-nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, u_char *dir)
+nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, char *dir)
 {
     if (nxt_slow_path(VCWD_CHDIR((char *) dir) != 0)) {
         nxt_unit_req_alert(req, "VCWD_CHDIR(%s) failed (%d: %s)",

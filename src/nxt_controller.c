@@ -33,7 +33,7 @@ typedef struct {
     nxt_uint_t        status;
     nxt_conf_value_t  *conf;
 
-    u_char            *title;
+    char            *title;
     nxt_str_t         detail;
     ssize_t           offset;
     nxt_uint_t        line;
@@ -121,7 +121,7 @@ static void nxt_controller_conf_store(nxt_task_t *task,
     nxt_conf_value_t *conf);
 static void nxt_controller_response(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_controller_response_t *resp);
-static u_char *nxt_controller_date(u_char *buf, nxt_realtime_t *now,
+static char *nxt_controller_date(char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 
 
@@ -589,7 +589,7 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf,
     nxt_port_rpc_handler_t handler, void *data)
 {
     void           *mem;
-    u_char         *end;
+    char         *end;
     size_t         size;
     uint32_t       stream;
     nxt_fd_t       fd;
@@ -628,7 +628,7 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf,
 
     nxt_mem_munmap(mem, size);
 
-    size = end - (u_char *) mem;
+    size = end - (char *) mem;
 
     b->mem.free = nxt_cpymem(b->mem.pos, &size, sizeof(size_t));
 
@@ -695,7 +695,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     if (ls->sockaddr->u.sockaddr.sa_family == AF_UNIX) {
         const char *path = ls->sockaddr->u.sockaddr_un.sun_path;
 
-        nxt_fs_mkdir_p_dirname((const u_char *) path, 0755);
+        nxt_fs_mkdir_p_dirname((const char *) path, 0755);
     }
 #endif
 
@@ -1237,7 +1237,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     }
 
     resp.status = 404;
-    resp.title = (u_char *) "Value doesn't exist.";
+    resp.title = (char *) "Value doesn't exist.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1246,7 +1246,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 invalid_method:
 
     resp.status = 405;
-    resp.title = (u_char *) "Invalid method.";
+    resp.title = (char *) "Invalid method.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1255,7 +1255,7 @@ invalid_method:
 alloc_fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
+    resp.title = (char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1344,7 +1344,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
             }
 
             resp.status = 400;
-            resp.title = (u_char *) "Invalid JSON.";
+            resp.title = (char *) "Invalid JSON.";
             resp.detail.length = nxt_strlen(error.detail);
             resp.detail.start = error.detail;
             resp.offset = error.pos - mbuf->pos;
@@ -1509,7 +1509,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 not_allowed:
 
     resp.status = 405;
-    resp.title = (u_char *) "Method isn't allowed.";
+    resp.title = (char *) "Method isn't allowed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1518,7 +1518,7 @@ not_allowed:
 not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "Value doesn't exist.";
+    resp.title = (char *) "Value doesn't exist.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1527,7 +1527,7 @@ not_found:
 invalid_conf:
 
     resp.status = 400;
-    resp.title = (u_char *) "Invalid configuration.";
+    resp.title = (char *) "Invalid configuration.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1536,7 +1536,7 @@ invalid_conf:
 alloc_fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
+    resp.title = (char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1612,7 +1612,7 @@ fail:
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     resp.status = 500;
-    resp.title = (u_char *) "Failed to get status.";
+    resp.title = (char *) "Failed to get status.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1645,7 +1645,7 @@ nxt_controller_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
         resp.status = 500;
-        resp.title = (u_char *) "Failed to get status.";
+        resp.title = (char *) "Failed to get status.";
         resp.offset = -1;
 
         nxt_controller_response(task, req, &resp);
@@ -1672,7 +1672,7 @@ nxt_controller_status_response(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (status == NULL) {
         resp.status = 404;
-        resp.title = (u_char *) "Invalid path.";
+        resp.title = (char *) "Invalid path.";
         resp.offset = -1;
 
         nxt_controller_response(task, req, &resp);
@@ -1692,7 +1692,7 @@ static void
 nxt_controller_process_cert(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path)
 {
-    u_char                     *p;
+    char                     *p;
     nxt_str_t                  name;
     nxt_int_t                  ret;
     nxt_conn_t                 *c;
@@ -1789,14 +1789,14 @@ nxt_controller_process_cert(nxt_task_t *task,
         nxt_cert_store_delete(task, &name, c->mem_pool);
 
         resp.status = 200;
-        resp.title = (u_char *) "Certificate deleted.";
+        resp.title = (char *) "Certificate deleted.";
 
         nxt_controller_response(task, req, &resp);
         return;
     }
 
     resp.status = 405;
-    resp.title = (u_char *) "Invalid method.";
+    resp.title = (char *) "Invalid method.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1805,7 +1805,7 @@ nxt_controller_process_cert(nxt_task_t *task,
 invalid_name:
 
     resp.status = 400;
-    resp.title = (u_char *) "Invalid certificate name.";
+    resp.title = (char *) "Invalid certificate name.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1814,7 +1814,7 @@ invalid_name:
 invalid_cert:
 
     resp.status = 400;
-    resp.title = (u_char *) "Invalid certificate.";
+    resp.title = (char *) "Invalid certificate.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1823,7 +1823,7 @@ invalid_cert:
 exists_cert:
 
     resp.status = 400;
-    resp.title = (u_char *) "Certificate already exists.";
+    resp.title = (char *) "Certificate already exists.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1832,7 +1832,7 @@ exists_cert:
 cert_in_use:
 
     resp.status = 400;
-    resp.title = (u_char *) "Certificate is used in the configuration.";
+    resp.title = (char *) "Certificate is used in the configuration.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1841,7 +1841,7 @@ cert_in_use:
 cert_not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "Certificate doesn't exist.";
+    resp.title = (char *) "Certificate doesn't exist.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1850,7 +1850,7 @@ cert_not_found:
 not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "Invalid path.";
+    resp.title = (char *) "Invalid path.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1859,7 +1859,7 @@ not_found:
 alloc_fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
+    resp.title = (char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -1882,7 +1882,7 @@ nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
         resp.status = 500;
-        resp.title = (u_char *) "Failed to store certificate.";
+        resp.title = (char *) "Failed to store certificate.";
 
         nxt_controller_response(task, req, &resp);
         return;
@@ -1899,7 +1899,7 @@ nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     resp.status = 200;
-    resp.title = (u_char *) "Certificate chain uploaded.";
+    resp.title = (char *) "Certificate chain uploaded.";
 
     nxt_controller_response(task, req, &resp);
 }
@@ -1968,7 +1968,7 @@ static void
 nxt_controller_process_script(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path)
 {
-    u_char                     *p;
+    char                     *p;
     nxt_int_t                  ret;
     nxt_str_t                  name;
     nxt_conn_t                 *c;
@@ -1976,7 +1976,7 @@ nxt_controller_process_script(nxt_task_t *task,
     nxt_buf_mem_t              *bm;
     nxt_conf_value_t           *value;
     nxt_controller_response_t  resp;
-    u_char                     error[NXT_MAX_ERROR_STR];
+    char                     error[NXT_MAX_ERROR_STR];
 
     name.length = path->length - 1;
     name.start = path->start + 1;
@@ -2070,14 +2070,14 @@ nxt_controller_process_script(nxt_task_t *task,
         nxt_script_store_delete(task, &name, c->mem_pool);
 
         resp.status = 200;
-        resp.title = (u_char *) "JS module deleted.";
+        resp.title = (char *) "JS module deleted.";
 
         nxt_controller_response(task, req, &resp);
         return;
     }
 
     resp.status = 405;
-    resp.title = (u_char *) "Invalid method.";
+    resp.title = (char *) "Invalid method.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2086,7 +2086,7 @@ nxt_controller_process_script(nxt_task_t *task,
 invalid_name:
 
     resp.status = 400;
-    resp.title = (u_char *) "Invalid JS module name.";
+    resp.title = (char *) "Invalid JS module name.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2095,7 +2095,7 @@ invalid_name:
 invalid_script:
 
     resp.status = 400;
-    resp.title = (u_char *) "Invalid JS module.";
+    resp.title = (char *) "Invalid JS module.";
     resp.offset = -1;
 
     resp.detail.start = error;
@@ -2107,7 +2107,7 @@ invalid_script:
 exists_script:
 
     resp.status = 400;
-    resp.title = (u_char *) "JS module already exists.";
+    resp.title = (char *) "JS module already exists.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2116,7 +2116,7 @@ exists_script:
 script_in_use:
 
     resp.status = 400;
-    resp.title = (u_char *) "JS module is used in the configuration.";
+    resp.title = (char *) "JS module is used in the configuration.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2125,7 +2125,7 @@ script_in_use:
 script_not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "JS module doesn't exist.";
+    resp.title = (char *) "JS module doesn't exist.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2134,7 +2134,7 @@ script_not_found:
 not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "Invalid path.";
+    resp.title = (char *) "Invalid path.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2143,7 +2143,7 @@ not_found:
 alloc_fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
+    resp.title = (char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2165,7 +2165,7 @@ nxt_controller_process_script_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
         resp.status = 500;
-        resp.title = (u_char *) "Failed to store script.";
+        resp.title = (char *) "Failed to store script.";
 
         nxt_controller_response(task, req, &resp);
         return;
@@ -2182,7 +2182,7 @@ nxt_controller_process_script_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     resp.status = 200;
-    resp.title = (u_char *) "JS module uploaded.";
+    resp.title = (char *) "JS module uploaded.";
 
     nxt_controller_response(task, req, &resp);
 }
@@ -2274,13 +2274,13 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_controller_conf_store(task, req->conf.root);
 
         resp.status = 200;
-        resp.title = (u_char *) "Reconfiguration done.";
+        resp.title = (char *) "Reconfiguration done.";
 
     } else {
         nxt_mp_destroy(req->conf.pool);
 
         resp.status = 500;
-        resp.title = (u_char *) "Failed to apply new configuration.";
+        resp.title = (char *) "Failed to apply new configuration.";
         resp.offset = -1;
     }
 
@@ -2374,7 +2374,7 @@ nxt_controller_process_control(nxt_task_t *task,
 not_allowed:
 
     resp.status = 405;
-    resp.title = (u_char *) "Method isn't allowed.";
+    resp.title = (char *) "Method isn't allowed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2383,7 +2383,7 @@ not_allowed:
 not_found:
 
     resp.status = 404;
-    resp.title = (u_char *) "Value doesn't exist.";
+    resp.title = (char *) "Value doesn't exist.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2392,7 +2392,7 @@ not_found:
 alloc_fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
+    resp.title = (char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2401,7 +2401,7 @@ alloc_fail:
 fail:
 
     resp.status = 500;
-    resp.title = (u_char *) "Send restart failed.";
+    resp.title = (char *) "Send restart failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -2425,11 +2425,11 @@ nxt_controller_app_restart_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
         resp.status = 200;
-        resp.title = (u_char *) "Ok";
+        resp.title = (char *) "Ok";
 
     } else {
         resp.status = 500;
-        resp.title = (u_char *) "Failed to restart app.";
+        resp.title = (char *) "Failed to restart app.";
         resp.offset = -1;
     }
 
@@ -2443,7 +2443,7 @@ static void
 nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
 {
     void           *mem;
-    u_char         *end;
+    char         *end;
     size_t         size;
     nxt_fd_t       fd;
     nxt_buf_t      *b;
@@ -2470,7 +2470,7 @@ nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
 
     nxt_mem_munmap(mem, size);
 
-    size = end - (u_char *) mem;
+    size = end - (char *) mem;
 
     b = nxt_buf_mem_alloc(task->thread->engine->mem_pool, sizeof(size_t), 0);
     if (nxt_slow_path(b == NULL)) {
@@ -2665,8 +2665,8 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
 }
 
 
-static u_char *
-nxt_controller_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+static char *
+nxt_controller_date(char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
     static const char * const  week[] = { "Sun", "Mon", "Tue", "Wed", "Thu",

@@ -13,14 +13,14 @@
  */
 
 nxt_time_t
-nxt_time_parse(const u_char *p, size_t len)
+nxt_time_parse(const char *p, size_t len)
 {
     size_t            n;
-    u_char            c;
+    char            c;
     uint64_t          s;
     nxt_int_t         yr, month, day, hour, min, sec;
     nxt_uint_t        year, days;
-    const u_char      *end;
+    const char      *end;
 
     static const nxt_int_t  mday[12] = {
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
@@ -308,11 +308,11 @@ nxt_time_parse(const u_char *p, size_t len)
  */
 
 nxt_int_t
-nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
+nxt_term_parse(const char *p, size_t len, nxt_bool_t seconds)
 {
-    u_char        c, ch;
+    char        c, ch;
     nxt_uint_t    val, term, scale, max;
-    const u_char  *end;
+    const char  *end;
 
     enum {
         st_first_digit = 0,

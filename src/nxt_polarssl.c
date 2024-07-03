@@ -102,7 +102,7 @@ nxt_polarssl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
     const char *fmt, ...)
 {
     va_list  args;
-    u_char   *p, *end, msg[NXT_MAX_ERROR_STR];
+    char   *p, *end, msg[NXT_MAX_ERROR_STR];
 
     end = msg + NXT_MAX_ERROR_STR;
 

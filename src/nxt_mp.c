@@ -94,7 +94,7 @@ typedef struct {
     /* Block size must be less than 4G. */
     uint32_t             size;
 
-    u_char               *start;
+    char               *start;
     nxt_mp_page_t        pages[];
 } nxt_mp_block_t;
 
@@ -155,9 +155,9 @@ static void *nxt_mp_alloc_large(nxt_mp_t *mp, size_t alignment, size_t size,
     nxt_bool_t freeable);
 static intptr_t nxt_mp_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
-static nxt_mp_block_t *nxt_mp_find_block(nxt_rbtree_t *tree, const u_char *p);
+static nxt_mp_block_t *nxt_mp_find_block(nxt_rbtree_t *tree, const char *p);
 static const char *nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster,
-    u_char *p);
+    char *p);
 
 
 #if (NXT_HAVE_BUILTIN_CLZ)
@@ -501,7 +501,7 @@ nxt_mp_chunk_pages_index(nxt_mp_t *mp, size_t size)
 
 #if !(NXT_DEBUG_MEMORY)
 
-nxt_inline u_char *
+nxt_inline char *
 nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
 {
     size_t          page_offset;
@@ -510,7 +510,7 @@ nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
     page_offset = page->number * sizeof(nxt_mp_page_t)
                   + offsetof(nxt_mp_block_t, pages);
 
-    block = (nxt_mp_block_t *) ((u_char *) page - page_offset);
+    block = (nxt_mp_block_t *) ((char *) page - page_offset);
 
     return block->start + (page->number << mp->page_size_shift);
 }
@@ -519,7 +519,7 @@ nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
 static void *
 nxt_mp_alloc_small(nxt_mp_t *mp, size_t size)
 {
-    u_char            *p;
+    char            *p;
     nxt_uint_t        n, index;
     nxt_queue_t       *chunk_pages;
     nxt_mp_page_t     *page;
@@ -594,7 +594,7 @@ nxt_mp_alloc_small(nxt_mp_t *mp, size_t size)
 static void *
 nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size)
 {
-    u_char            *p;
+    char            *p;
     uint32_t          available;
     nxt_mp_page_t     *page;
     nxt_queue_link_t  *link, *next;
@@ -711,7 +711,7 @@ static void *
 nxt_mp_alloc_large(nxt_mp_t *mp, size_t alignment, size_t size,
     nxt_bool_t freeable)
 {
-    u_char          *p;
+    char          *p;
     size_t          aligned_size;
     uint8_t         type;
     nxt_mp_block_t  *block;
@@ -830,7 +830,7 @@ nxt_mp_free(nxt_mp_t *mp, void *p)
 
 
 static nxt_mp_block_t *
-nxt_mp_find_block(nxt_rbtree_t *tree, const u_char *p)
+nxt_mp_find_block(nxt_rbtree_t *tree, const char *p)
 {
     nxt_mp_block_t     *block;
     nxt_rbtree_node_t  *node, *sentinel;
@@ -858,9 +858,9 @@ nxt_mp_find_block(nxt_rbtree_t *tree, const u_char *p)
 
 
 static const char *
-nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster, u_char *p)
+nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster, char *p)
 {
-    u_char         *start;
+    char         *start;
     uintptr_t      offset;
     nxt_uint_t     n, size, chunk;
     nxt_queue_t    *chunk_pages;
