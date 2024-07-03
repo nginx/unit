@@ -6,16 +6,16 @@ class Status:
     control = Control()
 
     def _check_zeros():
-        assert Status.control.conf_get('/status') == {
-            'connections': {
+        status = Status.control.conf_get('/status')
+
+        assert status['connections'] == {
                 'accepted': 0,
                 'active': 0,
                 'idle': 0,
                 'closed': 0,
-            },
-            'requests': {'total': 0},
-            'applications': {},
         }
+        assert status['requests'] == {'total': 0}
+        assert status['applications'] == {}
 
     def init(status=None):
         Status._status = (
@@ -30,6 +30,9 @@ class Status:
                     for k in d1
                     if k in d2
                 }
+
+            if isinstance(d1, str):
+                return d1 == d2
 
             return d1 - d2
 
