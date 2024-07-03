@@ -2,6 +2,7 @@ use crate::unitctl::UnitCtl;
 use crate::wait;
 use crate::UnitctlError;
 use crate::requests::send_empty_body_deserialize_response;
+use crate::unitctl_error::ControlSocketErrorKind;
 use unit_client_rs::unit_client::UnitClient;
 use tar::{Builder, Header};
 use std::fs::File;
@@ -12,12 +13,20 @@ pub async fn cmd(
     cli: &UnitCtl,
     filename: &String
 ) -> Result<(), UnitctlError> {
+    if cli.control_socket_addresses.is_some() &&
+        cli.control_socket_addresses.clone().unwrap().len() > 1 {
+            return Err(UnitctlError::ControlSocketError{
+                kind: ControlSocketErrorKind::General,
+                message: "too many control sockets. specify at most one.".to_string(),
+            });
+        }
+
+    let mut control_sockets = wait::wait_for_sockets(cli).await?;
+    let client = UnitClient::new(control_sockets.pop().unwrap());
+
     if !filename.ends_with(".tar") {
         eprintln!("Warning: writing uncompressed tarball to {}", filename);
     }
-
-    let control_socket = wait::wait_for_socket(cli).await?;
-    let client = UnitClient::new(control_socket);
 
     let config_res = serde_json::to_string_pretty(
         &send_empty_body_deserialize_response(&client, "GET", "/config").await?

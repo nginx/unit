@@ -5,7 +5,7 @@ use crate::requests::{
 };
 use crate::unitctl::UnitCtl;
 use crate::wait;
-use crate::{OutputFormat, UnitctlError};
+use crate::{OutputFormat, UnitctlError, eprint_error};
 use unit_client_rs::unit_client::UnitClient;
 
 pub(crate) async fn cmd(
@@ -15,8 +15,11 @@ pub(crate) async fn cmd(
     method: &str,
     path: &str,
 ) -> Result<(), UnitctlError> {
-    let control_socket = wait::wait_for_socket(cli).await?;
-    let client = UnitClient::new(control_socket);
+    let clients: Vec<_> = wait::wait_for_sockets(cli)
+        .await?
+        .into_iter()
+        .map(|sock| UnitClient::new(sock))
+        .collect();
 
     let path_trimmed = path.trim();
     let method_upper = method.to_uppercase();
@@ -28,7 +31,21 @@ pub(crate) async fn cmd(
         eprintln!("Cannot use GET method with input file - ignoring input file");
     }
 
-    send_and_deserialize(client, method_upper, input_file_arg, path_trimmed, output_format).await
+    for client in clients {
+        let _ = send_and_deserialize(
+            client,
+            method_upper.clone(),
+            input_file_arg.clone(),
+            path_trimmed,
+            output_format
+        ).await
+            .map_err(|e| {
+                eprint_error(&e);
+                std::process::exit(e.exit_code());
+            });
+    }
+
+    Ok(())
 }
 
 async fn send_and_deserialize(

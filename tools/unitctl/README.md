@@ -111,6 +111,14 @@ $ unitctl app reload wasm
 }
 ```
 
+*Note:* Both of the above commands support operating on multiple instances
+of Unit at once. To do this, pass multiple values for the `-s` flag as
+shown below:
+
+```
+$ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock app list
+```
+
 ### Lists active listeners from running Unit processes
 ```
 unitctl listeners
@@ -120,6 +128,13 @@ No socket path provided - attempting to detect from running instance
     "pass": "routes"
   }
 }
+```
+
+*Note:* This command supports operating on multiple instances of Unit at once.
+To do this, pass multiple values for the `-s` flag as shown below:
+
+```
+$ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock listeners
 ```
 
 ### Get the current status of NGINX Unit processes
@@ -134,6 +149,13 @@ connections:
 requests:
   total: 0
 applications: {}
+```
+
+*Note:* This command supports operating on multiple instances of Unit at once.
+To do this, pass multiple values for the `-s` flag as shown below:
+
+```
+$ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock status
 ```
 
 ### Send arbitrary configuration payloads to Unit
@@ -158,6 +180,13 @@ $ echo '{
 }
 ```
 
+*Note:* This command supports operating on multiple instances of Unit at once.
+To do this, pass multiple values for the `-s` flag as shown below:
+
+```
+$ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock execute ...
+```
+
 ### Edit current configuration in your favorite editor
 ```
 $ unitctl edit
@@ -167,6 +196,8 @@ $ unitctl edit
   "success": "Reconfiguration done."
 }
 ```
+
+*Note:* This command does not support operating on multiple instances of Unit at once.
 
 ### Import configuration, certificates, and NJS modules from directory
 ```
@@ -190,6 +221,8 @@ $ unitctl export -f - > config.tar
 ```
 
 *Note:* The exported configuration omits certificates.
+
+*Note:* This command does not support operating on multiple instances of Unit at once.
 
 ### Wait for socket to become available
 ```

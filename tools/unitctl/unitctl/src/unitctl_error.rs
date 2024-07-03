@@ -70,3 +70,56 @@ impl Termination for UnitctlError {
         ExitCode::from(self.exit_code() as u8)
     }
 }
+
+pub fn eprint_error(error: &UnitctlError) {
+    match error {
+        UnitctlError::NoUnitInstancesError => {
+            eprintln!("No running unit instances found");
+        }
+        UnitctlError::MultipleUnitInstancesError { ref suggestion } => {
+            eprintln!("{}", suggestion);
+        }
+        UnitctlError::NoSocketPathError => {
+            eprintln!("Unable to detect socket path from running instance");
+        }
+        UnitctlError::UnitClientError { source } => match source {
+            UnitClientError::SocketPermissionsError { .. } => {
+                eprintln!("{}", source);
+                eprintln!("Try running again with the same permissions as the unit control socket");
+            }
+            UnitClientError::OpenAPIError { source } => {
+                eprintln!("OpenAPI Error: {}", source);
+            }
+            _ => {
+                eprintln!("Unit client error: {}", source);
+            }
+        },
+        UnitctlError::SerializationError { message } => {
+            eprintln!("Serialization error: {}", message);
+        }
+        UnitctlError::DeserializationError { message } => {
+            eprintln!("Deserialization error: {}", message);
+        }
+        UnitctlError::IoError { ref source } => {
+            eprintln!("IO error: {}", source);
+        }
+        UnitctlError::PathNotFound { path } => {
+            eprintln!("Path not found: {}", path);
+        }
+        UnitctlError::EditorError { message } => {
+            eprintln!("Error opening editor: {}", message);
+        }
+        UnitctlError::CertificateError { message } => {
+            eprintln!("Certificate error: {}", message);
+        }
+        UnitctlError::NoInputFileError => {
+            eprintln!("No input file specified when required");
+        }
+        UnitctlError::UiServerError { ref message } => {
+            eprintln!("UI server error: {}", message);
+        }
+        _ => {
+            eprintln!("{}", error);
+        }
+    }
+}
