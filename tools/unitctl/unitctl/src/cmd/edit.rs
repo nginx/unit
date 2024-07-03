@@ -1,6 +1,7 @@
 use crate::inputfile::{InputFile, InputFormat};
 use crate::requests::{send_and_validate_config_deserialize_response, send_empty_body_deserialize_response};
 use crate::unitctl::UnitCtl;
+use crate::unitctl_error::ControlSocketErrorKind;
 use crate::{wait, OutputFormat, UnitctlError};
 use std::path::{Path, PathBuf};
 use unit_client_rs::unit_client::UnitClient;
@@ -19,8 +20,16 @@ const EDITOR_KNOWN_LIST: [&str; 8] = [
 ];
 
 pub(crate) async fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<(), UnitctlError> {
-    let control_socket = wait::wait_for_socket(cli).await?;
-    let client = UnitClient::new(control_socket);
+    if cli.control_socket_addresses.is_some() &&
+        cli.control_socket_addresses.clone().unwrap().len() > 1 {
+            return Err(UnitctlError::ControlSocketError{
+                kind: ControlSocketErrorKind::General,
+                message: "too many control sockets. specify at most one.".to_string(),
+            });
+        }
+
+    let mut control_sockets = wait::wait_for_sockets(cli).await?;
+    let client = UnitClient::new(control_sockets.pop().unwrap());
     // Get latest configuration
     let current_config = send_empty_body_deserialize_response(&client, "GET", "/config").await?;
 

@@ -50,8 +50,12 @@ pub async fn cmd(cli: &UnitCtl, directory: &PathBuf) -> Result<(), UnitctlError>
         });
     }
 
-    let control_socket = wait::wait_for_socket(cli).await?;
-    let client = UnitClient::new(control_socket);
+    let clients: Vec<_> = wait::wait_for_sockets(cli)
+        .await?
+        .into_iter()
+        .map(|sock| UnitClient::new(sock))
+        .collect();
+
     let mut results = vec![];
     for i in WalkDir::new(directory)
         .follow_links(true)
@@ -60,7 +64,9 @@ pub async fn cmd(cli: &UnitCtl, directory: &PathBuf) -> Result<(), UnitctlError>
         .filter_map(Result::ok)
         .filter(|e| !e.path().is_dir())
     {
-        results.push(process_entry(i, &client).await);
+        for client in &clients {
+            results.push(process_entry(i.clone(), client).await);
+        }
     }
 
     if results.iter().filter(|r| r.is_err()).count() == results.len() {

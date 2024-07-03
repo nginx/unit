@@ -16,7 +16,7 @@ pub(crate) struct UnitCtl {
         value_parser = parse_control_socket_address,
         help = "Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL"
     )]
-    pub(crate) control_socket_address: Option<ControlSocket>,
+    pub(crate) control_socket_addresses: Option<Vec<ControlSocket>>,
     #[arg(
         required = false,
         default_missing_value = "1",
