@@ -35,6 +35,7 @@ typedef nxt_int_t (*nxt_application_setup_t)(nxt_task_t *task,
 
 typedef struct {
     nxt_app_type_t            type;
+    char                      *name;
     u_char                    *version;
     char                      *file;
     nxt_app_module_t          *module;

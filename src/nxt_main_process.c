@@ -1355,6 +1355,12 @@ static nxt_conf_map_t  nxt_app_lang_module_map[] = {
     },
 
     {
+        nxt_string("name"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_app_lang_module_t, name),
+    },
+
+    {
         nxt_string("version"),
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_app_lang_module_t, version),
