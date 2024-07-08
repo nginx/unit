@@ -9,14 +9,20 @@
 
 
 nxt_conf_value_t *
-nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
+nxt_status_get(nxt_task_t *task, nxt_status_report_t *report, nxt_mp_t *mp)
 {
     size_t            i;
-    nxt_str_t         name;
+    nxt_runtime_t     *rt;
     nxt_int_t         ret;
+    nxt_str_t         name;
     nxt_status_app_t  *app;
+    nxt_str_t         version;
     nxt_conf_value_t  *status, *obj, *apps, *app_obj;
 
+    static nxt_str_t unit_str = nxt_string("unit");
+    static nxt_str_t ver_str = nxt_string("version");
+    static nxt_str_t gen_str = nxt_string("generation");
+    static nxt_str_t lconf_str = nxt_string("last_configured");
     static nxt_str_t conns_str = nxt_string("connections");
     static nxt_str_t acc_str = nxt_string("accepted");
     static nxt_str_t active_str = nxt_string("active");
@@ -29,17 +35,31 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
     static nxt_str_t run_str = nxt_string("running");
     static nxt_str_t start_str = nxt_string("starting");
 
-    status = nxt_conf_create_object(mp, 3);
+    rt = task->thread->runtime;
+
+    status = nxt_conf_create_object(mp, 4);
     if (nxt_slow_path(status == NULL)) {
         return NULL;
     }
+
+    obj = nxt_conf_create_object(mp, 3);
+    if (nxt_slow_path(obj == NULL)) {
+        return NULL;
+    }
+
+    nxt_conf_set_member(status, &unit_str, obj, 0);
+
+    nxt_str_set(&version, NXT_VERSION);
+    nxt_conf_set_member_string(obj, &ver_str, &version, 0);
+    nxt_conf_set_member_string(obj, &lconf_str, &rt->conf_ltime, 1);
+    nxt_conf_set_member_integer(obj, &gen_str,  rt->conf_gen, 2);
 
     obj = nxt_conf_create_object(mp, 4);
     if (nxt_slow_path(obj == NULL)) {
         return NULL;
     }
 
-    nxt_conf_set_member(status, &conns_str, obj, 0);
+    nxt_conf_set_member(status, &conns_str, obj, 1);
 
     nxt_conf_set_member_integer(obj, &acc_str, report->accepted_conns, 0);
     nxt_conf_set_member_integer(obj, &active_str, report->accepted_conns
@@ -53,7 +73,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         return NULL;
     }
 
-    nxt_conf_set_member(status, &reqs_str, obj, 1);
+    nxt_conf_set_member(status, &reqs_str, obj, 2);
 
     nxt_conf_set_member_integer(obj, &total_str, report->requests, 0);
 
@@ -62,7 +82,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         return NULL;
     }
 
-    nxt_conf_set_member(status, &apps_str, apps, 2);
+    nxt_conf_set_member(status, &apps_str, apps, 3);
 
     for (i = 0; i < report->apps_count; i++) {
         app = &report->apps[i];

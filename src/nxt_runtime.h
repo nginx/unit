@@ -77,6 +77,9 @@ struct nxt_runtime_s {
     const char             *control_user;
     const char             *control_group;
 
+    nxt_int_t              conf_gen;
+    nxt_str_t              conf_ltime;
+
     nxt_str_t              certs;
     nxt_str_t              scripts;
 
