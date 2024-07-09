@@ -63,29 +63,32 @@ request issue first to start a discussion about the feature.
 
 ## Git Style Guide
 
-- Keep a clean, concise and meaningful `git commit` history on your branch,
-  rebasing locally and squashing before submitting a PR
+- Create atomic commits.  A commit should do just one thing, i.e. you
+  shouldn't mix refactoring with functional code changes.  Do the
+  refactoring in one or more commits first.
 
-- For any user-visible changes, updates, and bugfixes, add a note to
-  `docs/changes.xml` under the section for the upcoming release, using
-  `<change type="feature">` for new functionality, `<change type="change">`
-  for changed behavior, and `<change type="bugfix">` for bug fixes.
+  Ideally you should rebase locally and force push new commits up.
 
-- In the subject line, use the past tense ("Added feature", not "Add
-  feature"); also, use past tense to describe past scenarios, and present
-  tense for current behavior
+- In the subject line, use the imperative mood.  I.e. write the subject like
+  you're giving git a command, e.g. "Free memory before exiting". Do not
+  terminate the subject with a `.`
 
-- Limit the subject line to 67 characters, and the rest of the commit message
-  to 80 characters
+- Try to limit the subject line to around 50 characters, but try not to
+  exceed 72.
 
-- Use subject line prefixes for commits that affect a specific portion of the
-  code; examples include "Tests:", "Packages:", or "Docker:", and also
-  individual languages such as "Java:" or "Ruby:"
+- Wrap the body of the commit message after 72 characters.
 
-- Reference issues and PRs liberally after the subject line; if the commit
-  remedies a GitHub issue, [name
-  it](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue)
-  accordingly
+- Use lowercase subject line prefixes for commits that affect a specific
+  portion of the code; examples include "tests:", "ci:", or "http:", and
+  also individual languages such as "python:" or "php:".  If multiple areas
+  are affected you can specify multiple prefixes, e.g. "auto, perl:"
 
-- Don't rely on command-line commit messages with `-m`; use the editor instead
+- If the commit fixes an open issue then you can use the "Closes:"
+  tag/trailer to reference it and have GitHub automatically close it once
+  it's been merged.  E.g.:
+
+  `Closes: https://github.com/nginx/unit/issues/9999`
+
+  That should go at the end of the commit message, separated by a blank line,
+  along with any other tags.
 
