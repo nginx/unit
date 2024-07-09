@@ -14,15 +14,16 @@ appreciate that you are considering contributing!
 ## Getting Started
 
 Check out the [Quick Installation](README.md#quick-installation) and
-[Howto](https://unit.nginx.org/howto/) guides to get NGINX Unit up and running.
+[Howto](https://unit.nginx.org/howto/) guides to get NGINX Unit up and
+running.
 
 
 ## Ask a Question
 
-Please open an [issue](https://github.com/nginx/unit/issues/new) on GitHub with
-the label `question`.  You can also ask a question on
-[GitHub Discussions](https://github.com/nginx/unit/discussions) or the NGINX Unit mailing list,
-unit@nginx.org (subscribe
+Please open an [issue](https://github.com/nginx/unit/issues/new) on GitHub
+with the label `question`.  You can also ask a question on
+[GitHub Discussions](https://github.com/nginx/unit/discussions) or the NGINX
+Unit mailing list, unit@nginx.org (subscribe
 [here](https://mailman.nginx.org/mailman3/lists/unit.nginx.org/)).
 
 
@@ -47,17 +48,17 @@ the expected behavior that doesn't occur.
 
 To suggest an enhancement, open an
 [issue](https://github.com/nginx/unit/issues/new) on GitHub with the label
-`enhancement`.  Please do this before implementing a new feature to discuss the
-feature first.
+`enhancement`.  Please do this before implementing a new feature to discuss
+the feature first.
 
 
 ### Open a Pull Request
 
-Before submitting a PR, please read the NGINX Unit code guidelines to know more
-about coding conventions and benchmarks.  Fork the repo, create a branch, and
-submit a PR when your changes are tested and ready for review.  Again, if you'd
-like to implement a new feature, please consider creating a feature request
-issue first to start a discussion about the feature.
+Before submitting a PR, please read the NGINX Unit code guidelines to know
+more about coding conventions and benchmarks.  Fork the repo, create a branch,
+and submit a PR when your changes are tested and ready for review.  Again, if
+you'd like to implement a new feature, please consider creating a feature
+request issue first to start a discussion about the feature.
 
 
 ## Git Style Guide
@@ -66,13 +67,13 @@ issue first to start a discussion about the feature.
   rebasing locally and squashing before submitting a PR
 
 - For any user-visible changes, updates, and bugfixes, add a note to
-  `docs/changes.xml` under the section for the upcoming release, using `<change
-  type="feature">` for new functionality, `<change type="change">` for changed
-  behavior, and `<change type="bugfix">` for bug fixes.
+  `docs/changes.xml` under the section for the upcoming release, using
+  `<change type="feature">` for new functionality, `<change type="change">`
+  for changed behavior, and `<change type="bugfix">` for bug fixes.
 
-- In the subject line, use the past tense ("Added feature", not "Add feature");
-  also, use past tense to describe past scenarios, and present tense for
-  current behavior
+- In the subject line, use the past tense ("Added feature", not "Add
+  feature"); also, use past tense to describe past scenarios, and present
+  tense for current behavior
 
 - Limit the subject line to 67 characters, and the rest of the commit message
   to 80 characters
