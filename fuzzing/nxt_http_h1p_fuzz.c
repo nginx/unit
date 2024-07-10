@@ -75,6 +75,8 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         goto failed;
     }
 
+    r_h1p->mem_pool = mp;
+
     nxt_http_fields_process(rp.fields, &nxt_h1p_fields_hash, r_h1p);
 
 failed:
