@@ -107,6 +107,10 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
 
         if (lang_cnts[type] > 1) {
             obj = nxt_conf_create_object(mp, 2);
+            if (nxt_slow_path(obj == NULL)) {
+                return NULL;
+            }
+
             nxt_conf_set_element(mod_obj, a++, obj);
         }
 
