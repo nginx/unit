@@ -43,11 +43,11 @@ $ mkdir -p build/fuzz_http_h1p_seed
 $ mkdir -p build/fuzz_http_h1p_peer_seed
 $ mkdir -p build/fuzz_json_seed
 
-$ ./build/fuzz_basic            build/fuzz_basic_seed            src/fuzz/fuzz_basic_seed_corpus
-$ ./build/fuzz_http_controller  build/fuzz_http_controller_seed  src/fuzz/fuzz_http_controller_seed_corpus
-$ ./build/fuzz_http_h1p         build/fuzz_http_h1p_seed         src/fuzz/fuzz_http_h1p_seed_corpus
-$ ./build/fuzz_http_h1p_peer    build/fuzz_http_h1p_peer_seed    src/fuzz/fuzz_http_h1p_peer_seed_corpus
-$ ./build/fuzz_json             build/fuzz_json_seed             src/fuzz/fuzz_json_seed_corpus
+$ ./build/fuzz_basic            build/fuzz_basic_seed            fuzzing/fuzz_basic_seed_corpus
+$ ./build/fuzz_http_controller  build/fuzz_http_controller_seed  fuzzing/fuzz_http_seed_corpus
+$ ./build/fuzz_http_h1p         build/fuzz_http_h1p_seed         fuzzing/fuzz_http_seed_corpus
+$ ./build/fuzz_http_h1p_peer    build/fuzz_http_h1p_peer_seed    fuzzing/fuzz_http_seed_corpus
+$ ./build/fuzz_json             build/fuzz_json_seed             fuzzing/fuzz_json_seed_corpus
 ```
 
 Here is more information about [LibFuzzer](https://llvm.org/docs/LibFuzzer.html).
