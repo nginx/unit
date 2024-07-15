@@ -51,11 +51,44 @@ desired.
 
 ## Features (Current)
 
+```
+CLI interface to the NGINX UNIT Control API
+
+Usage: unitctl [OPTIONS] <COMMAND>
+
+Commands:
+  instances  List all running UNIT processes
+  edit       Open current UNIT configuration in editor
+  import     Import configuration from a directory
+  execute    Sends raw JSON payload to UNIT
+  status     Get the current status of UNIT
+  listeners  List active listeners
+  help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -s, --control-socket-address <CONTROL_SOCKET_ADDRESS>
+          Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL
+  -w, --wait-timeout-seconds <WAIT_TIME_SECONDS>
+          Number of seconds to wait for control socket to become available
+  -t, --wait-max-tries <WAIT_MAX_TRIES>
+          Number of times to try to access control socket when waiting [default: 3]
+  -h, --help
+          Print help
+  -V, --version
+          Print version
+```
+
 - Consumes alternative configuration formats Like YAML and converts them
+- Can convert output to multiple different formats.
 - Syntactic highlighting of JSON output
 - Interpretation of Unit errors with (arguably more) useful error messages
 
 ### Lists all running Unit processes and provides details about each process.
+Unitctl will detect and connect to running process of Unit on the host.
+It will pull information about the running Unit configuration
+(including how to access its control API) from the process information of
+each detected Unit process.
+
 ```
 $ unitctl instances
 No socket path provided - attempting to detect from running instance
@@ -68,6 +101,11 @@ unitd instance [pid: 79489, version: 1.32.0]:
 ```
 
 ### Start a new Unit process via docker
+Unitctl can launch new containers of Unit.
+These can be official Unit images or custom Unit images.
+The new containers will then be shown in a call to
+`unitctl instances`
+
 ```
 $ unitctl instances new /tmp/2 $(pwd) 'unit:wasm'
 Pulling and starting a container from unit:wasm
@@ -77,21 +115,32 @@ Note: Container will be on host network
 
 ```
 
-To the subcommand `unitctl instances new` the user must provide three things:
-1. **A directory such as `/tmp/2`.**
-   The Unit container will mount this to `/var/run` internally.
-   Thus, the control socket and pid file will be accessible from the host.
-2. **A path to an application.**
+To the subcommand `unitctl instances new` the user must provide three arguments:
+1. **A means of showing the control API:**
+   There are two possibilities for this argument.
+   A filepath on which to open a unix socket,
+   or a TCP address.
+   - If a directory is specified the Unit container
+     will mount this to `/var/run` internally.
+     Thus, the control socket and pid file will be
+     accessible from the host. For example: `/tmp/2`.
+   - If a TCP endpoint is specified Unit will be configured
+     to offer its control API on the given port and address.
+     For example: `127.0.0.1:7171`.
+2. **A path to an application:**
    In the example, `$(pwd)` is provided. The Unit container will mount
    this READ ONLY to `/www/`. This will allow the user to configure
    their Unit container to expose an application stored on the host.
-3. **An image tag.**
+3. **An image tag:**
    In the example, `unit:wasm` is used. This will be the image that unitctl
    will deploy. Custom repos and images can be deployed in this manner.
 
 After deployment the user will have one Unit container running on the host network.
 
 ### Lists active applications and provides means to restart them
+Unitctl can list running applications by accessing the specified control API.
+Unitctl can also request from the API that an application be restarted.
+
 Listing applications:
 ```
 $ unitctl app list
@@ -120,6 +169,9 @@ $ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock app list
 ```
 
 ### Lists active listeners from running Unit processes
+Unitctl can query a given control API to fetch all configured
+listeners.
+
 ```
 unitctl listeners
 No socket path provided - attempting to detect from running instance
@@ -138,6 +190,9 @@ $ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock listeners
 ```
 
 ### Get the current status of NGINX Unit processes
+Unitctl can query the control API to provide the status of the running
+Unit daemon.
+
 ```
 $ unitctl status -t yaml
 No socket path provided - attempting to detect from running instance
@@ -159,6 +214,10 @@ $ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock status
 ```
 
 ### Send arbitrary configuration payloads to Unit
+Unitctl can accept custom request payloads and query given API endpoints with them.
+The request payload must be passed in using the `-f` flag either as a filename or
+using the `-` filename to denote the use of stdin as shown in the example below.
+
 ```
 $ echo '{
     "listeners": {
@@ -188,6 +247,12 @@ $ unitctl -s '127.0.0.1:8001' -s /run/nginx-unit.control.sock execute ...
 ```
 
 ### Edit current configuration in your favorite editor
+Unitctl can fetch the configuration from a running instance of Unit and
+load it in any number of preconfigured editors on your command line.
+
+Unitctl will try to use whatever editor is configured with the `EDITOR`
+environment variable, but will default to vim, emacs, nano, vi, or pico.
+
 ```
 $ unitctl edit
 [[EDITOR LOADS SHOWING CURRENT CONFIGURATION - USER EDITS AND SAVES]]
@@ -200,6 +265,10 @@ $ unitctl edit
 *Note:* This command does not support operating on multiple instances of Unit at once.
 
 ### Import configuration, certificates, and NJS modules from directory
+Unitctl will parse existing configuration, certificates, and NJS modules
+stored in a directory and convert them into a payload to reconfigure a
+given Unit daemon.
+
 ```
 $ unitctl import /opt/unit/config
 Imported /opt/unit/config/certificates/snake.pem -> /certificates/snake.pem
@@ -209,12 +278,15 @@ Imported 3 files
 ```
 
 ### Export configuration from a running Unit instance
+Unitctl will query a control API to fetch running configuration
+and NJS modules from a Unit process. Due to a technical limitation
+this output will not contain currently stored certificate bundles.
+The output is saved as a tarball at the filename given with the `-f`
+argument. Standard out may be used with `-f -` as shown in the
+following examples.
+
 ```
 $ unitctl export -f config.tar
-```
-
-Addtionally, standard out can be used:
-```
 $ unitctl export -f -
 $ unitctl export -f - | tar xf - config.json
 $ unitctl export -f - > config.tar
@@ -225,6 +297,8 @@ $ unitctl export -f - > config.tar
 *Note:* This command does not support operating on multiple instances of Unit at once.
 
 ### Wait for socket to become available
+All commands support waiting on unix sockets for availability.
+
 ```
 $ unitctl --wait-timeout-seconds=3 --wait-max-tries=4 import /opt/unit/config`
 Waiting for 3s control socket to be available try 2/4...
