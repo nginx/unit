@@ -52,16 +52,16 @@ desired.
 ## Features (Current)
 
 ```
-CLI interface to the NGINX UNIT Control API
+CLI interface to the NGINX Unit Control API
 
 Usage: unitctl [OPTIONS] <COMMAND>
 
 Commands:
-  instances  List all running UNIT processes
-  edit       Open current UNIT configuration in editor
+  instances  List all running Unit processes
+  edit       Open current Unit configuration in editor
   import     Import configuration from a directory
-  execute    Sends raw JSON payload to UNIT
-  status     Get the current status of UNIT
+  execute    Sends raw JSON payload to Unit
+  status     Get the current status of Unit
   listeners  List active listeners
   help       Print this message or the help of the given subcommand(s)
 
@@ -79,7 +79,7 @@ Options:
 ```
 
 - Consumes alternative configuration formats Like YAML and converts them
-- Can convert output to multiple different formats.
+- Can convert output to multiple different formats (YAML, plain JSON, highlighted JSON)
 - Syntactic highlighting of JSON output
 - Interpretation of Unit errors with (arguably more) useful error messages
 
@@ -103,6 +103,8 @@ unitd instance [pid: 79489, version: 1.32.0]:
 ### Start a new Unit process via docker
 Unitctl can launch new containers of Unit.
 These can be official Unit images or custom Unit images.
+Any container that calls `unitd` in a CMD declaration will suffice.
+
 The new containers will then be shown in a call to
 `unitctl instances`
 
