@@ -31,7 +31,7 @@ class Status:
                     if k in d2
                 }
 
-            if isinstance(d1, str):
+            if isinstance(d1, str) or isinstance(d1, list):
                 return d1 == d2
 
             return d1 - d2
