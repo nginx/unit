@@ -3948,6 +3948,7 @@ paths:
               examples:
                 example1:
                   $ref: "#/components/examples/statusModules"
+
   /status/connections:
     summary: "Endpoint for the `connections` status object"
     get:
