@@ -249,6 +249,7 @@ impl UnitdContainer {
 pub async fn deploy_new_container(
     socket: ControlSocket,
     application: &String,
+    application_read_only: bool,
     image: &String,
 ) -> Result<Vec<String>, UnitClientError> {
     match Docker::connect_with_local_defaults() {
@@ -269,7 +270,7 @@ pub async fn deploy_new_container(
                 typ: Some(MountTypeEnum::BIND),
                 source: Some(application.clone()),
                 target: Some("/www".to_string()),
-                read_only: Some(true),
+                read_only: Some(application_read_only),
                 ..Default::default()
             });
 

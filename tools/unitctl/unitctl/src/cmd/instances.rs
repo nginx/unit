@@ -13,6 +13,7 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
             InstanceCommands::New {
                 ref socket,
                 ref application,
+                ref application_read_only,
                 ref image,
             } => {
                 // validation for application dir
@@ -95,7 +96,12 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
                     // reflect changes to user
                     // print this to STDERR to avoid polluting deserialized data output
                     eprintln!("> Pulling and starting a container from {}", image);
-                    eprintln!("> Will READ ONLY mount {} to /www for application access", application);
+                    eprintln!("> Will mount {} to /www for application access", application);
+
+                    if *application_read_only {
+                        eprintln!("> Application mount will be read only");
+                    }
+
                     eprintln!("> Container will be on host network");
                     match addr.as_ref().unwrap() {
                         ControlSocket::UnixLocalSocket(path) => eprintln!(
@@ -113,7 +119,7 @@ pub(crate) async fn cmd(args: InstanceArgs) -> Result<(), UnitctlError> {
                     }
 
                     // do the actual deployment
-                    deploy_new_container(addr.unwrap(), application, image)
+                    deploy_new_container(addr.unwrap(), application, *application_read_only, image)
                         .await
                         .map_or_else(
                             |e| Err(UnitctlError::UnitClientError { source: e }),
