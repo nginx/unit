@@ -6361,7 +6361,6 @@ components:
       properties:
         modules:
           $ref: "#/components/schemas/statusModules"
-          
         connections:
           $ref: "#/components/schemas/statusConnections"
 
