@@ -112,7 +112,7 @@ The new containers will then be shown in a call to
 $ unitctl instances new /tmp/2 $(pwd) 'unit:wasm'
 Pulling and starting a container from unit:wasm
 Will mount /tmp/2 to /var/run for socket access
-Will READ ONLY mount /home/ava/repositories/nginx/unit/tools/unitctl to /www for application access
+Will mount /home/user/repositories/nginx/unit/tools/unitctl to /www for application access
 Note: Container will be on host network
 
 ```
@@ -131,11 +131,16 @@ To the subcommand `unitctl instances new` the user must provide three arguments:
      For example: `127.0.0.1:7171`.
 2. **A path to an application:**
    In the example, `$(pwd)` is provided. The Unit container will mount
-   this READ ONLY to `/www/`. This will allow the user to configure
-   their Unit container to expose an application stored on the host.
+   this to `/www/`. This will allow the user to configure their
+   Unit container to expose an application stored on the host.
 3. **An image tag:**
    In the example, `unit:wasm` is used. This will be the image that unitctl
    will deploy. Custom repos and images can be deployed in this manner.
+
+In addition to the above arguments, the user may add the `-r` flag. This flag will
+set the Docker volume mount for the application directory to be read only. Do note
+that this flag will break compatibility with WordPress, and other applications
+which store state on the file system.
 
 After deployment the user will have one Unit container running on the host network.
 

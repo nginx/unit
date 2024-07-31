@@ -119,12 +119,8 @@ pub(crate) enum Commands {
 
     #[command(about = "Export the current configuration of UNIT")]
     Export {
-        #[arg(
-            required = true,
-            short = 'f',
-            help = "tarball filename to save configuration to"
-        )]
-        filename: String
+        #[arg(required = true, short = 'f', help = "tarball filename to save configuration to")]
+        filename: String,
     },
 }
 
@@ -154,6 +150,9 @@ pub enum InstanceCommands {
 
         #[arg(required = true, help = "Path to mount application into container")]
         application: String,
+
+        #[arg(help = "Mount application directory as read only", short = 'r', long = "read-only")]
+        application_read_only: bool,
 
         #[arg(
             help = "Unitd Image to deploy",
