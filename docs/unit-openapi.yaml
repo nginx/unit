@@ -3924,6 +3924,114 @@ paths:
                 example1:
                   $ref: "#/components/examples/status"
 
+  /status/modules:
+    summary: "Endpoint for the `modules` status object"
+    get:
+      operationId: getStatusModules
+      summary: "Retrieve the modules status object"
+      description: "Retrieves the `modules` status object that represents
+        Unit's [loaded language modules](https://unit.nginx.org/statusapi/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `modules` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModules"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModules"
+
+                example2:
+                  $ref: "#/components/examples/statusModulesArray"
+
+  /status/modules/{langMod}:
+    summary: "Endpoint for the loaded language `module` object"
+    get:
+      operationId: getStatusModulesLang
+      summary: "Retrieve the language module object"
+      description: "Retrieves the language `module` object that represents a
+        currently loaded language module."
+
+    tags:
+      - status
+
+    responses:
+      "200":
+        description: "OK; the language `module` object exists."
+
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusModulesLang"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/statusModulesLang
+
+      "404":
+        $ref: "#/components/responses/responseNotFound"
+
+  /status/modules/{langMod}/version:
+    summary: "Endpoint for the loaded language module `version` object"
+    get:
+      operationId: getStatusModulesLangVersion
+      summary: "Retrieve the language module version object"
+      description: "Retrieves the language module `version` object that
+        represents the version of a currently loaded language module."
+
+    tags:
+      - status
+
+    responses:
+      "200":
+        description: "OK; the language module `version` object exists."
+
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusModulesLangVersion"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/statusModulesLangVersion
+
+      "404":
+        $ref: "#/components/responses/responseNotFound"
+
+  /status/modules/{langMod}/lib:
+    summary: "Endpoint for the loaded language module `lib` object"
+    get:
+      operationId: getStatusModulesLangLib
+      summary: "Retrieves the language module lib object"
+      description: "Retrieves the language module `lib` object that represents
+        the file path to the loaded language module."
+
+    tags:
+      - status
+
+    responses:
+      "200":
+        description: "OK; the language module `lib` object exists."
+
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusModulesLangLib"
+
+          examples:
+            example1:
+              $ref: "#/components/examples/statusModulesLangLib
+
+      "404":
+        $ref: "#/components/responses/responseNotFound"
+
   /status/connections:
     summary: "Endpoint for the `connections` status object"
     get:
@@ -4993,6 +5101,10 @@ components:
     status:
       summary: "Regular status object"
       value:
+        modules:
+          php:
+            version: "8.3.4"
+            lib: "/opt/unit/modules/php.unit.so"
         connections:
           accepted: 1067
           active: 13
@@ -5008,6 +5120,45 @@ components:
               idle: 0
             requests:
               active: 15
+
+    # /status/modules
+    statusModules:
+      summary: "Loaded language modules status object"
+      value:
+        php:
+          version: "8.3.4"
+          lib: "/opt/unit/modules/php.unit.so"
+
+    statusModulesArray:
+      summary: "Loaded language modules status array"
+      value:
+        php:
+          version: "8.3.4"
+          lib: "/opt/unit/modules/php.unit.so"
+        python:
+          - { version: "3.12.3", lib: "/opt/unit/modules/python.unit.so" }
+          - { version: "3.11.1", lib: "/opt/unit/modules/python-3.11.1.unit.so" }
+        wasm:
+          version: "0.2"
+          lib: "/opt/unit/modules/wasm.unit.so"
+
+    # /status/modules/{langMod}
+    statusModulesLang:
+      summary: "Object or array of objects of specified language module"
+      value:
+        python:
+          version: "3.12.3"
+          lib: "/opt/unit/modules/python.unit.so"
+
+    # /status/modules/{langMod}/version
+    statusModulesLangVersion:
+      summary: "String describing the version of the language module"
+      value: "3.12.3"
+
+    # /status/modules/{langMod}/lib
+    statusModulesLangLib:
+      summary: "String describing the path to the loaded language module"
+      value: "/opt/unit/modules/python.unit.so"
 
     # /status/connections
     statusConnections:
@@ -6319,9 +6470,13 @@ components:
 
     # /status
     status:
-      description: "Represents Unit's usage statistics."
+      description: "Represents Unit's loaded language modules and usage
+        statistics."
       type: object
       properties:
+        modules:
+          $ref: "#/components/schemas/statusModules"
+
         connections:
           $ref: "#/components/schemas/statusConnections"
 
@@ -6330,6 +6485,27 @@ components:
 
         applications:
           $ref: "#/components/schemas/statusApplications"
+
+    # /status/modules
+    statusModules:
+      description: "Lists currently loaded language modules."
+      type: object
+
+    # /status/modules/{langMod}
+    statusModulesLang:
+      description: "Lists currently loaded versions of the specified language
+        module."
+      type: array or object
+
+    # /status/modules/{langMod}/version
+    statusModulesLangVersion:
+      description: "Describes the version of the specified language module."
+      type: string
+
+    # /status/modules/{langMod}/lib
+    statusModulesLangLib:
+      description: "Describes the path to the specified language module."
+      type: string
 
     # /status/applications
     statusApplications:
