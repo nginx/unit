@@ -135,7 +135,7 @@ pub struct InstanceArgs {
         global = true,
         short = 't',
         long = "output-format",
-        default_value = "text",
+        default_value = "json-pretty",
         help = "Output format: text, yaml, json, json-pretty"
     )]
     pub output_format: OutputFormat,
@@ -170,7 +170,7 @@ pub struct ApplicationArgs {
         global = true,
         short = 't',
         long = "output-format",
-        default_value = "text",
+        default_value = "json-pretty",
         help = "Output format: text, yaml, json, json-pretty"
     )]
     pub output_format: OutputFormat,
