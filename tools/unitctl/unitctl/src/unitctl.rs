@@ -51,7 +51,7 @@ pub(crate) enum Commands {
             short = 't',
             long = "output-format",
             default_value = "json-pretty",
-            help = "Output format: yaml, json, json-pretty (default)"
+            help = "Output format: yaml, json, json-pretty"
         )]
         output_format: OutputFormat,
     },
@@ -68,7 +68,7 @@ pub(crate) enum Commands {
             short = 't',
             long = "output-format",
             default_value = "json-pretty",
-            help = "Output format: yaml, json, json-pretty (default)"
+            help = "Output format: yaml, json, json-pretty"
         )]
         output_format: OutputFormat,
         #[arg(
@@ -98,7 +98,7 @@ pub(crate) enum Commands {
             short = 't',
             long = "output-format",
             default_value = "json-pretty",
-            help = "Output format: yaml, json, json-pretty (default)"
+            help = "Output format: yaml, json, json-pretty"
         )]
         output_format: OutputFormat,
     },
@@ -110,7 +110,7 @@ pub(crate) enum Commands {
             short = 't',
             long = "output-format",
             default_value = "json-pretty",
-            help = "Output format: yaml, json, json-pretty (default)"
+            help = "Output format: yaml, json, json-pretty"
         )]
         output_format: OutputFormat,
     },
@@ -136,7 +136,7 @@ pub struct InstanceArgs {
         short = 't',
         long = "output-format",
         default_value = "text",
-        help = "Output format: text, yaml, json, json-pretty (default)"
+        help = "Output format: text, yaml, json, json-pretty"
     )]
     pub output_format: OutputFormat,
 
@@ -171,7 +171,7 @@ pub struct ApplicationArgs {
         short = 't',
         long = "output-format",
         default_value = "text",
-        help = "Output format: text, yaml, json, json-pretty (default)"
+        help = "Output format: text, yaml, json, json-pretty"
     )]
     pub output_format: OutputFormat,
 
