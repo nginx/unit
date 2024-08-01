@@ -3906,7 +3906,7 @@ paths:
       operationId: getStatus
       summary: "Retrieve the status object"
       description: "Retrieves the entire `/status` section that represents
-        Unit's [usage statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [usage statistics and list of loaded modules](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3930,7 +3930,7 @@ paths:
       operationId: getStatusConnections
       summary: "Retrieve the connections status object"
       description: "Retrieves the `connections` status object that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3955,7 +3955,7 @@ paths:
       operationId: getStatusConnectionsAccepted
       summary: "Retrieve the accepted connections number"
       description: "Retrieves the `accepted` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3979,7 +3979,7 @@ paths:
       operationId: getStatusConnectionsActive
       summary: "Retrieve the active connections number"
       description: "Retrieves the `active` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4003,7 +4003,7 @@ paths:
       operationId: getStatusConnectionsIdle
       summary: "Retrieve the idle connections number"
       description: "Retrieves the `idle` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4026,7 +4026,7 @@ paths:
       operationId: getStatusConnectionsClosed
       summary: "Retrieve the closed connections number"
       description: "Retrieves the `closed` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4051,7 +4051,7 @@ paths:
       summary: "Retrieve the requests status object"
       description: "Retrieves the `requests` status object that represents
         Unit's instance [request statistics]
-        (https://unit.nginx.org/usagestats/)."
+        (https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4075,7 +4075,7 @@ paths:
       operationId: getStatusRequestsTotal
       summary: "Retrieve the total requests number"
       description: "Retrieves the `total` requests number that represents Unit's
-        instance [request statistics](https://unit.nginx.org/usagestats/)."
+        instance [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4100,7 +4100,7 @@ paths:
       summary: "Retrieve the applications status object"
       description: "Retrieves the `applications` status object that represents
         Unit's per-app
-        [process and request statistics](https://unit.nginx.org/usagestats/)."
+        [process and request statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4125,7 +4125,7 @@ paths:
       summary: "Retrieve the app status object"
       description: "Retrieves the app status object that represents
         Unit's per-app
-        [process and request statistics](https://unit.nginx.org/usagestats/)."
+        [process and request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4156,7 +4156,7 @@ paths:
       summary: "Retrieve the processes app status object"
       description: "Retrieves the `processes` app status object that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4186,7 +4186,7 @@ paths:
       summary: "Retrieve the running processes app status number"
       description: "Retrieves the `running` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4217,7 +4217,7 @@ paths:
       summary: "Retrieve the starting processes app status number"
       description: "Retrieves the `starting` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4248,7 +4248,7 @@ paths:
       summary: "Retrieve the idle processes app status number"
       description: "Retrieves the `idle` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4278,7 +4278,7 @@ paths:
       summary: "Retrieve the requests app status object"
       description: "Retrieves the `requests` app status object that represents
         Unit's per-app
-        [request statistics](https://unit.nginx.org/usagestats/)."
+        [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4306,7 +4306,7 @@ paths:
       summary: "Retrieve the active requests app status number"
       description: "Retrieves the `active` requests number that represents
         Unit's per-app
-        [request statistics](https://unit.nginx.org/usagestats/)."
+        [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -6455,7 +6455,7 @@ tags:
   - name: status
     description: Everything about the /status section in Unit's control API
     externalDocs:
-      url: https://unit.nginx.org/usagestats/
+      url: https://unit.nginx.org/statusapi/
 
   - name: tls
     description: Everything about SSL/TLS in Unit's control API
