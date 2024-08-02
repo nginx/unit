@@ -54,18 +54,23 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         goto failed;
     }
 
-    thr->runtime = rt;
-    rt->mem_pool = mp;
+    rt->languages = nxt_array_create(mp, 1, sizeof(nxt_app_lang_module_t));
+    if (rt->languages == NULL) {
+        goto failed;
+    }
 
     input.start = (u_char *)data;
     input.length = size;
+
+    thr->runtime = rt;
+    rt->mem_pool = mp;
+
+    nxt_memzero(&vldt, sizeof(nxt_conf_validation_t));
 
     conf = nxt_conf_json_parse_str(mp, &input);
     if (conf == NULL) {
         goto failed;
     }
-
-    nxt_memzero(&vldt, sizeof(nxt_conf_validation_t));
 
     vldt.pool = nxt_mp_create(1024, 128, 256, 32);
     if (vldt.pool == NULL) {
@@ -76,13 +81,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     vldt.conf_pool = mp;
     vldt.ver = NXT_VERNUM;
 
-    rt->languages = nxt_array_create(mp, 1, sizeof(nxt_app_lang_module_t));
-    if (rt->languages == NULL) {
-        goto failed;
-    }
-
     nxt_conf_validate(&vldt);
-
     nxt_mp_destroy(vldt.pool);
 
 failed:

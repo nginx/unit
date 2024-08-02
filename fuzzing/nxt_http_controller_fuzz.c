@@ -43,8 +43,9 @@ int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     nxt_mp_t                  *mp;
+    nxt_int_t                 rc;
     nxt_buf_mem_t             buf;
-    nxt_controller_request_t  *r_controller;
+    nxt_controller_request_t  *req;
     nxt_http_request_parse_t  rp;
 
     if (size < KMININPUTLENGTH || size > KMAXINPUTLENGTH) {
@@ -56,8 +57,13 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
-    nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
-    if (nxt_http_parse_request_init(&rp, mp) != NXT_OK) {
+    req = nxt_mp_zget(mp, sizeof(nxt_controller_request_t));
+    if (req == NULL) {
+        goto failed;
+    }
+
+    req->conn = nxt_mp_zget(mp, sizeof(nxt_conn_t));
+    if (req->conn == NULL) {
         goto failed;
     }
 
@@ -66,26 +72,23 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     buf.pos = buf.start;
     buf.free = buf.end;
 
-    if (nxt_http_parse_request(&rp, &buf) != NXT_DONE) {
-        goto failed;
-    }
-
-    r_controller = nxt_mp_zget(mp, sizeof(nxt_controller_request_t));
-
-    if (r_controller == NULL) {
-        goto failed;
-    }
-
-    r_controller->conn = nxt_mp_zget(mp, sizeof(nxt_conn_t));
-    if (r_controller->conn == NULL) {
-        goto failed;
-    }
-
     nxt_main_log.level = NXT_LOG_ALERT;
-    r_controller->conn->log = nxt_main_log;
+    req->conn->log = nxt_main_log;
+
+    nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
+
+    rc = nxt_http_parse_request_init(&rp, mp);
+    if (rc != NXT_OK) {
+        goto failed;
+    }
+
+    rc = nxt_http_parse_request(&rp, &buf);
+    if (rc != NXT_DONE) {
+        goto failed;
+    }
 
     nxt_http_fields_process(rp.fields, &nxt_controller_fields_hash,
-                            r_controller);
+                            req);
 
 failed:
 
