@@ -61,12 +61,28 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         goto failed;
     }
 
+    req->proto.h1 = nxt_mp_zget(mp, sizeof(nxt_h1proto_t));
+    if (req->proto.h1 == NULL) {
+        goto failed;
+    }
+
+    req->conf = nxt_mp_zget(mp, sizeof(nxt_socket_conf_joint_t));
+    if (req->conf == NULL) {
+        goto failed;
+    }
+
+    req->conf->socket_conf = nxt_mp_zget(mp, sizeof(nxt_socket_conf_t));
+    if (req->conf->socket_conf == NULL) {
+        goto failed;
+    }
+
     buf.start = (u_char *)data;
     buf.end = (u_char *)data + size;
     buf.pos = buf.start;
     buf.free = buf.end;
 
     req->mem_pool = mp;
+    req->conf->socket_conf->max_body_size = 8 * 1024 * 1024;
 
     nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
 
