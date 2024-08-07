@@ -62,6 +62,16 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         goto failed;
     }
 
+    req->peer = nxt_mp_zalloc(mp, sizeof(nxt_http_peer_t));
+    if (req->peer == NULL) {
+        goto failed;
+    }
+
+    req->peer->proto.h1 = nxt_mp_zalloc(mp, sizeof(nxt_h1proto_t));
+    if (req->peer->proto.h1 == NULL) {
+        goto failed;
+    }
+
     buf.start = (u_char *)data;
     buf.end = (u_char *)data + size;
     buf.pos = buf.start;
