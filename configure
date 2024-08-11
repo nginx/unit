@@ -135,6 +135,7 @@ fi
 . auto/cgroup
 . auto/isolation
 . auto/capability
+. auto/sched
 
 
 case "$NXT_SYSTEM_PLATFORM" in

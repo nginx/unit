@@ -1,0 +1,19 @@
+# Copyright (C) Andrew Clayton
+# Copyright (C) NGINX, Inc.
+
+
+nxt_feature="Linux sched_getaffinity()"
+nxt_feature_name=NXT_HAVE_LINUX_SCHED_GETAFFINITY
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <sched.h>
+
+                  int main(void) {
+                      cpu_set_t set;
+
+                      sched_getaffinity(0, sizeof(set), &set);
+                      return 0;
+                  }"
+. auto/feature
