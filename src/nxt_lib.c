@@ -32,7 +32,7 @@ const char *malloc_conf = "junk:true";
 nxt_int_t
 nxt_lib_start(const char *app, char **argv, char ***envp)
 {
-    int           n;
+    int           n = 0;
     nxt_int_t     flags;
     nxt_bool_t    update;
     nxt_thread_t  *thread;
@@ -87,12 +87,31 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 #ifdef _SC_NPROCESSORS_ONLN
     /* Linux, FreeBSD, Solaris, MacOSX. */
     n = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
+
+#if (NXT_HAVE_LINUX_SCHED_GETAFFINITY)
+    if (n > 0) {
+        int        err;
+        size_t     size;
+        cpu_set_t  *set;
+
+        set = CPU_ALLOC(n);
+        if (set == NULL) {
+            return NXT_ERROR;
+        }
+
+        size = CPU_ALLOC_SIZE(n);
+
+        err = sched_getaffinity(0, size, set);
+        if (err == 0) {
+            n = CPU_COUNT_S(size, set);
+        }
+
+        CPU_FREE(set);
+    }
 
 #elif (NXT_HPUX)
     n = mpctl(MPC_GETNUMSPUS, NULL, NULL);
-
-#else
-    n = 0;
 
 #endif
 
