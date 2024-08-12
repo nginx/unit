@@ -1412,7 +1412,7 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 static nxt_conf_map_t  nxt_router_conf[] = {
     {
-        nxt_string("listeners_threads"),
+        nxt_string("listen_threads"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_router_conf_t, threads),
     },
@@ -1630,7 +1630,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *js_module;
 #endif
     nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
-    nxt_conf_value_t            *applications, *application;
+    nxt_conf_value_t            *applications, *application, *settings;
     nxt_conf_value_t            *listeners, *listener;
     nxt_socket_conf_t           *skcf;
     nxt_router_conf_t           *rtcf;
@@ -1640,6 +1640,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_app_conf_t       apcf;
     nxt_router_listener_conf_t  lscf;
 
+    static const nxt_str_t  settings_path = nxt_string("/settings");
     static const nxt_str_t  http_path = nxt_string("/settings/http");
     static const nxt_str_t  applications_path = nxt_string("/applications");
     static const nxt_str_t  listeners_path = nxt_string("/listeners");
@@ -1673,11 +1674,14 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     rtcf = tmcf->router_conf;
     mp = rtcf->mem_pool;
 
-    ret = nxt_conf_map_object(mp, root, nxt_router_conf,
-                              nxt_nitems(nxt_router_conf), rtcf);
-    if (ret != NXT_OK) {
-        nxt_alert(task, "root map error");
-        return NXT_ERROR;
+    settings = nxt_conf_get_path(root, &settings_path);
+    if (settings != NULL) {
+        ret = nxt_conf_map_object(mp, settings, nxt_router_conf,
+                                  nxt_nitems(nxt_router_conf), rtcf);
+        if (ret != NXT_OK) {
+            nxt_alert(task, "router_conf map error");
+            return NXT_ERROR;
+        }
     }
 
     if (rtcf->threads == 0) {

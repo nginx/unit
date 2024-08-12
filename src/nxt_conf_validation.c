@@ -134,6 +134,8 @@ static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_listen_threads(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
@@ -305,6 +307,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
     {
+        .name       = nxt_string("listen_threads"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_listen_threads,
+    }, {
         .name       = nxt_string("http"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
@@ -2073,6 +2079,27 @@ nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
     if (!nxt_strchr_start(&prefix, '/')) {
         return nxt_conf_vldt_error(vldt, "The \"prefix\" must be a string "
                                    "beginning with \"/\".");
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t
+nxt_conf_vldt_listen_threads(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  threads;
+
+    threads = nxt_conf_get_number(value);
+
+    if (threads < 1) {
+        return nxt_conf_vldt_error(vldt, "The \"listen_threads\" number must "
+                                   "be equal to or greater than 1.");
+    }
+
+    if (threads > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"listen_threads\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
     }
 
     return NXT_OK;
