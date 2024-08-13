@@ -178,6 +178,8 @@ static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_listen_backlog(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_object(nxt_conf_validation_t *vldt,
@@ -430,6 +432,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_client_ip_members
+    }, {
+        .name       = nxt_string("backlog"),
+        .type       = NXT_CONF_VLDT_NUMBER,
+        .validator  = nxt_conf_vldt_listen_backlog,
     },
 
 #if (NXT_TLS)
@@ -2701,6 +2707,32 @@ nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     }
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_forwarded_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_listen_backlog(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  backlog;
+
+    backlog = nxt_conf_get_number(value);
+
+    /*
+     * POSIX allows this to be 0 and some systems use -1 to
+     * indicate to use the OS's default value.
+     */
+    if (backlog < -1) {
+        return nxt_conf_vldt_error(vldt, "The \"backlog\" number must be "
+                                   "equal to or greater than -1.");
+    }
+
+    if (backlog > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"backlog\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
+    }
+
+    return NXT_OK;
 }
 
 

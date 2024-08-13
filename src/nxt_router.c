@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
     nxt_str_t         pass;
     nxt_str_t         application;
+    int               backlog;
 } nxt_router_listener_conf_t;
 
 
@@ -166,7 +167,7 @@ static void nxt_router_app_prefork_ready(nxt_task_t *task,
 static void nxt_router_app_prefork_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_socket_conf_t *nxt_router_socket_conf(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
+    nxt_router_temp_conf_t *tmcf, nxt_str_t *name, int backlog);
 static nxt_int_t nxt_router_listen_socket_find(nxt_router_temp_conf_t *tmcf,
     nxt_socket_conf_t *nskcf, nxt_sockaddr_t *sa);
 
@@ -1494,6 +1495,12 @@ static nxt_conf_map_t  nxt_router_listener_conf[] = {
         NXT_CONF_MAP_STR_COPY,
         offsetof(nxt_router_listener_conf_t, application),
     },
+
+    {
+        nxt_string("backlog"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_router_listener_conf_t, backlog),
+    },
 };
 
 
@@ -1968,12 +1975,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 break;
             }
 
-            skcf = nxt_router_socket_conf(task, tmcf, &name);
-            if (skcf == NULL) {
-                goto fail;
-            }
-
             nxt_memzero(&lscf, sizeof(lscf));
+
+            lscf.backlog = -1;
 
             ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                       nxt_nitems(nxt_router_listener_conf),
@@ -1984,6 +1988,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             }
 
             nxt_debug(task, "application: %V", &lscf.application);
+
+            skcf = nxt_router_socket_conf(task, tmcf, &name, lscf.backlog);
+            if (skcf == NULL) {
+                goto fail;
+            }
 
             // STUB, default values if http block is not defined.
             skcf->header_buffer_size = 2048;
@@ -2688,7 +2697,7 @@ nxt_router_application_init(nxt_router_conf_t *rtcf, nxt_str_t *name,
 
 static nxt_socket_conf_t *
 nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_str_t *name)
+    nxt_str_t *name, int backlog)
 {
     size_t               size;
     nxt_int_t            ret;
@@ -2732,7 +2741,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_listen_socket_remote_size(ls);
 
         ls->socket = -1;
-        ls->backlog = NXT_LISTEN_BACKLOG;
+        ls->backlog = backlog > -1 ? backlog : NXT_LISTEN_BACKLOG;
         ls->flags = NXT_NONBLOCK;
         ls->read_after_accept = 1;
     }
@@ -2879,7 +2888,7 @@ nxt_router_listen_socket_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     nxt_socket_defer_accept(task, s, rpc->socket_conf->listen->sockaddr);
 
-    ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
+    ret = nxt_listen_socket(task, s, rpc->socket_conf->listen->backlog);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }
