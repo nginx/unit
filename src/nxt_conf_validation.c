@@ -696,6 +696,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_match_patterns_sets,
         .u.string   = "cookies"
+    }, {
+        .name       = nxt_string("if"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_if,
     },
 
     NXT_CONF_VLDT_END
