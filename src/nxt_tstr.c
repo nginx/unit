@@ -196,6 +196,26 @@ nxt_tstr_state_release(nxt_tstr_state_t *state)
 }
 
 
+nxt_int_t
+nxt_tstr_cond_compile(nxt_tstr_state_t *state, nxt_str_t *str,
+    nxt_tstr_cond_t *cond)
+{
+    if (str->length > 0 && str->start[0] == '!') {
+        cond->negate = 1;
+
+        str->start++;
+        str->length--;
+    }
+
+    cond->expr = nxt_tstr_compile(state, str, 0);
+    if (nxt_slow_path(cond->expr == NULL)) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
 nxt_bool_t
 nxt_tstr_is_const(nxt_tstr_t *tstr)
 {

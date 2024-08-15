@@ -143,15 +143,8 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     if (alcf.expr != NULL) {
         nxt_conf_get_string(alcf.expr, &str);
 
-        if (str.length > 0 && str.start[0] == '!') {
-            rtcf->log_negate = 1;
-
-            str.start++;
-            str.length--;
-        }
-
-        rtcf->log_expr = nxt_tstr_compile(rtcf->tstr_state, &str, 0);
-        if (nxt_slow_path(rtcf->log_expr == NULL)) {
+        ret = nxt_tstr_cond_compile(rtcf->tstr_state, &str, &rtcf->log_cond);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NXT_ERROR;
         }
     }

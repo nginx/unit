@@ -915,44 +915,11 @@ static nxt_int_t
 nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
     nxt_router_conf_t *rtcf)
 {
-    nxt_int_t                ret;
-    nxt_str_t                str;
-    nxt_bool_t               expr;
     nxt_router_access_log_t  *access_log;
 
     access_log = rtcf->access_log;
 
-    expr = 1;
-
-    if (rtcf->log_expr != NULL) {
-
-        if (nxt_tstr_is_const(rtcf->log_expr)) {
-            nxt_tstr_str(rtcf->log_expr, &str);
-
-        } else {
-            ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
-                                      &r->tstr_cache, r, r->mem_pool);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_DECLINED;
-            }
-
-            ret = nxt_tstr_query(task, r->tstr_query, rtcf->log_expr, &str);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_DECLINED;
-            }
-        }
-
-        if (str.length == 0
-            || nxt_str_eq(&str, "0", 1)
-            || nxt_str_eq(&str, "false", 5)
-            || nxt_str_eq(&str, "null", 4)
-            || nxt_str_eq(&str, "undefined", 9))
-        {
-            expr = 0;
-        }
-    }
-
-    if (rtcf->log_negate ^ expr) {
+    if (nxt_http_cond_value(task, r, &rtcf->log_cond)) {
         access_log->handler(task, r, access_log, rtcf->log_format);
         return NXT_OK;
     }
@@ -1363,4 +1330,49 @@ int64_t
 nxt_http_cookie_hash(nxt_mp_t *mp, nxt_str_t *name)
 {
     return nxt_http_field_hash(mp, name, 1, NXT_HTTP_URI_ENCODING_NONE);
+}
+
+
+int
+nxt_http_cond_value(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_tstr_cond_t *cond)
+{
+    nxt_int_t          ret;
+    nxt_str_t          str;
+    nxt_bool_t         expr;
+    nxt_router_conf_t  *rtcf;
+
+    rtcf = r->conf->socket_conf->router_conf;
+
+    expr = 1;
+
+    if (cond->expr != NULL) {
+
+        if (nxt_tstr_is_const(cond->expr)) {
+            nxt_tstr_str(cond->expr, &str);
+
+        } else {
+            ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
+                                      &r->tstr_cache, r, r->mem_pool);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return -1;
+            }
+
+            ret = nxt_tstr_query(task, r->tstr_query, cond->expr, &str);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return -1;
+            }
+        }
+
+        if (str.length == 0
+            || nxt_str_eq(&str, "0", 1)
+            || nxt_str_eq(&str, "false", 5)
+            || nxt_str_eq(&str, "null", 4)
+            || nxt_str_eq(&str, "undefined", 9))
+        {
+            expr = 0;
+        }
+    }
+
+    return cond->negate ^ expr;
 }

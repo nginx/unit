@@ -54,8 +54,7 @@ typedef struct {
 
     nxt_router_access_log_t  *access_log;
     nxt_tstr_t               *log_format;
-    nxt_tstr_t               *log_expr;
-    uint8_t                  log_negate;  /* 1 bit */
+    nxt_tstr_cond_t          log_cond;
 } nxt_router_conf_t;
 
 
