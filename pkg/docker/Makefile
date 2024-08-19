@@ -83,7 +83,7 @@ RUN_wasm ?=       /bin/true
 
 define MODULE_PREBUILD_wasm
 apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
-\ \ \ \&\& export RUST_VERSION=1.79.0 \\\n \
+\ \ \ \&\& export RUST_VERSION=1.80.1 \\\n \
 \ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
 \ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
 \ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \
