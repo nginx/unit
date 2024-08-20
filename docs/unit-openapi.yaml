@@ -3959,24 +3959,27 @@ paths:
       description: "Retrieves the language `module` object that represents a
         currently loaded language module."
 
-    tags:
-      - status
+      tags:
+        - status
 
-    responses:
-      "200":
-        description: "OK; the language `module` object exists."
+      parameters:
+        - $ref: "#/components/parameters/langMod"
 
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StatusModulesLang"
+      responses:
+        "200":
+          description: "OK; the language `module` object exists."
 
-          examples:
-            example1:
-              $ref: "#/components/examples/statusModulesLang
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLang"
 
-      "404":
-        $ref: "#/components/responses/responseNotFound"
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLang"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
 
   /status/modules/{langMod}/version:
     summary: "Endpoint for the loaded language module `version` object"
@@ -3986,24 +3989,27 @@ paths:
       description: "Retrieves the language module `version` object that
         represents the version of a currently loaded language module."
 
-    tags:
-      - status
+      tags:
+        - status
 
-    responses:
-      "200":
-        description: "OK; the language module `version` object exists."
+      parameters:
+        - $ref: "#/components/parameters/langMod"
 
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StatusModulesLangVersion"
+      responses:
+        "200":
+          description: "OK; the language module `version` object exists."
 
-          examples:
-            example1:
-              $ref: "#/components/examples/statusModulesLangVersion
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLangVersion"
 
-      "404":
-        $ref: "#/components/responses/responseNotFound"
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLangVersion"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
 
   /status/modules/{langMod}/lib:
     summary: "Endpoint for the loaded language module `lib` object"
@@ -4013,24 +4019,27 @@ paths:
       description: "Retrieves the language module `lib` object that represents
         the file path to the loaded language module."
 
-    tags:
-      - status
+      tags:
+        - status
 
-    responses:
-      "200":
-        description: "OK; the language module `lib` object exists."
+      parameters:
+        - $ref: "#/components/parameters/langMod"
 
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StatusModulesLangLib"
+      responses:
+        "200":
+          description: "OK; the language module `lib` object exists."
 
-          examples:
-            example1:
-              $ref: "#/components/examples/statusModulesLangLib
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLangLib"
 
-      "404":
-        $ref: "#/components/responses/responseNotFound"
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLangLib"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
 
   /status/connections:
     summary: "Endpoint for the `connections` status object"
@@ -4470,6 +4479,14 @@ components:
       in: path
       description: "A certificate bundle's name"
       name: bundleName
+      required: true
+      schema:
+        type: string
+
+    langMod:
+      in: path
+      description: "A language modules name in the modules status."
+      name: langMod
       required: true
       schema:
         type: string
@@ -6495,7 +6512,9 @@ components:
     statusModulesLang:
       description: "Lists currently loaded versions of the specified language
         module."
-      type: array or object
+      oneOf:
+        - type: string
+        - type: object
 
     # /status/modules/{langMod}/version
     statusModulesLangVersion:
