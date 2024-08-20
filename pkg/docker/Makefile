@@ -136,6 +136,7 @@ Dockerfile.%: ../../version template.Dockerfile
 build-%: Dockerfile.%
 	docker pull $(CONTAINER_$*)
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
+	touch $@
 
 library:
 	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
@@ -178,5 +179,6 @@ all: $(addprefix Dockerfile., $(MODVERSIONS))
 
 clean:
 	rm -f Dockerfile.*
+	rm -f build-*
 
 .PHONY: default build dockerfiles clean library
