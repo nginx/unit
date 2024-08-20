@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - tools/unitctl/**
+      - docs/unit-openapi.yaml
   push:
     branches:
       - master
