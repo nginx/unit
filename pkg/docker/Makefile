@@ -9,6 +9,7 @@ VERSION ?= $(DEFAULT_VERSION)
 PATCHLEVEL ?= 1
 
 MODULES ?= go jsc node perl php python ruby wasm
+MODULES_SLIM ?= python
 
 VARIANT ?= bookworm
 
@@ -62,6 +63,7 @@ MODULE_PREBUILD_php ?= /bin/true
 VERSIONS_python ?=  3.11 3.12
 VARIANT_python ?=	$(VARIANT)
 $(foreach pythonversion, $(VERSIONS_python), $(eval CONTAINER_python$(pythonversion) = python:$(pythonversion)-$(VARIANT_python)))
+$(foreach pythonversion, $(VERSIONS_python), $(eval CONTAINER_python$(pythonversion)-slim = python:$(pythonversion)-slim-$(VARIANT_python)))
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
@@ -109,9 +111,11 @@ endef
 default:
 	@echo "valid targets: all build dockerfiles library clean"
 
-MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion))) wasm minimal
+MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion)))
+MODVERSIONS += $(foreach module, $(MODULES_SLIM), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion)-slim))
+MODVERSIONS += wasm minimal
 
-modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-')
+modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-' | sed 's/slim//')
 
 dockerfiles: $(addprefix Dockerfile., $(MODVERSIONS))
 build: $(addprefix build-, $(MODVERSIONS))
@@ -141,10 +145,14 @@ library:
 	@previous=""; \
 	 for mod in $(MODVERSIONS); do \
 		echo ""; \
-		modname="$$( echo $$mod | tr -d '.0123456789-' )"; \
-		TAGS="$$mod $${mod%%.*} $$modname" ; \
+		modname="$$( echo $$mod | tr -d '.0123456789')"; \
+		modmajor="$${mod%%.*}"; \
+		if test "$${mod#*slim}" != "$$mod"; then \
+			modmajor="$${modmajor}-slim"; \
+		fi; \
+		TAGS="$$mod $$modmajor $$modname"; \
 		TAGS="$$(echo $$TAGS | tr " " "\n" | sort -u -r | tr "\n" "," | sed "s/,/, /g")"; \
-		if [ "$$previous" = "$$modname" ]; then \
+		if test "$${previous#*"$$modname"}" != "$$previous"; then \
 			echo "Tags: $(VERSION)-$$mod, $$mod"; \
 		else \
 			if [ "$$mod" = "minimal" ]; then \
@@ -158,7 +166,7 @@ library:
 		echo "GitCommit: $(shell git describe --always --abbrev=0 HEAD)"; \
 		echo "Directory: pkg/docker"; \
 		echo "File: Dockerfile.$$mod"; \
-		previous=$$(echo $$mod | tr -d '.0123456789-'); \
+		previous="$$previous $$modname"; \
 	done
 
 diff: $(addprefix diff-, $(MODVERSIONS))
