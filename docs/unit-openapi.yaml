@@ -2791,6 +2791,72 @@ paths:
         "404":
           $ref: "#/components/responses/responseNotFound"
 
+  /config/listeners/{listenerName}/backlog:
+    summary: "Endpoint for the `listeners/{listenerName}/backlog` option"
+    get:
+      operationId: getListenerBacklog
+      summary: "Retrieve the backlog option in a listener"
+      description: "Retrieves the `backlog` option that configures the
+        listen(2) backlog parameter where the `{listenerName}` listener object
+        [passes its requests](https://unit.nginx.org/configuration/#listeners)."
+
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `backlog` option exists in the configuration."
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerBacklog"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerBacklog
+      summary: "Update the backlog option in a listener"
+      description: "Overwrites the `backlog` option."
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerBacklog"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
   /config/routes:
     summary: "Endpoint for the `routes` entity in the configuration"
     get:
@@ -2932,6 +2998,87 @@ paths:
       operationId: deleteSettings
       summary: "Delete the settings object"
       description: "Deletes the `settings` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/listen_threads:
+    summary: "Endpoint for the `listen_threads` option in `settings`"
+    get:
+      operationId: getSettingsListenThreads
+      summary: "Retrieve the listen_threads option from settings"
+      description: "Retrieves the `listen_threads` option that represents
+        Unit's [listen threads]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `listen_threads` option exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                ListenThreads:
+                  value: 16
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsListenThreads
+      summary: "Create or overwrite the listen_threads option"
+      description: "Creates or overwrites the `listen_threads` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              ListenThreads:
+                value: 30
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsListenThreads
+      summary: "Delete the listen_threads option"
+      description: "Deletes the `listen_threads` option from the
+        configuration."
+
       tags:
         - settings
         - config
@@ -4960,6 +5107,11 @@ components:
     configListenerPassAppTarget:
       summary: "App target destination in a listener"
       value: "applications/php_app/index_target"
+
+    # /config/listeners/listenerName}/backlog
+    configListenerBacklog:
+      summary: "listen(2) backlog in a listener"
+      value: 1024
 
     # /config/listeners/{listenerName}/tls
     configListenerTls:
