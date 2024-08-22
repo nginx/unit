@@ -507,7 +507,7 @@ static void *
 nxt_mem_zone_alloc_small(nxt_mem_zone_t *zone, nxt_mem_zone_slot_t *slot,
     size_t size)
 {
-    char               *p;
+    uint8_t               *p;
     uint8_t              *map;
     nxt_mem_zone_page_t  *page;
 
@@ -822,7 +822,7 @@ static const char *
 nxt_mem_zone_free_chunk(nxt_mem_zone_t *zone, nxt_mem_zone_page_t *page,
     void *p)
 {
-    char               *map;
+    uint8_t               *map;
     uint32_t             size, offset, chunk;
     nxt_mem_zone_page_t  *pg, **ppg;
     nxt_mem_zone_slot_t  *slot;
@@ -843,7 +843,7 @@ nxt_mem_zone_free_chunk(nxt_mem_zone_t *zone, nxt_mem_zone_page_t *page,
 
     if (nxt_mem_zone_page_bitmap(zone, slot)) {
         /* A page's chunks bitmap is placed at the start of the page. */
-        map = (char *) ((uintptr_t) p & ~((uintptr_t) zone->page_size_mask));
+        map = (uint8_t *) ((uintptr_t) p & ~((uintptr_t) zone->page_size_mask));
 
     } else {
         map = page->u.map;

@@ -534,7 +534,7 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    app_conf->user.start  = (u_char*)rt->user_cred.user;
+    app_conf->user.start  = (char *)rt->user_cred.user;
     app_conf->user.length = nxt_strlen(rt->user_cred.user);
 
     ret = nxt_conf_map_object(process->mem_pool, conf, nxt_common_app_conf,
