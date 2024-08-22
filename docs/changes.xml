@@ -34,9 +34,140 @@ NGINX Unit updated to 1.33.0.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="feature">
+<para>
+make the number of router threads configurable.
+</para>
+</change>
+
+<change type="feature">
+<para>
+make the listen(2) backlog configurable.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add Python application factory support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add experimental chunked request body support. (Disabled by default).
+</para>
+</change>
+
+<change type="feature">
+<para>
+add fuzzing via oss-fuzz.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add "if" option to the "match" object.
+</para>
+</change>
+
+<change type="feature">
+<para>
+show list of loaded language modules in the /status endpoint.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Unit ships with a new Rust based CLI application "unitctl".
+</para>
+</change>
+
+<change type="feature">
+<para>
+the wasm-wasi-component language module now inherits the processes
+environment.
+</para>
+</change>
+
+<change type="change">
+<para>
+under systemd unit runs in forking mode (once again).
+</para>
+</change>
+
 <change type="change">
 <para>
 if building with njs, version 0.8.3 or later is now required.
+</para>
+</change>
+
+<change type="change">
+<para>
+Unit now builds with -std=gnu11 (C11 with GNU extensions).
+</para>
+</change>
+
+<change type="change">
+<para>
+Unit now creates the full directory path for the PID file and control socket.
+</para>
+</change>
+
+<change type="change">
+<para>
+build system improvements, including pretty printing the make output and
+enabling various make variables to influence the build process (see:
+make help).
+</para>
+</change>
+
+<change type="change">
+<para>
+better detection of available runnable CPUs on Linux.
+</para>
+</change>
+
+<change type="change">
+<para>
+default listen(2) backlog on Linux now defaults to Kernel default.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+don't modify REQUEST_URI.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix a crash when interrupting a download via a proxy.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+wasm-wasi-component application process hangs after receiving restart signal
+from the control endpoint.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+njs variables accessed with a JS template literal should not be cacheable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+properly handle deleting arrays of certificates.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+don't create the $runstatedir directory which triggered an Alpine packaging
+error.
 </para>
 </change>
 
