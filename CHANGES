@@ -1,4 +1,61 @@
 
+Changes with Unit 1.33.0                                         17 Sep 2024
+
+    *) Feature: make the number of router threads configurable.
+
+    *) Feature: make the listen(2) backlog configurable.
+
+    *) Feature: add Python application factory support.
+
+    *) Feature: add experimental chunked request body support. (Disabled by
+       default).
+
+    *) Feature: add fuzzing via oss-fuzz.
+
+    *) Feature: add "if" option to the "match" object.
+
+    *) Feature: show list of loaded language modules in the /status
+       endpoint.
+
+    *) Feature: Unit ships with a new Rust based CLI application "unitctl".
+
+    *) Feature: the wasm-wasi-component language module now inherits the
+       processes environment.
+
+    *) Change: under systemd unit runs in forking mode (once again).
+
+    *) Change: if building with njs, version 0.8.3 or later is now required.
+
+    *) Change: Unit now builds with -std=gnu11 (C11 with GNU extensions).
+
+    *) Change: Unit now creates the full directory path for the PID file and
+       control socket.
+
+    *) Change: build system improvements, including pretty printing the make
+       output and enabling various make variables to influence the build
+       process (see: make help).
+
+    *) Change: better detection of available runnable CPUs on Linux.
+
+    *) Change: default listen(2) backlog on Linux now defaults to Kernel
+       default.
+
+    *) Bugfix: don't modify REQUEST_URI.
+
+    *) Bugfix: fix a crash when interrupting a download via a proxy.
+
+    *) Bugfix: wasm-wasi-component application process hangs after receiving
+       restart signal from the control endpoint.
+
+    *) Bugfix: njs variables accessed with a JS template literal should not
+       be cacheable.
+
+    *) Bugfix: properly handle deleting arrays of certificates.
+
+    *) Bugfix: don't create the $runstatedir directory which triggered an
+       Alpine packaging error.
+
+
 Changes with Unit 1.32.0                                         27 Feb 2024
 
     *) Feature: WebAssembly Components using WASI interfaces defined in
