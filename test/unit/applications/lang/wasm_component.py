@@ -41,7 +41,7 @@ class ApplicationWasmComponent(ApplicationProto):
     def load(self, script, **kwargs):
         self.prepare_env(script)
 
-        component_path = f'{option.temp_dir}/wasm_component/{script}/target/wasm32-wasi/release/test_wasi_component.wasm'
+        component_path = f'{option.temp_dir}/wasm_component/{script}/target/wasm32-wasip1/release/test_wasi_component.wasm'
 
         self._load_conf(
             {
