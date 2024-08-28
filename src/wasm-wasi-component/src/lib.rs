@@ -2,19 +2,18 @@ use anyhow::{bail, Context, Result};
 use bytes::{Bytes, BytesMut};
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
+use hyper::Error;
 use std::ffi::{CStr, CString};
 use std::mem::MaybeUninit;
 use std::process::exit;
 use std::ptr;
 use std::sync::OnceLock;
 use tokio::sync::mpsc;
-use wasmtime::component::{Component, InstancePre, Linker, ResourceTable};
+use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
-use wasmtime_wasi::preview2::{
-    DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView,
-};
-use wasmtime_wasi::{ambient_authority, Dir};
-use wasmtime_wasi_http::bindings::http::types::ErrorCode;
+use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi_http::bindings::http::types::{ErrorCode, Scheme};
+use wasmtime_wasi_http::bindings::ProxyPre;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 #[allow(
@@ -180,7 +179,7 @@ struct GlobalConfig {
 
 struct GlobalState {
     engine: Engine,
-    component: InstancePre<StoreState>,
+    component: ProxyPre<StoreState>,
     global_config: &'static GlobalConfig,
     sender: mpsc::Sender<NxtRequestInfo>,
 }
@@ -209,11 +208,15 @@ impl GlobalState {
         let component = Component::from_file(&engine, &global_config.component)
             .context("failed to compile component")?;
         let mut linker = Linker::<StoreState>::new(&engine);
-        wasmtime_wasi::preview2::command::add_to_linker(&mut linker)?;
-        wasmtime_wasi_http::proxy::add_only_http_to_linker(&mut linker)?;
+        wasmtime_wasi::add_to_linker_async(&mut linker)
+            .context("failed to add wasi to linker")?;
+        wasmtime_wasi_http::add_only_http_to_linker_sync(&mut linker)
+            .context("failed to add wasi:http to linker")?;
         let component = linker
             .instantiate_pre(&component)
             .context("failed to pre-instantiate the provided component")?;
+        let proxy =
+            ProxyPre::new(component).context("failed to conform to proxy")?;
 
         // Spin up the Tokio async runtime in a separate thread with a
         // communication channel into it. This thread will send requests to
@@ -223,7 +226,7 @@ impl GlobalState {
 
         Ok(GlobalState {
             engine,
-            component,
+            component: proxy,
             sender,
             global_config,
         })
@@ -257,21 +260,17 @@ impl GlobalState {
                 cx.inherit_stdout();
                 cx.inherit_stderr();
                 for dir in self.global_config.dirs.iter() {
-                    let fd = Dir::open_ambient_dir(dir, ambient_authority())
-                        .with_context(|| {
-                            format!("failed to open directory '{dir}'")
-                        })?;
                     cx.preopened_dir(
-                        fd,
+                        dir,
+                        dir,
                         DirPerms::all(),
                         FilePerms::all(),
-                        dir,
-                    );
+                    )?;
                 }
                 cx.build()
             },
             table: ResourceTable::default(),
-            http: WasiHttpCtx,
+            http: WasiHttpCtx::new(),
         };
         let mut store = Store::new(&self.engine, data);
 
@@ -292,15 +291,13 @@ impl GlobalState {
         // generate headers, write those below, and then compute the body
         // afterwards.
         let task = tokio::spawn(async move {
-            let (proxy, _) = wasmtime_wasi_http::proxy::Proxy::instantiate_pre(
-                &mut store,
-                &self.component,
-            )
-            .await
-            .context("failed to instantiate")?;
-            let req = store.data_mut().new_incoming_request(request)?;
+            let req = store
+                .data_mut()
+                .new_incoming_request(Scheme::Http, request)?;
             let out = store.data_mut().new_response_outparam(sender)?;
-            proxy
+            self.component
+                .instantiate_async(&mut store)
+                .await?
                 .wasi_http_incoming_handler()
                 .call_handle(&mut store, req, out)
                 .await
@@ -376,7 +373,7 @@ impl GlobalState {
     fn to_request_body(
         &self,
         info: &mut NxtRequestInfo,
-    ) -> BoxBody<Bytes, ErrorCode> {
+    ) -> BoxBody<Bytes, Error> {
         // TODO: should convert the body into a form of `Stream` to become an
         // async stream of frames. The return value can represent that here
         // but for now this slurps up the entire body into memory and puts it
@@ -594,16 +591,10 @@ struct StoreState {
 }
 
 impl WasiView for StoreState {
-    fn table(&self) -> &ResourceTable {
-        &self.table
-    }
-    fn table_mut(&mut self) -> &mut ResourceTable {
+    fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
-    fn ctx(&self) -> &WasiCtx {
-        &self.ctx
-    }
-    fn ctx_mut(&mut self) -> &mut WasiCtx {
+    fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
     }
 }
