@@ -259,6 +259,7 @@ impl GlobalState {
                 // shouldn't get raw access to stdout/stderr.
                 cx.inherit_stdout();
                 cx.inherit_stderr();
+                cx.inherit_env();
                 for dir in self.global_config.dirs.iter() {
                     cx.preopened_dir(
                         dir,
