@@ -6,13 +6,18 @@ MODULE_SUMMARY_wasm=	WASM module for NGINX Unit
 MODULE_VERSION_wasm=	$(VERSION)
 MODULE_RELEASE_wasm=	1
 
-MODULE_CONFARGS_wasm=	wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=\`pwd\`/pkg/contrib/wasmtime/target/release \&\& ./configure wasm-wasi-component
-MODULE_MAKEARGS_wasm=	wasm wasm-wasi-component CFLAGS=\"\$$(grep ^CFLAGS build/Makefile | cut -d' ' -f 3-) -Wno-missing-prototypes\"
-MODULE_INSTARGS_wasm=	wasm-install wasm-wasi-component-install
+MODULE_CONFARGS_wasm=	wasm-wasi-component
+MODULE_MAKEARGS_wasm=	wasm-wasi-component CFLAGS=\"\$$(grep ^CFLAGS build/Makefile | cut -d' ' -f 3-) -Wno-missing-prototypes\"
+MODULE_INSTARGS_wasm=	wasm-wasi-component-install
+
+ifeq (,$(findstring $(OSVER),amazonlinux2))
+MODULE_CONFARGS_wasm+=	\&\& ./configure wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/artifacts/include --lib-path=\`pwd\`/pkg/contrib/wasmtime/artifacts/lib
+MODULE_MAKEARGS_wasm+=	wasm
+MODULE_INSTARGS_wasm+=	wasm-install
 
 MODULE_SOURCES_wasm=
 
-BUILD_DEPENDS_wasm=
+BUILD_DEPENDS_wasm=	cmake
 
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_wasm)
 
@@ -22,16 +27,23 @@ endef
 export MODULE_PREBUILD_wasm
 
 define MODULE_PREINSTALL_wasm
+\# brp-mangle-shebangs parses all executable files for a shebang
+\# this fails on a vendored code that somehow ships with exec bit enabled
+find pkg/contrib/wasmtime/ -type f -executable -name "*.rs" | xargs chmod -x
 endef
 export MODULE_PREINSTALL_wasm
 
 define MODULE_POSTINSTALL_wasm
-%{__install} -m 755 -p pkg/contrib/wasmtime/target/release/libwasmtime.so %{buildroot}%{_libdir}/
+%{__install} -m 755 -p pkg/contrib/wasmtime/artifacts/lib/libwasmtime.so %{buildroot}%{_libdir}/
 endef
 export MODULE_POSTINSTALL_wasm
+endif
 
 define MODULE_FILES_wasm
+%if 0%{?amzn2}
+%else
 %{_libdir}/libwasmtime.so
+%endif
 %{_libdir}/unit/modules/*
 %{_libdir}/unit/debug-modules/*
 endef
