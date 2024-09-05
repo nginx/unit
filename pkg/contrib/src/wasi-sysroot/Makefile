@@ -12,6 +12,7 @@ $(TARBALLS)/wasi-sysroot-$(WASI_SYSROOT_VERSION_MAJOR).$(WASI_SYSROOT_VERSION_MI
 
 wasi-sysroot: wasi-sysroot-$(WASI_SYSROOT_VERSION_MAJOR).$(WASI_SYSROOT_VERSION_MINOR).tar.gz .sum-wasi-sysroot
 	$(UNPACK)
+	$(MOVE)
 
 .wasi-sysroot: wasi-sysroot
 	touch $@
