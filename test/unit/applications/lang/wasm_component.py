@@ -11,7 +11,10 @@ class ApplicationWasmComponent(ApplicationProto):
     @staticmethod
     def prepare_env(script):
         try:
-            subprocess.check_output(['cargo', 'component', '--help'])
+            subprocess.check_output(
+                ['cargo', 'component', '--help'],
+                stderr=subprocess.STDOUT,
+            )
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
