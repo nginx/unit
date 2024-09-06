@@ -2011,10 +2011,11 @@ def test_routes_match_destination_proxy():
     assert client.get()['status'] == 200, 'proxy'
 
 
-def test_routes_match_if():
+def set_if(condition):
+    assert 'success' in client.conf(f'"{condition}"', 'routes/0/match/if')
 
-    def set_if(condition):
-        assert 'success' in client.conf(f'"{condition}"', 'routes/0/match/if')
+
+def test_routes_match_if():
 
     def try_if(condition, status):
         set_if(condition)
@@ -2055,7 +2056,21 @@ def test_routes_match_if():
     assert client.get(url='/foo_empty?foo')['status'] == 200
     assert client.get(url='/foo?foo=1')['status'] == 404
 
-    # njs
+def test_routes_match_if_njs(require):
+    require({'modules': {'njs': 'any'}})
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:8080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"method": "GET"},
+                    "action": {"return": 200},
+                }
+            ],
+            "applications": {},
+        }
+    )
 
     set_if('`${args.foo == \'1\'}`')
     assert client.get(url='/foo_1?foo=1')['status'] == 200
