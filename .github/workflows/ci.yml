@@ -8,6 +8,7 @@ on:
       - 'go/**'
       - 'src/**'
       - 'test/**'
+      - 'pkg/contrib/**'
       - '.github/workflows/ci.yml'
   push:
     branches: master
@@ -17,6 +18,7 @@ on:
       - 'go/**'
       - 'src/**'
       - 'test/**'
+      - 'pkg/contrib/**'
       - '.github/workflows/ci.yml'
 
 jobs:
