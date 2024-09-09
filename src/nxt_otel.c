@@ -11,9 +11,14 @@
 #include <nxt_mp.h>
 #include <nxt_work_queue.h>
 #include <nxt_main.h>
+#include <nxt_conf.h>
+#include <nxt_types.h>
+
 
 #define NXT_OTEL_TRACEPARENT_LEN 55
 #define NXT_OTEL_BODY_SIZE_TAG "body size"
+#define NXT_OTEL_METHOD_TAG "method"
+#define NXT_OTEL_PATH_TAG "path"
 
 static inline void nxt_otel_trace_and_span_init(nxt_task_t *, nxt_http_request_t *);
 static inline void nxt_otel_span_collect(nxt_task_t *, nxt_http_request_t *);
@@ -24,7 +29,9 @@ static void nxt_otel_error(nxt_task_t *, nxt_http_request_t *);
 inline void
 nxt_otel_test_and_call_state(nxt_task_t *t, nxt_http_request_t *r)
 {
-    // catches null state and unset flow status
+    /* state  (r->otel)         null if opentelemetry wasnt configured
+     * status (r->otel->status) null if opentelemetry flow completes or errors
+     */
     if (!r->otel || !r->otel->status) {
         return;
     }
@@ -96,6 +103,29 @@ nxt_otel_span_add_headers(nxt_task_t *t, nxt_http_request_t *r)
             nxt_otel_add_event_to_trace(r->otel->trace, name_cur, val_cur);
         }
     } nxt_list_loop;
+
+    // Add method and path to the trace as well
+    // 1. method first
+    name_cur = val_cur = NULL;
+    name_cur = nxt_mp_zalloc(r->mem_pool, sizeof(NXT_OTEL_METHOD_TAG) + 1);
+    val_cur = nxt_mp_zalloc(r->mem_pool, r->method->length + 1);
+    if (name_cur && val_cur) {
+        sprintf((char *) name_cur, NXT_OTEL_METHOD_TAG);
+        strncpy((char *) val_cur, (char *) r->method->start, r->method->length);
+
+        nxt_otel_add_event_to_trace(r->otel->trace, name_cur, val_cur);
+    }
+
+    // 2. path second
+    name_cur = val_cur = NULL;
+    name_cur = nxt_mp_zalloc(r->mem_pool, sizeof(NXT_OTEL_PATH_TAG) + 1);
+    val_cur = nxt_mp_zalloc(r->mem_pool, r->path->length + 1);
+    if (name_cur && val_cur) {
+        sprintf((char *) name_cur, NXT_OTEL_PATH_TAG);
+        strncpy((char *) val_cur, (char *) r->path->start, r->path->length);
+
+        nxt_otel_add_event_to_trace(r->otel->trace, name_cur, val_cur);
+    }
 
     traceval = nxt_mp_zalloc(r->mem_pool, NXT_OTEL_TRACEPARENT_LEN + 1);
     if (!traceval) {
@@ -269,5 +299,46 @@ nxt_otel_parse_tracestate(void *ctx, nxt_http_field_t *field, uintptr_t data)
       *f = *field;
     }
 
+    return NXT_OK;
+}
+
+inline nxt_int_t
+nxt_otel_validate_endpoint(nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data)
+{
+    // This function is a stub for now
+    return NXT_OK;
+}
+
+nxt_int_t
+nxt_otel_validate_batch_size(nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data)
+{
+    double batch_size;
+    batch_size = nxt_conf_get_number(value);
+    if (batch_size <= 0) {
+      return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+nxt_int_t
+nxt_otel_validate_protocol(nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data)
+{
+    nxt_str_t proto;
+
+    nxt_conf_get_string(value, &proto);
+    if (nxt_str_eq(&proto, "HTTP", 4) ||
+        nxt_str_eq(&proto, "http", 4)) {
+          goto happy;
+    }
+
+    if (nxt_str_eq(&proto, "GRPC", 4) ||
+        nxt_str_eq(&proto, "grpc", 4)) {
+        goto happy;
+    }
+
+    return NXT_ERROR;
+
+ happy:
     return NXT_OK;
 }

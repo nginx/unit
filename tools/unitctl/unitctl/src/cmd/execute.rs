@@ -5,7 +5,7 @@ use crate::requests::{
 };
 use crate::unitctl::UnitCtl;
 use crate::wait;
-use crate::{OutputFormat, UnitctlError, eprint_error};
+use crate::{eprint_error, OutputFormat, UnitctlError};
 use unit_client_rs::unit_client::UnitClient;
 
 pub(crate) async fn cmd(
@@ -37,12 +37,13 @@ pub(crate) async fn cmd(
             method_upper.clone(),
             input_file_arg.clone(),
             path_trimmed,
-            output_format
-        ).await
-            .map_err(|e| {
-                eprint_error(&e);
-                std::process::exit(e.exit_code());
-            });
+            output_format,
+        )
+        .await
+        .map_err(|e| {
+            eprint_error(&e);
+            std::process::exit(e.exit_code());
+        });
     }
 
     Ok(())

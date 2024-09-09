@@ -13,7 +13,7 @@ pub async fn wait_for_sockets(cli: &UnitCtl) -> Result<Vec<ControlSocket>, Unitc
     match &cli.control_socket_addresses {
         None => {
             socks = vec![find_socket_address_from_instance().await?];
-        },
+        }
         Some(s) => socks = s.clone(),
     }
 
@@ -92,9 +92,10 @@ async fn find_socket_address_from_instance() -> Result<ControlSocket, UnitctlErr
     if instances.is_empty() {
         return Err(UnitctlError::NoUnitInstancesError);
     } else if instances.len() > 1 {
-        let suggestion: String = "Multiple unit instances found. Specify the socket address(es) to the instance you wish \
+        let suggestion: String =
+            "Multiple unit instances found. Specify the socket address(es) to the instance you wish \
             to control using the `--control-socket-address` flag"
-            .to_string();
+                .to_string();
         return Err(UnitctlError::MultipleUnitInstancesError { suggestion });
     }
 

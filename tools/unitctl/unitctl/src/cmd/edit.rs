@@ -20,13 +20,12 @@ const EDITOR_KNOWN_LIST: [&str; 8] = [
 ];
 
 pub(crate) async fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<(), UnitctlError> {
-    if cli.control_socket_addresses.is_some() &&
-        cli.control_socket_addresses.clone().unwrap().len() > 1 {
-            return Err(UnitctlError::ControlSocketError{
-                kind: ControlSocketErrorKind::General,
-                message: "too many control sockets. specify at most one.".to_string(),
-            });
-        }
+    if cli.control_socket_addresses.is_some() && cli.control_socket_addresses.clone().unwrap().len() > 1 {
+        return Err(UnitctlError::ControlSocketError {
+            kind: ControlSocketErrorKind::General,
+            message: "too many control sockets. specify at most one.".to_string(),
+        });
+    }
 
     let mut control_sockets = wait::wait_for_sockets(cli).await?;
     let client = UnitClient::new(control_sockets.pop().unwrap());

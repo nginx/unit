@@ -5,10 +5,6 @@
 nxt_found=no
 NXT_HAVE_OTEL=NO
 
-# Temporary build step.
-# later we will refactor the otel rust crate into
-# its own (open source) module
-
 cd src/otel
 cargo build
 cd ../../

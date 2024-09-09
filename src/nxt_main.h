@@ -154,9 +154,6 @@ typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr, nxt_conn_t *c);
 #include <nxt_runtime.h>
 #include <nxt_port_hash.h>
 
-// remove after phase 1
-NXT_EXPORT void otel_phase1_log_callback(u_char *arg);
-
 /*
  * The envp argument must be &environ if application may
  * change its process title with nxt_process_title().

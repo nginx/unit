@@ -284,12 +284,13 @@ nxt_http_request_create(nxt_task_t *task)
 
     r->tstr_cache.var.pool = mp;
 #if (NXT_HAVE_OTEL)
-    r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
-    if (!r->otel) {
-        goto fail;
+    if (nxt_otel_is_init()) {
+        r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
+        if (!r->otel) {
+            goto fail;
+        }
+        r->otel->status = NXT_OTEL_INIT_STATE;
     }
-    // TODO: detect and only set if otel is configured
-    r->otel->status = NXT_OTEL_INIT_STATE;
 #endif
     return r;
 

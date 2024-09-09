@@ -8,14 +8,10 @@ extern crate unit_client_rs;
 
 use clap::Parser;
 
-use crate::cmd::{
-    applications, edit, execute as execute_cmd,
-    import, instances, listeners, status,
-    save
-};
+use crate::cmd::{applications, edit, execute as execute_cmd, import, instances, listeners, save, status};
 use crate::output_format::OutputFormat;
 use crate::unitctl::{Commands, UnitCtl};
-use crate::unitctl_error::{UnitctlError, eprint_error};
+use crate::unitctl_error::{eprint_error, UnitctlError};
 use unit_client_rs::unit_client::{UnitClient, UnitSerializableMap};
 
 mod cmd;
