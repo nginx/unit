@@ -303,7 +303,7 @@ jobs:
 
       - name: Configure wasm
         run: |
-          ./configure wasm --include-path=pkg/contrib/wasmtime/crates/c-api/include --lib-path=pkg/contrib/wasmtime/target/release
+          ./configure wasm --include-path=pkg/contrib/wasmtime/artifacts/include --lib-path=pkg/contrib/wasmtime/artifacts/lib
         if: steps.metadata.outputs.module == 'wasm'
 
       - name: Make wasm
