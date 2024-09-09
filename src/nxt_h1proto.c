@@ -2869,6 +2869,11 @@ nxt_h1p_peer_body_process(nxt_task_t *task, nxt_http_peer_t *peer,
     } else if (h1p->remainder > 0) {
         length = nxt_buf_chain_length(out);
         h1p->remainder -= length;
+
+        if (h1p->remainder == 0) {
+            nxt_buf_chain_add(&out, nxt_http_buf_last(peer->request));
+            peer->closed = 1;
+        }
     }
 
     peer->body = out;
