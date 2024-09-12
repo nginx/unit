@@ -462,6 +462,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
                       "factory \"%s\" in module \"%s\" "
                       "can not be called to fetch callable",
                       callable, module_name);
+            Py_INCREF(obj);     /* borrowed reference */
             goto fail;
         }
 
