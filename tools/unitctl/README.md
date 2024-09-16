@@ -69,7 +69,7 @@ Commands:
 
 Options:
   -s, --control-socket-address <CONTROL_SOCKET_ADDRESS>
-          Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL
+          Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL. This flag can be specified multiple times.
   -w, --wait-timeout-seconds <WAIT_TIME_SECONDS>
           Number of seconds to wait for control socket to become available
   -t, --wait-max-tries <WAIT_MAX_TRIES>

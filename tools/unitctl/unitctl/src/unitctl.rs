@@ -14,7 +14,8 @@ pub(crate) struct UnitCtl {
         short = 's',
         long = "control-socket-address",
         value_parser = parse_control_socket_address,
-        help = "Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL"
+        value_name = "CONTROL_SOCKET_ADDRESS",
+        help = "Path (unix:/var/run/unit/control.sock), tcp address with port (127.0.0.1:80), or URL. This flag can be specified multiple times."
     )]
     pub(crate) control_socket_addresses: Option<Vec<ControlSocket>>,
 
