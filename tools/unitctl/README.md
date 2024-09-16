@@ -64,6 +64,7 @@ Commands:
   status     Get the current status of Unit
   listeners  List active listeners
   apps       List all configured Unit applications
+  export     Export the current configuration of Unit
   help       Print this message or the help of the given subcommand(s)
 
 Options:
