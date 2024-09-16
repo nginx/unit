@@ -2021,7 +2021,7 @@ dependencies = [
 
 [[package]]
 name = "unit-client-rs"
-version = "0.4.0-beta"
+version = "1.33.0"
 dependencies = [
  "bollard",
  "custom_error",
@@ -2044,7 +2044,7 @@ dependencies = [
 
 [[package]]
 name = "unit-openapi"
-version = "0.4.0-beta"
+version = "1.33.0"
 dependencies = [
  "base64 0.21.5",
  "futures",
@@ -2058,7 +2058,7 @@ dependencies = [
 
 [[package]]
 name = "unitctl"
-version = "0.4.0-beta"
+version = "1.33.0"
 dependencies = [
  "clap",
  "colored_json",
