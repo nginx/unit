@@ -1,12 +1,12 @@
-FROM perl:5.36-bullseye
+FROM python:3.12-slim-bookworm
 
-LABEL org.opencontainers.image.title="Unit (perl5.36)"
+LABEL org.opencontainers.image.title="Unit (python3.12-slim)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="1.32.0"
+LABEL org.opencontainers.image.version="1.33.0"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
@@ -15,7 +15,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && git clone --depth 1 -b 1.32.0-1 https://github.com/nginx/unit \
+    && git clone --depth 1 -b 1.33.0-1 https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
@@ -47,12 +47,12 @@ RUN set -ex \
     && make clean \
     && /bin/true \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure perl \
-    && make -j $NCPU perl-install \
+    && ./configure python --config=/usr/local/bin/python3-config \
+    && make -j $NCPU python3-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure perl \
-    && make -j $NCPU perl-install \
+    && ./configure python --config=/usr/local/bin/python3-config \
+    && make -j $NCPU python3-install \
     && cd \
     && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
