@@ -34,7 +34,7 @@ async fn main() -> Result<(), UnitctlError> {
     match cli.command {
         Commands::Instances(args) => instances::cmd(args).await,
 
-        Commands::App(ref args) => applications::cmd(&cli, args).await,
+        Commands::Apps(ref args) => applications::cmd(&cli, args).await,
 
         Commands::Edit { output_format } => edit::cmd(&cli, output_format).await,
 

@@ -63,6 +63,7 @@ Commands:
   execute    Sends raw JSON payload to Unit
   status     Get the current status of Unit
   listeners  List active listeners
+  apps       List all configured Unit applications
   help       Print this message or the help of the given subcommand(s)
 
 Options:
@@ -150,7 +151,7 @@ Unitctl can also request from the API that an application be restarted.
 
 Listing applications:
 ```
-$ unitctl app list
+$ unitctl apps list
 {
   "wasm": {
     "type": "wasm-wasi-component",
@@ -161,7 +162,7 @@ $ unitctl app list
 
 Restarting an application:
 ```
-$ unitctl app reload wasm
+$ unitctl apps reload wasm
 {
   "success": "Ok"
 }
