@@ -110,11 +110,11 @@ manpage: target/man/$(OUTPUT_BINARY).1.gz ## Builds man page
 .openapi_cache:
 	$Q mkdir -p $@
 
-## Generate (or regenerate) UNIT API access code via a OpenAPI spec
+## Generate (or regenerate) Unit API access code via a OpenAPI spec
 .PHONY: openapi-generate
 openapi-generate: .openapi_cache
 	$Q if [ ! -f "$(CURDIR)/unit-openapi/src/models/mod.rs" ]; then
-		echo "$(M) generating UNIT API access code via a OpenAPI spec"
+		echo "$(M) generating Unit API access code via a OpenAPI spec"
 		OPENAPI_GENERATOR_VERSION="$(OPENAPI_GENERATOR_VERSION)" \
 		OPENAPI_GENERATOR_DOWNLOAD_CACHE_DIR="$(CURDIR)/.openapi_cache" \
 		$(CURDIR)/build/openapi-generator-cli.sh \

@@ -41,7 +41,7 @@ pub(crate) async fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<()
         .tempfile()
         .map_err(|e| UnitctlError::IoError { source: e })?;
 
-    // Pretty format JSON received from UNIT and write to the temporary file
+    // Pretty format JSON received from Unit and write to the temporary file
     serde_json::to_writer_pretty(temp_file.as_file_mut(), &current_config)
         .map_err(|e| UnitctlError::SerializationError { message: e.to_string() })?;
 
@@ -53,15 +53,15 @@ pub(crate) async fn cmd(cli: &UnitCtl, output_format: OutputFormat) -> Result<()
     open_editor(temp_file_path)?;
     let after_edit_mod_time = temp_file_path.metadata().ok().map(|m| m.modified().ok());
 
-    // Check if file was modified before sending to UNIT
+    // Check if file was modified before sending to Unit
     if let (Some(before), Some(after)) = (before_edit_mod_time, after_edit_mod_time) {
         if before == after {
-            eprintln!("File was not modified - no changes will be sent to UNIT");
+            eprintln!("File was not modified - no changes will be sent to Unit");
             return Ok(());
         }
     };
 
-    // Send edited file to UNIT to overwrite current configuration
+    // Send edited file to Unit to overwrite current configuration
     send_and_validate_config_deserialize_response(&client, "PUT", "/config", Some(&inputfile))
         .await
         .and_then(|status| output_format.write_to_stdout(&status))

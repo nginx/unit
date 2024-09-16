@@ -1,6 +1,6 @@
 [package]
 name = "unitctl"
-description = "CLI interface to the NGINX UNIT Control API"
+description = "CLI interface to the NGINX Unit Control API"
 version = "0.4.0-beta"
 authors = ["Elijah Zupancic"]
 edition = "2021"
@@ -38,7 +38,7 @@ tar = "0.4.41"
 copyright = "2022, F5"
 license-file = ["../LICENSE.txt", "0"]
 extended-description = """\
-A utility for controlling NGINX UNIT."""
+A utility for controlling NGINX Unit."""
 section = "utility"
 priority = "optional"
 assets = [
@@ -48,7 +48,7 @@ assets = [
 
 [package.metadata.generate-rpm]
 summary = """\
-A utility for controlling NGINX UNIT."""
+A utility for controlling NGINX Unit."""
 section = "utility"
 priority = "optional"
 assets = [

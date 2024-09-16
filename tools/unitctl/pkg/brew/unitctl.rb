@@ -1,5 +1,5 @@
 class Unitctl < Formula
-  desc "CLI interface to the NGINX UNIT Control API"
+  desc "CLI interface to the NGINX Unit Control API"
   homepage "https://github.com/nginxinc/unit-rust-sdk"
   version "0.3.0"
   package_name = "unitctl"

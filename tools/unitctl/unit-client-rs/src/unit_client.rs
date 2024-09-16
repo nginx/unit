@@ -21,7 +21,7 @@ use unit_openapi::apis::{
 };
 use unit_openapi::models::{ConfigApplication, ConfigListener, Status};
 
-const USER_AGENT: &str = concat!("UNIT CLI/", env!("CARGO_PKG_VERSION"), "/rust");
+const USER_AGENT: &str = concat!("Unit CLI/", env!("CARGO_PKG_VERSION"), "/rust");
 
 custom_error! {pub UnitClientError
     OpenAPIError { source: OpenAPIError } = "OpenAPI error",
@@ -201,7 +201,7 @@ impl UnitClient {
         }
     }
 
-    /// Sends a request to UNIT and deserializes the JSON response body into the value of type `RESPONSE`.
+    /// Sends a request to Unit and deserializes the JSON response body into the value of type `RESPONSE`.
     pub async fn send_request_and_deserialize_response<RESPONSE: for<'de> serde::Deserialize<'de>>(
         &self,
         mut request: Request<Body>,
