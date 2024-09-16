@@ -163,7 +163,7 @@ $ unitctl apps list
 
 Restarting an application:
 ```
-$ unitctl apps reload wasm
+$ unitctl apps restart wasm
 {
   "success": "Ok"
 }

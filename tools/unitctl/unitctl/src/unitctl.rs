@@ -194,8 +194,8 @@ pub struct ApplicationArgs {
 #[derive(Debug, Subcommand)]
 #[command(args_conflicts_with_subcommands = true)]
 pub enum ApplicationCommands {
-    #[command(about = "reload a running application")]
-    Reload {
+    #[command(about = "restart a running application")]
+    Restart {
         #[arg(required = true, help = "name of application")]
         name: String,
     },

@@ -12,7 +12,7 @@ pub(crate) async fn cmd(cli: &UnitCtl, args: &ApplicationArgs) -> Result<(), Uni
 
     for client in clients {
         let _ = match &args.command {
-            ApplicationCommands::Reload { ref name } => client
+            ApplicationCommands::Restart { ref name } => client
                 .restart_application(name)
                 .await
                 .map_err(|e| UnitctlError::UnitClientError { source: *e })
