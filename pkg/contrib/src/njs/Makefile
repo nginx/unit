@@ -1,7 +1,7 @@
 # njs
 
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/version
-NJS_URL := https://hg.nginx.org/njs/archive/$(NJS_VERSION).tar.gz
+NJS_URL := https://github.com/nginx/njs/archive/$(NJS_VERSION).tar.gz
 
 PKGS += njs
 

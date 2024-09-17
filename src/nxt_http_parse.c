@@ -286,13 +286,11 @@ continue_target:
         case NXT_HTTP_TARGET_SPACE:
             rp->target_end = p;
             goto space_after_target;
-#if 0
+
         case NXT_HTTP_TARGET_QUOTE_MARK:
             rp->quoted_target = 1;
             goto rest_of_target;
-#else
-        case NXT_HTTP_TARGET_QUOTE_MARK:
-#endif
+
         case NXT_HTTP_TARGET_HASH:
             rp->complex_target = 1;
             goto rest_of_target;
@@ -434,12 +432,7 @@ space_after_target:
 
         rp->request_line_end = p;
 
-        if (rp->complex_target != 0
-#if 0
-            || rp->quoted_target != 0
-#endif
-           )
-        {
+        if (rp->complex_target || rp->quoted_target) {
             rc = nxt_http_parse_complex_target(rp);
 
             if (nxt_slow_path(rc != NXT_OK)) {
@@ -1041,7 +1034,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             break;
 
         case sw_quoted:
-            //rp->quoted_target = 1;
+            rp->quoted_target = 1;
 
             if (ch >= '0' && ch <= '9') {
                 high = (u_char) (ch - '0');
@@ -1189,6 +1182,7 @@ nxt_http_fields_hash(nxt_lvlhsh_t *hash,
 
     lhq.replace = 0;
     lhq.proto = &nxt_http_fields_hash_proto;
+    lhq.pool = NULL;
 
     for (i = 0; i < count; i++) {
         key = NXT_HTTP_FIELD_HASH_INIT;

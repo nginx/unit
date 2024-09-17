@@ -25,7 +25,7 @@ nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_upstreams_t   *upstreams;
     nxt_conf_value_t  *upstreams_conf, *upcf;
 
-    static nxt_str_t  upstreams_name = nxt_string("upstreams");
+    static const nxt_str_t  upstreams_name = nxt_string("upstreams");
 
     upstreams_conf = nxt_conf_get_object_member(conf, &upstreams_name, NULL);
 

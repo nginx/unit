@@ -26,10 +26,8 @@ typedef struct {
 static void nxt_router_access_log_writer(nxt_task_t *task,
     nxt_http_request_t *r, nxt_router_access_log_t *access_log,
     nxt_tstr_t *format);
-static void nxt_router_access_log_write_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_router_access_log_write_error(nxt_task_t *task, void *obj,
-    void *data);
+static void nxt_router_access_log_write(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_access_log_ctx_t *ctx);
 static void nxt_router_access_log_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_error(nxt_task_t *task,
@@ -75,7 +73,7 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_router_access_log_t       *access_log;
     nxt_router_access_log_conf_t  alcf;
 
-    static nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
+    static const nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
         "[$time_local] \"$request_line\" $status $body_bytes_sent "
         "\"$header_referer\" \"$header_user_agent\"");
 
@@ -145,15 +143,8 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     if (alcf.expr != NULL) {
         nxt_conf_get_string(alcf.expr, &str);
 
-        if (str.length > 0 && str.start[0] == '!') {
-            rtcf->log_negate = 1;
-
-            str.start++;
-            str.length--;
-        }
-
-        rtcf->log_expr = nxt_tstr_compile(rtcf->tstr_state, &str, 0);
-        if (nxt_slow_path(rtcf->log_expr == NULL)) {
+        ret = nxt_tstr_cond_compile(rtcf->tstr_state, &str, &rtcf->log_cond);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NXT_ERROR;
         }
     }
@@ -180,8 +171,6 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_tstr_is_const(format)) {
         nxt_tstr_str(format, &ctx->text);
 
-        nxt_router_access_log_write_ready(task, r, ctx);
-
     } else {
         rtcf = r->conf->socket_conf->router_conf;
 
@@ -191,33 +180,23 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
             return;
         }
 
-        nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
-        nxt_tstr_query_resolve(task, r->tstr_query, ctx,
-                               nxt_router_access_log_write_ready,
-                               nxt_router_access_log_write_error);
-     }
+        ret = nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return;
+        }
+    }
+
+    nxt_router_access_log_write(task, r, ctx);
 }
 
 
 static void
-nxt_router_access_log_write_ready(nxt_task_t *task, void *obj, void *data)
+nxt_router_access_log_write(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_access_log_ctx_t *ctx)
 {
-    nxt_http_request_t           *r;
-    nxt_router_access_log_ctx_t  *ctx;
-
-    r = obj;
-    ctx = data;
-
     nxt_fd_write(ctx->access_log->fd, ctx->text.start, ctx->text.length);
 
     nxt_http_request_close_handler(task, r, r->proto.any);
-}
-
-
-static void
-nxt_router_access_log_write_error(nxt_task_t *task, void *obj, void *data)
-{
-
 }
 
 

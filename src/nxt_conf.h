@@ -79,27 +79,28 @@ typedef struct {
 } nxt_conf_validation_t;
 
 
-NXT_EXPORT nxt_uint_t nxt_conf_type(nxt_conf_value_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_type(const nxt_conf_value_t *value);
 
 NXT_EXPORT nxt_conf_value_t *nxt_conf_get_path(nxt_conf_value_t *value,
-    nxt_str_t *path);
-NXT_EXPORT nxt_conf_value_t *nxt_conf_get_object_member(nxt_conf_value_t *value,
-    nxt_str_t *name, uint32_t *index);
+    const nxt_str_t *path);
+NXT_EXPORT nxt_conf_value_t *nxt_conf_get_object_member(
+    const nxt_conf_value_t *value, const nxt_str_t *name, uint32_t *index);
 NXT_EXPORT nxt_conf_value_t *nxt_conf_next_object_member(
-    nxt_conf_value_t *value, nxt_str_t *name, uint32_t *next);
-NXT_EXPORT nxt_conf_value_t *nxt_conf_get_array_element(nxt_conf_value_t *value,
-    uint32_t index);
+    const nxt_conf_value_t *value, nxt_str_t *name, uint32_t *next);
+NXT_EXPORT nxt_conf_value_t *nxt_conf_get_array_element(
+    const nxt_conf_value_t *value, uint32_t index);
 NXT_EXPORT nxt_conf_value_t *nxt_conf_get_array_element_or_itself(
     nxt_conf_value_t *value, uint32_t index);
 
-NXT_EXPORT nxt_int_t nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value,
-    nxt_conf_map_t *map, nxt_uint_t n, void *data);
+NXT_EXPORT nxt_int_t nxt_conf_map_object(nxt_mp_t *mp,
+    const nxt_conf_value_t *value, const nxt_conf_map_t *map, nxt_uint_t n,
+    void *data);
 
 nxt_conf_op_ret_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
-    nxt_conf_value_t *root, nxt_str_t *path, nxt_conf_value_t *value,
+    const nxt_conf_value_t *root, const nxt_str_t *path, nxt_conf_value_t *value,
     nxt_bool_t add);
 nxt_conf_value_t *nxt_conf_clone(nxt_mp_t *mp, nxt_conf_op_t *op,
-    nxt_conf_value_t *value);
+    const nxt_conf_value_t *value);
 
 nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
     nxt_conf_json_error_t *error);
@@ -107,49 +108,54 @@ nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 #define nxt_conf_json_parse_str(mp, str)                                      \
     nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length, NULL)
 
-size_t nxt_conf_json_length(nxt_conf_value_t *value,
+size_t nxt_conf_json_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
+u_char *nxt_conf_json_print(u_char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 void nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
     nxt_uint_t *column);
 
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
-NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
-NXT_EXPORT nxt_str_t *nxt_conf_get_string_dup(nxt_conf_value_t *value,
+NXT_EXPORT void nxt_conf_get_string(const nxt_conf_value_t *value,
+    nxt_str_t *str);
+NXT_EXPORT nxt_str_t *nxt_conf_get_string_dup(const nxt_conf_value_t *value,
     nxt_mp_t *mp, nxt_str_t *str);
-NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value,
+    const nxt_str_t *str);
 NXT_EXPORT nxt_int_t nxt_conf_set_string_dup(nxt_conf_value_t *value,
     nxt_mp_t *mp, const nxt_str_t *str);
 NXT_EXPORT double nxt_conf_get_number(nxt_conf_value_t *value);
 NXT_EXPORT uint8_t nxt_conf_get_boolean(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below
-NXT_EXPORT nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_object_members_count(
+    const nxt_conf_value_t *value);
 nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
-void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
+void nxt_conf_set_member(nxt_conf_value_t *object, const nxt_str_t *name,
     const nxt_conf_value_t *value, uint32_t index);
 nxt_int_t nxt_conf_set_member_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
-    nxt_str_t *name, nxt_conf_value_t *value, uint32_t index);
-void nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
-    nxt_str_t *value, uint32_t index);
-nxt_int_t nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
-    nxt_str_t *name, nxt_str_t *value, uint32_t index);
-void nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
-    int64_t value, uint32_t index);
-void nxt_conf_set_member_null(nxt_conf_value_t *object, nxt_str_t *name,
+    const nxt_str_t *name, const nxt_conf_value_t *value, uint32_t index);
+void nxt_conf_set_member_string(nxt_conf_value_t *object,
+    const nxt_str_t *name, const nxt_str_t *value, uint32_t index);
+nxt_int_t nxt_conf_set_member_string_dup(nxt_conf_value_t *object,
+    nxt_mp_t *mp, const nxt_str_t *name, const nxt_str_t *value,
+    uint32_t index);
+void nxt_conf_set_member_integer(nxt_conf_value_t *object,
+    const nxt_str_t *name, int64_t value, uint32_t index);
+void nxt_conf_set_member_null(nxt_conf_value_t *object, const nxt_str_t *name,
     uint32_t index);
 
 nxt_conf_value_t *nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count);
 void nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
     const nxt_conf_value_t *value);
-nxt_int_t nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
-    nxt_uint_t index, nxt_str_t *value);
-NXT_EXPORT nxt_uint_t nxt_conf_array_elements_count(nxt_conf_value_t *value);
+nxt_int_t nxt_conf_set_element_string_dup(nxt_conf_value_t *array,
+    nxt_mp_t *mp, nxt_uint_t index, const nxt_str_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_array_elements_count(
+    const nxt_conf_value_t *value);
 NXT_EXPORT nxt_uint_t nxt_conf_array_elements_count_or_1(
-    nxt_conf_value_t *value);
-void nxt_conf_array_qsort(nxt_conf_value_t *value,
+    const nxt_conf_value_t *value);
+void nxt_conf_array_qsort(const nxt_conf_value_t *value,
     int (*compare)(const void *, const void *));
 
 

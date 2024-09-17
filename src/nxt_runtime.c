@@ -895,8 +895,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    ret = mkdir((char *) file_name.start, S_IRWXU);
-
+    ret = mkdir((char *) file_name.start, 0700);
     if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
         rt->certs.length = file_name.len;
         rt->certs.start = file_name.start;
@@ -912,8 +911,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    ret = mkdir((char *) file_name.start, S_IRWXU);
-
+    ret = mkdir((char *) file_name.start, 0700);
     if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
         rt->scripts.length = file_name.len;
         rt->scripts.start = file_name.start;
@@ -1490,7 +1488,7 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
 
     file.name = pid_file;
 
-    nxt_fs_mkdir_parent(pid_file, 0755);
+    nxt_fs_mkdir_p_dirname(pid_file, 0755);
 
     n = nxt_file_open(task, &file, O_WRONLY, O_CREAT | O_TRUNC,
                       NXT_FILE_DEFAULT_ACCESS);

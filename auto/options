@@ -42,6 +42,8 @@ NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
 NXT_TESTS=NO
 
+NXT_FUZZ=
+
 NXT_HELP=NO
 
 for nxt_option
@@ -124,6 +126,8 @@ do
         --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
 
         --tests)                         NXT_TESTS=YES                       ;;
+
+        --fuzz=*)                        NXT_FUZZ="$value"                   ;;
 
         --help)
             . auto/help

@@ -2,9 +2,24 @@ name: ci
 
 on:
   pull_request:
+    paths:
+      - configure
+      - 'auto/**'
+      - 'go/**'
+      - 'src/**'
+      - 'test/**'
+      - 'pkg/contrib/**'
+      - '.github/workflows/ci.yml'
   push:
-    branches:
-      - master
+    branches: master
+    paths:
+      - configure
+      - 'auto/**'
+      - 'go/**'
+      - 'src/**'
+      - 'test/**'
+      - 'pkg/contrib/**'
+      - '.github/workflows/ci.yml'
 
 jobs:
   test:
@@ -49,32 +64,22 @@ jobs:
             os: ubuntu-latest
           - build: wasm
             os: ubuntu-latest
+          - build: wasm-wasi-component
+            os: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-
-      # Creates and outputs directories used by tests (/usr/local is unfriendly)
-      - name: Configure directories
-        id: dir
-        run: |
-          PREFIX=${HOME}/.unit
-          BIN=${PREFIX}/bin
-          VAR=${PREFIX}/var
-          mkdir -p $BIN
-          mkdir -p $VAR
-
-          echo "prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
-          echo "bin=${BIN}" >> "$GITHUB_OUTPUT"
-          echo "bin=${BIN}" >> "$GITHUB_PATH"
-          echo "var=${VAR}" >> "$GITHUB_OUTPUT"
-          cat "$GITHUB_OUTPUT"
 
       # Provides module, language version and testpath from build name
       - name: Output build metadata
         id: metadata
         run: |
-          # Split the build name by '-' into module and version
-          IFS='-' read -r module version <<< "${{ matrix.build }}"
+          if [ "${{ matrix.build }}" = "wasm-wasi-component" ]; then
+            module="wasm-wasi-component"
+          else
+            # Split the build name by '-' into module and version
+            IFS='-' read -r module version <<< "${{ matrix.build }}"
+          fi
 
           testpath="test/test_${module}*"
 
@@ -127,15 +132,6 @@ jobs:
       - name: Configure unit
         run: |
           ./configure \
-            --prefix=${{ steps.dir.outputs.prefix }} \
-            --sbindir=${{ steps.dir.outputs.bin }} \
-            --logdir=${{ steps.dir.outputs.var }}/log \
-            --log=${{ steps.dir.outputs.var }}/log/unit/unit.log \
-            --runstatedir=${{ steps.dir.outputs.var }}/run \
-            --pid=${{ steps.dir.outputs.var }}/run/unit/unit.pid \
-            --control=unix:${{ steps.dir.outputs.var }}/run/unit/control.sock \
-            --modules=${{ steps.dir.outputs.prefix }}/lib/unit/modules \
-            --statedir=${{ steps.dir.outputs.var }}/state/unit \
             --tests \
             --openssl \
             --njs \
@@ -179,12 +175,12 @@ jobs:
 
       - name: Configure java
         run: |
-          ./configure java
+          sudo ./configure java
         if: steps.metadata.outputs.module == 'java'
 
       - name: Make java
         run: |
-          make java
+          sudo make java
         if: steps.metadata.outputs.module == 'java'
 
       ##
@@ -266,12 +262,12 @@ jobs:
 
       - name: Configure python3
         run: |
-          ./configure python --config=python3-config
+          sudo ./configure python --config=python3-config
         if: steps.metadata.outputs.module == 'python'
 
       - name: Make python3
         run: |
-          make python3
+          sudo make python3
         if: steps.metadata.outputs.module == 'python'
 
       ##
@@ -309,7 +305,7 @@ jobs:
 
       - name: Configure wasm
         run: |
-          ./configure wasm --include-path=pkg/contrib/wasmtime/crates/c-api/include --lib-path=pkg/contrib/wasmtime/target/release
+          ./configure wasm --include-path=pkg/contrib/wasmtime/artifacts/include --lib-path=pkg/contrib/wasmtime/artifacts/lib
         if: steps.metadata.outputs.module == 'wasm'
 
       - name: Make wasm
@@ -318,8 +314,37 @@ jobs:
         if: steps.metadata.outputs.module == 'wasm'
 
       ##
+      ## wasm-wasi-component
+      ##
+
+      - name: Setup rust
+        run: |
+          curl https://sh.rustup.rs | sh -s -- -y
+          cargo install cargo-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Configure wasm-wasi-component
+        run: |
+          ./configure wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      - name: Make wasm-wasi-component
+        run: |
+          CLANG_PATH=/usr/bin/clang-15 \
+          BINDGEN_EXTRA_CLANG_ARGS="-I../../njs/src -I../../njs/build" \
+          make wasm-wasi-component
+        if: steps.metadata.outputs.module == 'wasm-wasi-component'
+
+      ##
       ## Tests
       ##
+
+      # /home/runner will be root only after calling sudo above
+      # Ensure all users and processes can execute
+      - name: Fix permissions
+        run: |
+          sudo chmod -R +x /home/runner
+          namei -l ${{ github.workspace }}
 
       # Install python3 if not present
       - uses: actions/setup-python@v5
@@ -329,11 +354,18 @@ jobs:
 
       - name: Install pytest
         run: |
-          pip install pytest
+          if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
+            pip install pytest
+          else
+            sudo -H pip install pytest
+          fi
         if: steps.metadata.outputs.module != 'wasm'
 
       - name: Run ${{ steps.metadata.outputs.module }} tests
         run: |
-          pytest --print-log ${{ steps.metadata.outputs.testpath }}
-        # Skip pytest if wasm build, as there are no tests yet
+          if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
+            pytest --print-log ${{ steps.metadata.outputs.testpath }}
+          else
+            sudo -E pytest --print-log ${{ steps.metadata.outputs.testpath }}
+          fi
         if: steps.metadata.outputs.module != 'wasm'

@@ -17,6 +17,175 @@
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19 unit-jsc20 unit-jsc21
                 unit-wasm"
+         ver="1.33.0" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.33.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.33.0" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
+<para>
+make the number of router threads configurable.
+</para>
+</change>
+
+<change type="feature">
+<para>
+make the listen(2) backlog configurable.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add Python application factory support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add experimental chunked request body support. (Disabled by default).
+</para>
+</change>
+
+<change type="feature">
+<para>
+add fuzzing via oss-fuzz.
+</para>
+</change>
+
+<change type="feature">
+<para>
+add "if" option to the "match" object.
+</para>
+</change>
+
+<change type="feature">
+<para>
+show list of loaded language modules in the /status endpoint.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Unit ships with a new Rust based CLI application "unitctl".
+</para>
+</change>
+
+<change type="feature">
+<para>
+the wasm-wasi-component language module now inherits the processes
+environment.
+</para>
+</change>
+
+<change type="change">
+<para>
+under systemd unit runs in forking mode (once again).
+</para>
+</change>
+
+<change type="change">
+<para>
+if building with njs, version 0.8.3 or later is now required.
+</para>
+</change>
+
+<change type="change">
+<para>
+Unit now builds with -std=gnu11 (C11 with GNU extensions).
+</para>
+</change>
+
+<change type="change">
+<para>
+Unit now creates the full directory path for the PID file and control socket.
+</para>
+</change>
+
+<change type="change">
+<para>
+build system improvements, including pretty printing the make output and
+enabling various make variables to influence the build process (see:
+make help).
+</para>
+</change>
+
+<change type="change">
+<para>
+better detection of available runnable CPUs on Linux.
+</para>
+</change>
+
+<change type="change">
+<para>
+default listen(2) backlog on Linux now defaults to Kernel default.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+don't modify REQUEST_URI.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix a crash when interrupting a download via a proxy.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+wasm-wasi-component application process hangs after receiving restart signal
+from the control endpoint.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+njs variables accessed with a JS template literal should not be cacheable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+properly handle deleting arrays of certificates.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+don't create the $runstatedir directory which triggered an Alpine packaging
+error.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-python3.12
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20 unit-jsc21
+                unit-wasm"
          ver="1.32.1" rev="1"
          date="2024-03-26" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
@@ -120,7 +289,7 @@ conditional access logging.
 
 <change type="feature">
 <para>
-NJS variables access.
+njs variables access.
 </para>
 </change>
 
@@ -457,7 +626,7 @@ basic URI rewrite support.
 
 <change type="feature">
 <para>
-NJS loadable modules support.
+njs loadable modules support.
 </para>
 </change>
 
@@ -475,7 +644,7 @@ conditional logging of route selection.
 
 <change type="feature">
 <para>
-support the keys API on the request objects in NJS.
+support the keys API on the request objects in njs.
 </para>
 </change>
 
@@ -549,7 +718,7 @@ stop creating world-writeable directories.
 
 <change type="bugfix">
 <para>
-memory leak related to NJS.
+memory leak related to njs.
 </para>
 </change>
 
@@ -2502,26 +2671,6 @@ segmentation fault might have occurred if an irregular file was requested.
 
 </changes>
 
-
-<changes apply="unit
-                unit-php
-                unit-python unit-python2.7
-                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
-                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
-                unit-perl
-                unit-ruby
-                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
-         ver="1.11.0" rev="2"
-         date="2019-09-29" time="13:30:00 +0300"
-         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
-
-<change>
-<para>
-Bump packaging version to fix repositories inconsistencies.
-</para>
-</change>
-
-</changes>
 
 
 <changes apply="unit-php

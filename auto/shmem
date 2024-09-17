@@ -24,8 +24,7 @@ nxt_feature_test="#include <sys/mman.h>
 
                       shm_unlink(name);
 
-                      int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR,
-                          S_IRUSR | S_IWUSR);
+                      int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
                       if (fd == -1)
                           return 1;
 
@@ -68,7 +67,7 @@ if [ $nxt_found = no ]; then
                           shm_unlink(name);
 
                           int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR,
-                              S_IRUSR | S_IWUSR);
+                              0600);
                           if (fd == -1)
                               return 1;
 
@@ -95,7 +94,7 @@ nxt_feature_test="#include <sys/mman.h>
                   #include <sys/stat.h>
 
                   int main(void) {
-                      int fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+                      int fd = shm_open(SHM_ANON, O_RDWR, 0600);
                       if (fd == -1)
                           return 1;
 

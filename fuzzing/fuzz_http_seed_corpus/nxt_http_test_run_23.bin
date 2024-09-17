@@ -1,0 +1,5 @@
+GET / HTTP/1.1
+X-Unknown-Header: value
+X-Good-Header: value
+!#$%&'*+.^_`|~: skipped
+

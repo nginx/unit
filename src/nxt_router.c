@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
     nxt_str_t         pass;
     nxt_str_t         application;
+    int               backlog;
 } nxt_router_listener_conf_t;
 
 
@@ -166,7 +167,7 @@ static void nxt_router_app_prefork_ready(nxt_task_t *task,
 static void nxt_router_app_prefork_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_socket_conf_t *nxt_router_socket_conf(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
+    nxt_router_temp_conf_t *tmcf, nxt_str_t *name, int backlog);
 static nxt_int_t nxt_router_listen_socket_find(nxt_router_temp_conf_t *tmcf,
     nxt_socket_conf_t *nskcf, nxt_sockaddr_t *sa);
 
@@ -1077,14 +1078,14 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     rtcf = nxt_mp_zget(mp, sizeof(nxt_router_conf_t));
     if (nxt_slow_path(rtcf == NULL)) {
-        goto fail;
+        goto out_free_mp;
     }
 
     rtcf->mem_pool = mp;
 
     rtcf->tstr_state = nxt_tstr_state_new(mp, 0);
     if (nxt_slow_path(rtcf->tstr_state == NULL)) {
-        goto fail;
+        goto out_free_mp;
     }
 
 #if (NXT_HAVE_NJS)
@@ -1093,12 +1094,12 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     tmp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(tmp == NULL)) {
-        goto fail;
+        goto out_free_tstr_state;
     }
 
     tmcf = nxt_mp_zget(tmp, sizeof(nxt_router_temp_conf_t));
     if (nxt_slow_path(tmcf == NULL)) {
-        goto temp_fail;
+        goto out_free;
     }
 
     tmcf->mem_pool = tmp;
@@ -1109,7 +1110,7 @@ nxt_router_temp_conf(nxt_task_t *task)
     tmcf->engines = nxt_array_create(tmcf->mem_pool, 4,
                                      sizeof(nxt_router_engine_conf_t));
     if (nxt_slow_path(tmcf->engines == NULL)) {
-        goto temp_fail;
+        goto out_free;
     }
 
     nxt_queue_init(&creating_sockets);
@@ -1131,15 +1132,17 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     return tmcf;
 
-temp_fail:
+out_free:
 
     nxt_mp_destroy(tmp);
 
-fail:
+out_free_tstr_state:
 
     if (rtcf->tstr_state != NULL) {
         nxt_tstr_state_release(rtcf->tstr_state);
     }
+
+out_free_mp:
 
     nxt_mp_destroy(mp);
 
@@ -1410,7 +1413,7 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 static nxt_conf_map_t  nxt_router_conf[] = {
     {
-        nxt_string("listeners_threads"),
+        nxt_string("listen_threads"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_router_conf_t, threads),
     },
@@ -1491,6 +1494,12 @@ static nxt_conf_map_t  nxt_router_listener_conf[] = {
         nxt_string("application"),
         NXT_CONF_MAP_STR_COPY,
         offsetof(nxt_router_listener_conf_t, application),
+    },
+
+    {
+        nxt_string("backlog"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_router_listener_conf_t, backlog),
     },
 };
 
@@ -1573,6 +1582,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_INT8,
         offsetof(nxt_socket_conf_t, server_version),
     },
+
+    {
+        nxt_string("chunked_transform"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, chunked_transform),
+    },
 };
 
 
@@ -1622,7 +1637,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *js_module;
 #endif
     nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
-    nxt_conf_value_t            *applications, *application;
+    nxt_conf_value_t            *applications, *application, *settings;
     nxt_conf_value_t            *listeners, *listener;
     nxt_socket_conf_t           *skcf;
     nxt_router_conf_t           *rtcf;
@@ -1632,25 +1647,30 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_app_conf_t       apcf;
     nxt_router_listener_conf_t  lscf;
 
-    static nxt_str_t  http_path = nxt_string("/settings/http");
-    static nxt_str_t  applications_path = nxt_string("/applications");
-    static nxt_str_t  listeners_path = nxt_string("/listeners");
-    static nxt_str_t  routes_path = nxt_string("/routes");
-    static nxt_str_t  access_log_path = nxt_string("/access_log");
+    static const nxt_str_t  settings_path = nxt_string("/settings");
+    static const nxt_str_t  http_path = nxt_string("/settings/http");
+    static const nxt_str_t  applications_path = nxt_string("/applications");
+    static const nxt_str_t  listeners_path = nxt_string("/listeners");
+    static const nxt_str_t  routes_path = nxt_string("/routes");
+    static const nxt_str_t  access_log_path = nxt_string("/access_log");
 #if (NXT_TLS)
-    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
-    static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
-    static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
-    static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
-    static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
+    static const nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static const nxt_str_t  conf_commands_path =
+                                nxt_string("/tls/conf_commands");
+    static const nxt_str_t  conf_cache_path =
+                                nxt_string("/tls/session/cache_size");
+    static const nxt_str_t  conf_timeout_path =
+                                nxt_string("/tls/session/timeout");
+    static const nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
 #endif
 #if (NXT_HAVE_NJS)
-    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
+    static const nxt_str_t  js_module_path = nxt_string("/settings/js_module");
 #endif
-    static nxt_str_t  static_path = nxt_string("/settings/http/static");
-    static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
-    static nxt_str_t  forwarded_path = nxt_string("/forwarded");
-    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
+    static const nxt_str_t  static_path = nxt_string("/settings/http/static");
+    static const nxt_str_t  websocket_path =
+                                nxt_string("/settings/http/websocket");
+    static const nxt_str_t  forwarded_path = nxt_string("/forwarded");
+    static const nxt_str_t  client_ip_path = nxt_string("/client_ip");
 
     root = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (root == NULL) {
@@ -1661,11 +1681,14 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     rtcf = tmcf->router_conf;
     mp = rtcf->mem_pool;
 
-    ret = nxt_conf_map_object(mp, root, nxt_router_conf,
-                              nxt_nitems(nxt_router_conf), rtcf);
-    if (ret != NXT_OK) {
-        nxt_alert(task, "root map error");
-        return NXT_ERROR;
+    settings = nxt_conf_get_path(root, &settings_path);
+    if (settings != NULL) {
+        ret = nxt_conf_map_object(mp, settings, nxt_router_conf,
+                                  nxt_nitems(nxt_router_conf), rtcf);
+        if (ret != NXT_OK) {
+            nxt_alert(task, "router_conf map error");
+            return NXT_ERROR;
+        }
     }
 
     if (rtcf->threads == 0) {
@@ -1952,12 +1975,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 break;
             }
 
-            skcf = nxt_router_socket_conf(task, tmcf, &name);
-            if (skcf == NULL) {
-                goto fail;
-            }
-
             nxt_memzero(&lscf, sizeof(lscf));
+
+            lscf.backlog = -1;
 
             ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                       nxt_nitems(nxt_router_listener_conf),
@@ -1968,6 +1988,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             }
 
             nxt_debug(task, "application: %V", &lscf.application);
+
+            skcf = nxt_router_socket_conf(task, tmcf, &name, lscf.backlog);
+            if (skcf == NULL) {
+                goto fail;
+            }
 
             // STUB, default values if http block is not defined.
             skcf->header_buffer_size = 2048;
@@ -1988,6 +2013,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->proxy_read_timeout = 30 * 1000;
 
             skcf->server_version = 1;
+            skcf->chunked_transform = 0;
 
             skcf->websocket_conf.max_frame_size = 1024 * 1024;
             skcf->websocket_conf.read_timeout = 60 * 1000;
@@ -2281,7 +2307,7 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_uint_t        exts;
     nxt_conf_value_t  *mtypes_conf, *ext_conf, *value;
 
-    static nxt_str_t  mtypes_path = nxt_string("/mime_types");
+    static const nxt_str_t  mtypes_path = nxt_string("/mime_types");
 
     mp = rtcf->mem_pool;
 
@@ -2358,11 +2384,11 @@ nxt_router_conf_forward(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf)
     nxt_http_forward_t          *forward;
     nxt_http_route_addr_rule_t  *source;
 
-    static nxt_str_t  header_path = nxt_string("/header");
-    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
-    static nxt_str_t  protocol_path = nxt_string("/protocol");
-    static nxt_str_t  source_path = nxt_string("/source");
-    static nxt_str_t  recursive_path = nxt_string("/recursive");
+    static const nxt_str_t  header_path = nxt_string("/header");
+    static const nxt_str_t  client_ip_path = nxt_string("/client_ip");
+    static const nxt_str_t  protocol_path = nxt_string("/protocol");
+    static const nxt_str_t  source_path = nxt_string("/source");
+    static const nxt_str_t  recursive_path = nxt_string("/recursive");
 
     header_conf = nxt_conf_get_path(conf, &header_path);
 
@@ -2671,7 +2697,7 @@ nxt_router_application_init(nxt_router_conf_t *rtcf, nxt_str_t *name,
 
 static nxt_socket_conf_t *
 nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_str_t *name)
+    nxt_str_t *name, int backlog)
 {
     size_t               size;
     nxt_int_t            ret;
@@ -2715,7 +2741,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_listen_socket_remote_size(ls);
 
         ls->socket = -1;
-        ls->backlog = NXT_LISTEN_BACKLOG;
+        ls->backlog = backlog > -1 ? backlog : NXT_LISTEN_BACKLOG;
         ls->flags = NXT_NONBLOCK;
         ls->read_after_accept = 1;
     }
@@ -2862,7 +2888,7 @@ nxt_router_listen_socket_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     nxt_socket_defer_accept(task, s, rpc->socket_conf->listen->sockaddr);
 
-    ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
+    ret = nxt_listen_socket(task, s, rpc->socket_conf->listen->backlog);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }

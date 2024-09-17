@@ -37,12 +37,20 @@ typedef enum {
 } nxt_tstr_flags_t;
 
 
+typedef struct {
+    nxt_tstr_t          *expr;
+    uint8_t             negate;  /* 1 bit */
+} nxt_tstr_cond_t;
+
+
 nxt_tstr_state_t *nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test);
-nxt_tstr_t *nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
+nxt_tstr_t *nxt_tstr_compile(nxt_tstr_state_t *state, const nxt_str_t *str,
     nxt_tstr_flags_t flags);
 nxt_int_t nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error);
 nxt_int_t nxt_tstr_state_done(nxt_tstr_state_t *state, u_char *error);
 void nxt_tstr_state_release(nxt_tstr_state_t *state);
+nxt_int_t nxt_tstr_cond_compile(nxt_tstr_state_t *state, nxt_str_t *str,
+    nxt_tstr_cond_t *cond);
 
 nxt_bool_t nxt_tstr_is_const(nxt_tstr_t *tstr);
 void nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str);
@@ -50,13 +58,8 @@ void nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str);
 nxt_int_t nxt_tstr_query_init(nxt_tstr_query_t **query_p,
     nxt_tstr_state_t *state, nxt_tstr_cache_t *cache, void *ctx,
     nxt_mp_t *mp);
-void nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
-    nxt_str_t *val);
-nxt_bool_t nxt_tstr_query_failed(nxt_tstr_query_t *query);
-void nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query,
-    void *data, nxt_work_handler_t ready, nxt_work_handler_t error);
-void nxt_tstr_query_handle(nxt_task_t *task, nxt_tstr_query_t *query,
-    nxt_bool_t failed);
+nxt_int_t nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query,
+    nxt_tstr_t *tstr, nxt_str_t *val);
 void nxt_tstr_query_release(nxt_tstr_query_t *query);
 
 

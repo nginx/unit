@@ -48,7 +48,7 @@ typedef struct {
 
 typedef struct {
     nxt_int_t            count;
-    nxt_python_target_t  target[0];
+    nxt_python_target_t  target[];
 } nxt_python_targets_t;
 
 

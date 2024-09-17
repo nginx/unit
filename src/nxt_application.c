@@ -32,6 +32,7 @@
 
 typedef struct {
     nxt_app_type_t  type;
+    nxt_str_t       name;
     nxt_str_t       version;
     nxt_str_t       file;
     nxt_array_t     *mounts;
@@ -257,12 +258,14 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
                   module[i].type, &module[i].version, &module[i].file);
 
         size += nxt_length("{\"type\": ,");
+        size += nxt_length(" \"name\": \"\",");
         size += nxt_length(" \"version\": \"\",");
         size += nxt_length(" \"file\": \"\",");
         size += nxt_length(" \"mounts\": []},");
 
         size += NXT_INT_T_LEN
                 + module[i].version.length
+                + module[i].name.length
                 + module[i].file.length;
 
         mounts = module[i].mounts;
@@ -294,9 +297,10 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
     for (i = 0; i < n; i++) {
         mounts = module[i].mounts;
 
-        p = nxt_sprintf(p, end, "{\"type\": %d, \"version\": \"%V\", "
-                        "\"file\": \"%V\", \"mounts\": [",
-                        module[i].type, &module[i].version, &module[i].file);
+        p = nxt_sprintf(p, end, "{\"type\": %d, \"name\": \"%V\", "
+                        "\"version\": \"%V\", \"file\": \"%V\", \"mounts\": [",
+                        module[i].type, &module[i].name, &module[i].version,
+                        &module[i].file);
 
         mnt = mounts->elts;
         for (j = 0; j < mounts->nelts; j++) {
@@ -409,6 +413,11 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
 
         nxt_str_dup(mp, &module->version, &version);
         if (module->version.start == NULL) {
+            goto fail;
+        }
+
+        nxt_str_dup(mp, &module->name, &app->type);
+        if (module->name.start == NULL) {
             goto fail;
         }
 

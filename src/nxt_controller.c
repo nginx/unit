@@ -695,7 +695,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     if (ls->sockaddr->u.sockaddr.sa_family == AF_UNIX) {
         const char *path = ls->sockaddr->u.sockaddr_un.sun_path;
 
-        nxt_fs_mkdir_parent((const u_char *) path, 0755);
+        nxt_fs_mkdir_p_dirname((const u_char *) path, 0755);
     }
 #endif
 
@@ -1908,12 +1908,12 @@ nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 static nxt_bool_t
 nxt_controller_cert_in_use(nxt_str_t *name)
 {
-    uint32_t          next;
+    uint32_t          i, n, next;
     nxt_str_t         str;
-    nxt_conf_value_t  *listeners, *listener, *value;
+    nxt_conf_value_t  *listeners, *listener, *value, *element;
 
-    static nxt_str_t  listeners_path = nxt_string("/listeners");
-    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static const nxt_str_t  listeners_path = nxt_string("/listeners");
+    static const nxt_str_t  certificate_path = nxt_string("/tls/certificate");
 
     listeners = nxt_conf_get_path(nxt_controller_conf.root, &listeners_path);
 
@@ -1931,10 +1931,27 @@ nxt_controller_cert_in_use(nxt_str_t *name)
                 continue;
             }
 
-            nxt_conf_get_string(value, &str);
+            if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+                n = nxt_conf_array_elements_count(value);
 
-            if (nxt_strstr_eq(&str, name)) {
-                return 1;
+                for (i = 0; i < n; i++) {
+                    element = nxt_conf_get_array_element(value, i);
+
+                    nxt_conf_get_string(element, &str);
+
+                    if (nxt_strstr_eq(&str, name)) {
+                        return 1;
+                    }
+                }
+
+            } else {
+                /* NXT_CONF_STRING */
+
+                nxt_conf_get_string(value, &str);
+
+                if (nxt_strstr_eq(&str, name)) {
+                    return 1;
+                }
             }
         }
     }
@@ -2178,7 +2195,7 @@ nxt_controller_script_in_use(nxt_str_t *name)
     nxt_str_t         str;
     nxt_conf_value_t  *js_module, *element;
 
-    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
+    static const nxt_str_t  js_module_path = nxt_string("/settings/js_module");
 
     js_module = nxt_conf_get_path(nxt_controller_conf.root,
                                     &js_module_path);
@@ -2486,13 +2503,13 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
     nxt_conf_value_t        *value, *location;
     nxt_conf_json_pretty_t  pretty;
 
-    static nxt_str_t  success_str = nxt_string("success");
-    static nxt_str_t  error_str = nxt_string("error");
-    static nxt_str_t  detail_str = nxt_string("detail");
-    static nxt_str_t  location_str = nxt_string("location");
-    static nxt_str_t  offset_str = nxt_string("offset");
-    static nxt_str_t  line_str = nxt_string("line");
-    static nxt_str_t  column_str = nxt_string("column");
+    static const nxt_str_t  success_str = nxt_string("success");
+    static const nxt_str_t  error_str = nxt_string("error");
+    static const nxt_str_t  detail_str = nxt_string("detail");
+    static const nxt_str_t  location_str = nxt_string("location");
+    static const nxt_str_t  offset_str = nxt_string("offset");
+    static const nxt_str_t  line_str = nxt_string("line");
+    static const nxt_str_t  column_str = nxt_string("column");
 
     static nxt_time_string_t  date_cache = {
         (nxt_atomic_uint_t) -1,
@@ -2652,11 +2669,12 @@ static u_char *
 nxt_controller_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
-    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
-                                   "Sat" };
+    static const char * const  week[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
+                                          "Fri", "Sat" };
 
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    static const char * const  month[] = { "Jan", "Feb", "Mar", "Apr", "May",
+                                           "Jun", "Jul", "Aug", "Sep", "Oct",
+                                           "Nov", "Dec" };
 
     return nxt_sprintf(buf, buf + size, format,
                        week[tm->tm_wday], tm->tm_mday,

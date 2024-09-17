@@ -1,0 +1,75 @@
+# Copyright (C) NGINX, Inc.
+
+
+if [ -n "$NXT_FUZZ" ]; then
+
+	# Fuzz-Test object files list.
+
+	$echo "NXT_FUZZ_OBJS = \\" >> $NXT_MAKEFILE
+
+	for nxt_src in $NXT_FUZZ_SRCS
+	do
+		nxt_obj=${nxt_src%.c}.o
+		$echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+	done
+
+
+	# Fuzz-Test executables.
+
+	cat << END >> $NXT_MAKEFILE
+
+.PHONY: fuzz
+fuzz:		$NXT_BUILD_DIR/fuzz_basic \\
+			$NXT_BUILD_DIR/fuzz_http_controller \\
+			$NXT_BUILD_DIR/fuzz_http_h1p \\
+			$NXT_BUILD_DIR/fuzz_http_h1p_peer \\
+			$NXT_BUILD_DIR/fuzz_json
+
+$NXT_BUILD_DIR/fuzz_basic: \$(NXT_FUZZ_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/fuzz_basic \\
+		\$(CFLAGS) $NXT_BUILD_DIR/fuzzing/nxt_basic_fuzz.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \\
+		$NXT_FUZZ
+
+$NXT_BUILD_DIR/fuzz_http_controller: \$(NXT_FUZZ_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/fuzz_http_controller \\
+		\$(CFLAGS) $NXT_BUILD_DIR/fuzzing/nxt_http_controller_fuzz.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \\
+		$NXT_FUZZ
+
+$NXT_BUILD_DIR/fuzz_http_h1p: \$(NXT_FUZZ_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/fuzz_http_h1p \\
+		\$(CFLAGS) $NXT_BUILD_DIR/fuzzing/nxt_http_h1p_fuzz.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \\
+		$NXT_FUZZ
+
+$NXT_BUILD_DIR/fuzz_http_h1p_peer: \$(NXT_FUZZ_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/fuzz_http_h1p_peer \\
+		\$(CFLAGS) $NXT_BUILD_DIR/fuzzing/nxt_http_h1p_peer_fuzz.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \\
+		$NXT_FUZZ
+
+$NXT_BUILD_DIR/fuzz_json: \$(NXT_FUZZ_OBJS) \\
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/fuzz_json \\
+		\$(CFLAGS) $NXT_BUILD_DIR/fuzzing/nxt_json_fuzz.o \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \\
+		$NXT_FUZZ
+
+END
+
+fi

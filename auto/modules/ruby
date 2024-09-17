@@ -230,8 +230,9 @@ for nxt_src in $NXT_RUBY_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	mkdir -p $NXT_BUILD_DIR/src/ruby
-	\$(CC) -c \$(CFLAGS) $NXT_RUBY_CFLAGS -DNXT_RUBY_MOUNTS_H=\"$NXT_RUBY_MOUNTS_HEADER\" \\
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/ruby
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_RUBY_CFLAGS -DNXT_RUBY_MOUNTS_H=\"$NXT_RUBY_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_RUBY_INCPATH \\
 	$nxt_dep_flags \\
 	-o \$@ $nxt_src
@@ -254,7 +255,8 @@ all: ${NXT_RUBY_MODULE}
 ${NXT_RUBY_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so
 
 $NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_RUBY_LIBS $NXT_LD_OPT
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_RUBY_LIBS $NXT_LD_OPT
 
 
 install: ${NXT_RUBY_MODULE}-install

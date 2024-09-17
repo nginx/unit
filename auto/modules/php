@@ -244,7 +244,8 @@ for nxt_src in $NXT_PHP_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) $NXT_PHP_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) $NXT_PHP_ADDITIONAL_FLAGS \$(NXT_INCS) \\
 	$NXT_PHP_INCLUDE -DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
@@ -268,7 +269,8 @@ all: ${NXT_PHP_MODULE}
 ${NXT_PHP_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PHP_MODULE}.unit.so
 
 $NXT_BUILD_DIR/lib/unit/modules/${NXT_PHP_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o \$@ \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ \\
 	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS} $NXT_LD_OPT
 
 

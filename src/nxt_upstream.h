@@ -52,7 +52,7 @@ struct nxt_upstream_s {
 
 struct nxt_upstreams_s {
     uint32_t                                   items;
-    nxt_upstream_t                             upstream[0];
+    nxt_upstream_t                             upstream[];
 };
 
 

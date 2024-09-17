@@ -732,6 +732,11 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
         length = p - addr->start;
     }
 
+    if (length == 0) {
+        nxt_thread_log_error(NXT_LOG_ERR, "invalid address \"%V\"", addr);
+        return NULL;
+    }
+
     inaddr = INADDR_ANY;
 
     if (length != 1 || addr->start[0] != '*') {

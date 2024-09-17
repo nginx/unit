@@ -51,7 +51,7 @@ XZ ?= $(error XZ (LZMA) compressor not found)
 endif
 
 ifeq ($(shell sha512sum --version >/dev/null 2>&1 || echo FAIL),)
-SHA512SUM = sha512sum --check
+SHA512SUM = sha512sum -c -
 else ifeq ($(shell shasum --version >/dev/null 2>&1 || echo FAIL),)
 SHA512SUM = shasum -a 512 --check
 else ifeq ($(shell openssl version >/dev/null 2>&1 || echo FAIL),)
@@ -89,10 +89,10 @@ checksum = \
 		(cd $(TARBALLS) && $(1))
 CHECK_SHA512 = $(call checksum,$(SHA512SUM),SHA512,.sum-)
 UNPACK = $(RM) -R $@ \
-	$(foreach f,$(filter %.tar.gz %.tgz,$^), && tar xvzfo $(f)) \
-	$(foreach f,$(filter %.tar.bz2,$^), && tar xvjfo $(f)) \
-	$(foreach f,$(filter %.tar.xz,$^), && tar xvJfo $(f)) \
-	$(foreach f,$(filter %.zip,$^), && unzip $(f))
+	$(foreach f,$(filter %.tar.gz %.tgz,$^), && tar xzfo $(f)) \
+	$(foreach f,$(filter %.tar.bz2,$^), && tar xjfo $(f)) \
+	$(foreach f,$(filter %.tar.xz,$^), && tar xJfo $(f)) \
+	$(foreach f,$(filter %.zip,$^), && unzip -q $(f))
 UNPACK_DIR = $(patsubst %.tar,%,$(basename $(notdir $<)))
 APPLY = (cd $(UNPACK_DIR) && patch -fp1) <
 MOVE = mv $(UNPACK_DIR) $@ && touch $@

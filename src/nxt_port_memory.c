@@ -393,8 +393,7 @@ nxt_shm_open(nxt_task_t *task, size_t size)
 
 #elif (NXT_HAVE_SHM_OPEN_ANON)
 
-    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
-
+    fd = shm_open(SHM_ANON, O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_alert(task, "shm_open(SHM_ANON) failed %E", nxt_errno);
 
@@ -408,8 +407,7 @@ nxt_shm_open(nxt_task_t *task, size_t size)
     /* Just in case. */
     shm_unlink((char *) name);
 
-    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
-
+    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_alert(task, "shm_open(%s) failed %E", name, nxt_errno);
 
@@ -453,6 +451,10 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_mmaps_t *mmaps, nxt_chunk_id_t *c,
     nxt_port_mmap_handler_t  *mmap_handler;
 
     nxt_thread_mutex_lock(&mmaps->mutex);
+
+    if (nxt_slow_path(mmaps->elts == NULL)) {
+        goto end;
+    }
 
     end_port_mmap = mmaps->elts + mmaps->size;
 
@@ -499,6 +501,8 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_mmaps_t *mmaps, nxt_chunk_id_t *c,
     }
 
     /* TODO introduce port_mmap limit and release wait. */
+
+end:
 
     *c = 0;
     mmap_handler = nxt_port_new_port_mmap(task, mmaps, tracking, n);

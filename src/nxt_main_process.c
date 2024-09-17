@@ -1275,13 +1275,11 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
         && sa->u.sockaddr_un.sun_path[0] != '\0')
     {
         char          *filename;
-        mode_t        access;
         nxt_thread_t  *thr;
 
         filename = sa->u.sockaddr_un.sun_path;
-        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-        if (chmod(filename, access) != 0) {
+        if (chmod(filename, 0666) != 0) {
             ls->end = nxt_sprintf(ls->start, ls->end,
                                   "chmod(\\\"%s\\\") failed %E",
                                   filename, nxt_errno);
@@ -1354,6 +1352,12 @@ static nxt_conf_map_t  nxt_app_lang_module_map[] = {
         nxt_string("type"),
         NXT_CONF_MAP_INT,
         offsetof(nxt_app_lang_module_t, type),
+    },
+
+    {
+        nxt_string("name"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_app_lang_module_t, name),
     },
 
     {

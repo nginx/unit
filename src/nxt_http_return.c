@@ -24,8 +24,8 @@ static nxt_http_action_t *nxt_http_return(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
 static nxt_int_t nxt_http_return_encode(nxt_mp_t *mp, nxt_str_t *encoded,
     const nxt_str_t *location);
-static void nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_return_send_error(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_return_send(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_return_ctx_t *ctx);
 
 
 static const nxt_http_request_state_t  nxt_http_return_send_state;
@@ -120,8 +120,6 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
             ctx->encoded = conf->encoded;
         }
 
-        nxt_http_return_send_ready(task, r, ctx);
-
     } else {
         rtcf = r->conf->socket_conf->router_conf;
 
@@ -131,12 +129,14 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
             goto fail;
         }
 
-        nxt_tstr_query(task, r->tstr_query, conf->location, &ctx->location);
-
-        nxt_tstr_query_resolve(task, r->tstr_query, ctx,
-                               nxt_http_return_send_ready,
-                               nxt_http_return_send_error);
+        ret = nxt_tstr_query(task, r->tstr_query, conf->location,
+                             &ctx->location);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
     }
+
+    nxt_http_return_send(task, r, ctx);
 
     return NULL;
 
@@ -174,15 +174,11 @@ nxt_http_return_encode(nxt_mp_t *mp, nxt_str_t *encoded,
 
 
 static void
-nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
+nxt_http_return_send(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_return_ctx_t *ctx)
 {
-    nxt_int_t               ret;
-    nxt_http_field_t        *field;
-    nxt_http_request_t      *r;
-    nxt_http_return_ctx_t   *ctx;
-
-    r = obj;
-    ctx = data;
+    nxt_int_t         ret;
+    nxt_http_field_t  *field;
 
     if (ctx != NULL) {
         if (ctx->location.length > 0) {
@@ -211,17 +207,6 @@ nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
     return;
 
 fail:
-
-    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-}
-
-
-static void
-nxt_http_return_send_error(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_http_request_t  *r;
-
-    r = obj;
 
     nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
 }

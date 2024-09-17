@@ -13,7 +13,7 @@
  * should be allocated by appropriate nxt_buf_XXX_alloc() function.
  *
  * 1) Memory-only buffers, their size is less than nxt_buf_t size, it
- *    is equal to offsetof(nxt_buf_t, file_pos), that is it is nxt_buf_t
+ *    is equal to offsetof(nxt_buf_t, file), that is it is nxt_buf_t
  *    without file and mmap part.  The buffers are frequently used, so
  *    the reduction allows to save 20-32 bytes depending on platform.
  *

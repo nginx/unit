@@ -82,14 +82,21 @@ fi
 $echo " + $NXT_WCM_MODULE module: $NXT_WCM_MOD_NAME"
 
 
-NXT_OS=$(uname -o)
+NXT_OS=$(uname -s)
 
 if [ $NXT_OS = "Darwin" ]; then
-	NXT_CARGO_CMD="cargo rustc --release --manifest-path src/wasm-wasi-component/Cargo.toml -- --emit link=target/release/libwasm_wasi_component.so -C link-args='-undefined dynamic_lookup'"
+    NXT_CARGO_CMD="cargo rustc --release --manifest-path src/wasm-wasi-component/Cargo.toml -- --emit link=target/release/libwasm_wasi_component.so -C link-args='-undefined dynamic_lookup'"
 else
-	NXT_CARGO_CMD="cargo build --release --manifest-path src/wasm-wasi-component/Cargo.toml"
+    NXT_CARGO_CMD="cargo build --release --manifest-path src/wasm-wasi-component/Cargo.toml"
 fi
 
+
+NXT_WCM_DEPS=" \
+    build/src/nxt_unit.o \
+    src/wasm-wasi-component/build.rs \
+    src/wasm-wasi-component/wrapper.h \
+    src/wasm-wasi-component/src/lib.rs \
+"
 
 cat << END >> $NXT_MAKEFILE
 
@@ -101,8 +108,10 @@ all: ${NXT_WCM_MODULE}
 
 ${NXT_WCM_MODULE}:	${NXT_WCM_MOD_CARGO}
 
-${NXT_WCM_MOD_CARGO}: build/src/nxt_unit.o
+${NXT_WCM_MOD_CARGO}: ${NXT_WCM_DEPS}
 	$NXT_CARGO_CMD
+	@install -p $NXT_WCM_MOD_CARGO \\
+		build/lib/unit/modules/${NXT_WCM_MOD_NAME}
 
 install: ${NXT_WCM_MODULE}-install
 

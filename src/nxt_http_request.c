@@ -24,8 +24,6 @@ static void nxt_http_request_proto_info(nxt_task_t *task,
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
-static nxt_int_t nxt_http_request_access_log(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_router_conf_t *rtcf);
 
 static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
@@ -540,14 +538,57 @@ static const nxt_http_request_state_t  nxt_http_request_body_state
 };
 
 
+static nxt_int_t
+nxt_http_request_chunked_transform(nxt_http_request_t *r)
+{
+    size_t            size;
+    u_char            *p, *end;
+    nxt_http_field_t  *f;
+
+    r->chunked_field->skip = 1;
+
+    size = r->body->file_end;
+
+    f = nxt_list_zero_add(r->fields);
+    if (nxt_slow_path(f == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_http_field_name_set(f, "Content-Length");
+
+    p = nxt_mp_nget(r->mem_pool, NXT_OFF_T_LEN);
+    if (nxt_slow_path(p == NULL)) {
+        return NXT_ERROR;
+    }
+
+    f->value = p;
+    end = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%uz", size);
+    f->value_length = end - p;
+
+    r->content_length = f;
+    r->content_length_n = size;
+
+    return NXT_OK;
+}
+
+
 static void
 nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_int_t           ret;
     nxt_http_action_t   *action;
     nxt_http_request_t  *r;
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+    if (r->chunked) {
+        ret = nxt_http_request_chunked_transform(r);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
+    }
 
     nxt_http_request_action(task, r, action);
 }
@@ -818,12 +859,12 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_int_t                ret;
     nxt_http_proto_t         proto;
     nxt_router_conf_t        *rtcf;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;
     nxt_socket_conf_joint_t  *conf;
+    nxt_router_access_log_t  *access_log;
 
     r = obj;
     proto.any = data;
@@ -835,8 +876,10 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
         r->logged = 1;
 
         if (rtcf->access_log != NULL) {
-            ret = nxt_http_request_access_log(task, r, rtcf);
-            if (ret == NXT_OK) {
+            access_log = rtcf->access_log;
+
+            if (nxt_http_cond_value(task, r, &rtcf->log_cond)) {
+                access_log->handler(task, r, access_log, rtcf->log_format);
                 return;
             }
         }
@@ -868,57 +911,6 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static nxt_int_t
-nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_router_conf_t *rtcf)
-{
-    nxt_int_t                ret;
-    nxt_str_t                str;
-    nxt_bool_t               expr;
-    nxt_router_access_log_t  *access_log;
-
-    access_log = rtcf->access_log;
-
-    expr = 1;
-
-    if (rtcf->log_expr != NULL) {
-
-        if (nxt_tstr_is_const(rtcf->log_expr)) {
-            nxt_tstr_str(rtcf->log_expr, &str);
-
-        } else {
-            ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
-                                      &r->tstr_cache, r, r->mem_pool);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_DECLINED;
-            }
-
-            nxt_tstr_query(task, r->tstr_query, rtcf->log_expr, &str);
-
-            if (nxt_slow_path(nxt_tstr_query_failed(r->tstr_query))) {
-                return NXT_DECLINED;
-            }
-        }
-
-        if (str.length == 0
-            || nxt_str_eq(&str, "0", 1)
-            || nxt_str_eq(&str, "false", 5)
-            || nxt_str_eq(&str, "null", 4)
-            || nxt_str_eq(&str, "undefined", 9))
-        {
-            expr = 0;
-        }
-    }
-
-    if (rtcf->log_negate ^ expr) {
-        access_log->handler(task, r, access_log, rtcf->log_format);
-        return NXT_OK;
-    }
-
-    return NXT_DECLINED;
-}
-
-
 static u_char *
 nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
@@ -944,6 +936,10 @@ nxt_http_arguments_parse(nxt_http_request_t *r)
     args = nxt_array_create(r->mem_pool, 2, sizeof(nxt_http_name_value_t));
     if (nxt_slow_path(args == NULL)) {
         return NULL;
+    }
+
+    if (nxt_slow_path(r->args->start == NULL)) {
+        goto end;
     }
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
@@ -1025,6 +1021,8 @@ nxt_http_arguments_parse(nxt_http_request_t *r)
             return NULL;
         }
     }
+
+end:
 
     r->arguments = args;
 
@@ -1315,4 +1313,49 @@ int64_t
 nxt_http_cookie_hash(nxt_mp_t *mp, nxt_str_t *name)
 {
     return nxt_http_field_hash(mp, name, 1, NXT_HTTP_URI_ENCODING_NONE);
+}
+
+
+int
+nxt_http_cond_value(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_tstr_cond_t *cond)
+{
+    nxt_int_t          ret;
+    nxt_str_t          str;
+    nxt_bool_t         expr;
+    nxt_router_conf_t  *rtcf;
+
+    rtcf = r->conf->socket_conf->router_conf;
+
+    expr = 1;
+
+    if (cond->expr != NULL) {
+
+        if (nxt_tstr_is_const(cond->expr)) {
+            nxt_tstr_str(cond->expr, &str);
+
+        } else {
+            ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
+                                      &r->tstr_cache, r, r->mem_pool);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return -1;
+            }
+
+            ret = nxt_tstr_query(task, r->tstr_query, cond->expr, &str);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return -1;
+            }
+        }
+
+        if (str.length == 0
+            || nxt_str_eq(&str, "0", 1)
+            || nxt_str_eq(&str, "false", 5)
+            || nxt_str_eq(&str, "null", 4)
+            || nxt_str_eq(&str, "undefined", 9))
+        {
+            expr = 0;
+        }
+    }
+
+    return cond->negate ^ expr;
 }

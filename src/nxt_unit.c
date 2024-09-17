@@ -1483,9 +1483,9 @@ nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
     pthread_mutex_lock(&lib->mutex);
 
     port = nxt_unit_port_hash_find(&lib->ports, port_id, 0);
-    port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
 
     if (nxt_fast_path(port != NULL)) {
+        port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
         req->response_port = port;
 
         if (nxt_fast_path(port_impl->ready)) {
@@ -1948,9 +1948,9 @@ nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
     nxt_unit_field_t    *fields, f;
     nxt_unit_request_t  *r;
 
-    static nxt_str_t  content_length = nxt_string("content-length");
-    static nxt_str_t  content_type = nxt_string("content-type");
-    static nxt_str_t  cookie = nxt_string("cookie");
+    static const nxt_str_t  content_length = nxt_string("content-length");
+    static const nxt_str_t  content_type = nxt_string("content-type");
+    static const nxt_str_t  cookie = nxt_string("cookie");
 
     nxt_unit_req_debug(req, "group_dup_fields");
 
@@ -3502,6 +3502,10 @@ nxt_unit_mmap_get(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
 
     pthread_mutex_lock(&lib->outgoing.mutex);
 
+    if (nxt_slow_path(lib->outgoing.elts == NULL)) {
+        goto skip;
+    }
+
 retry:
 
     outgoing_size = lib->outgoing.size;
@@ -3597,6 +3601,8 @@ retry:
 
         goto retry;
     }
+
+skip:
 
     *c = 0;
     hdr = nxt_unit_new_mmap(ctx, port, *n);
@@ -3851,7 +3857,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
 
 #elif (NXT_HAVE_SHM_OPEN_ANON)
 
-    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+    fd = shm_open(SHM_ANON, O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_unit_alert(ctx, "shm_open(SHM_ANON) failed: %s (%d)",
                        strerror(errno), errno);
@@ -3864,7 +3870,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
     /* Just in case. */
     shm_unlink(name);
 
-    fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
+    fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR, 0600);
     if (nxt_slow_path(fd == -1)) {
         nxt_unit_alert(ctx, "shm_open(%s) failed: %s (%d)", name,
                        strerror(errno), errno);

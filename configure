@@ -57,6 +57,7 @@ esac
 
 mkdir -p $NXT_BUILD_DIR
 mkdir -p $NXT_BUILD_DIR/bin
+mkdir -p $NXT_BUILD_DIR/fuzzing
 mkdir -p $NXT_BUILD_DIR/include
 mkdir -p $NXT_BUILD_DIR/lib
 mkdir -p $NXT_BUILD_DIR/lib/unit/modules
@@ -67,7 +68,6 @@ mkdir -p $NXT_BUILD_DIR/src
 mkdir -p $NXT_BUILD_DIR/src/test
 mkdir -p $NXT_BUILD_DIR/var/lib/unit
 mkdir -p $NXT_BUILD_DIR/var/log/unit
-mkdir -p $NXT_BUILD_DIR/var/run/unit
 
 
 > $NXT_AUTOCONF_ERR
@@ -135,6 +135,7 @@ fi
 . auto/cgroup
 . auto/isolation
 . auto/capability
+. auto/sched
 
 
 case "$NXT_SYSTEM_PLATFORM" in
@@ -179,4 +180,5 @@ if [ $NXT_NJS != NO ]; then
 fi
 
 . auto/make
+. auto/fuzzing
 . auto/summary

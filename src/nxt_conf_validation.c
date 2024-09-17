@@ -73,11 +73,11 @@ struct nxt_conf_vldt_object_s {
 
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
+    const nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
-static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_str_t *value);
+static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt,
+    const nxt_str_t *name, nxt_str_t *value);
 static nxt_int_t nxt_conf_vldt_if(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
@@ -134,6 +134,8 @@ static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_listen_threads(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
@@ -175,6 +177,8 @@ static nxt_int_t nxt_conf_vldt_response_header(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_listen_backlog(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
@@ -305,6 +309,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
     {
+        .name       = nxt_string("listen_threads"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_listen_threads,
+    }, {
         .name       = nxt_string("http"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
@@ -368,6 +376,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     }, {
         .name       = nxt_string("server_version"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("chunked_transform"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     },
 
     NXT_CONF_VLDT_END
@@ -421,6 +432,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_client_ip_members
+    }, {
+        .name       = nxt_string("backlog"),
+        .type       = NXT_CONF_VLDT_NUMBER,
+        .validator  = nxt_conf_vldt_listen_backlog,
     },
 
 #if (NXT_TLS)
@@ -681,6 +696,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_match_patterns_sets,
         .u.string   = "cookies"
+    }, {
+        .name       = nxt_string("if"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_if,
     },
 
     NXT_CONF_VLDT_END
@@ -839,6 +858,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
         .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "callable",
     }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+        .validator  = nxt_conf_vldt_targets_exclusive,
+        .u.string   = "factory",
+    }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_targets_exclusive,
@@ -863,6 +887,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[] = {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
     }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_python_prefix,
@@ -880,6 +907,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_notargets_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("factory"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     }, {
         .name       = nxt_string("prefix"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -1436,7 +1466,7 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 
 
 static nxt_int_t
-nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
+nxt_conf_vldt_type(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_conf_value_t *value, nxt_conf_vldt_type_t type)
 {
     u_char      *p;
@@ -1445,7 +1475,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_uint_t  value_type, n, t;
     u_char      buf[nxt_length(NXT_CONF_VLDT_ANY_TYPE_STR)];
 
-    static nxt_str_t  type_name[] = {
+    static const nxt_str_t  type_name[] = {
         nxt_string("a null"),
         nxt_string("a boolean"),
         nxt_string("an integer number"),
@@ -1548,7 +1578,7 @@ nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 
 static nxt_int_t
-nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
+nxt_conf_vldt_var(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_str_t *value)
 {
     u_char  error[NXT_MAX_ERROR_STR];
@@ -1568,7 +1598,7 @@ nxt_conf_vldt_if(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     nxt_str_t  str;
 
-    static nxt_str_t  if_str = nxt_string("if");
+    static const nxt_str_t  if_str = nxt_string("if");
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"if\" must be a string");
@@ -1731,7 +1761,7 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_conf_value_t        *action;
     nxt_conf_vldt_object_t  *members;
 
-    static struct {
+    static const struct {
         nxt_str_t               name;
         nxt_conf_vldt_object_t  *members;
 
@@ -1778,7 +1808,7 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t  ret;
     nxt_str_t  segments[3];
 
-    static nxt_str_t  targets_str = nxt_string("targets");
+    static const nxt_str_t  targets_str = nxt_string("targets");
 
     nxt_conf_get_string(value, &pass);
 
@@ -1932,7 +1962,7 @@ nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
 {
     nxt_str_t  str;
 
-    static nxt_str_t  share = nxt_string("share");
+    static const nxt_str_t  share = nxt_string("share");
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"share\" array must "
@@ -1982,7 +2012,7 @@ nxt_conf_vldt_python(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     nxt_conf_value_t  *targets;
 
-    static nxt_str_t  targets_str = nxt_string("targets");
+    static const nxt_str_t  targets_str = nxt_string("targets");
 
     targets = nxt_conf_get_object_member(value, &targets_str, NULL);
 
@@ -2059,6 +2089,27 @@ nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
     if (!nxt_strchr_start(&prefix, '/')) {
         return nxt_conf_vldt_error(vldt, "The \"prefix\" must be a string "
                                    "beginning with \"/\".");
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t
+nxt_conf_vldt_listen_threads(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  threads;
+
+    threads = nxt_conf_get_number(value);
+
+    if (threads < 1) {
+        return nxt_conf_vldt_error(vldt, "The \"listen_threads\" number must "
+                                   "be equal to or greater than 1.");
+    }
+
+    if (threads > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"listen_threads\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
     }
 
     return NXT_OK;
@@ -2572,9 +2623,10 @@ static nxt_int_t
 nxt_conf_vldt_response_header(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
+    nxt_str_t   str;
     nxt_uint_t  type;
 
-    static nxt_str_t  content_length = nxt_string("Content-Length");
+    static const nxt_str_t  content_length = nxt_string("Content-Length");
 
     if (name->length == 0) {
         return nxt_conf_vldt_error(vldt, "The response header name "
@@ -2588,7 +2640,17 @@ nxt_conf_vldt_response_header(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     type = nxt_conf_type(value);
 
-    if (type == NXT_CONF_STRING || type == NXT_CONF_NULL) {
+    if (type == NXT_CONF_NULL) {
+        return NXT_OK;
+    }
+
+    if (type == NXT_CONF_STRING) {
+        nxt_conf_get_string(value, &str);
+
+        if (nxt_is_tstr(&str)) {
+            return nxt_conf_vldt_var(vldt, name, &str);
+        }
+
         return NXT_OK;
     }
 
@@ -2604,7 +2666,7 @@ nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_str_t         name;
     nxt_conf_value_t  *apps, *app;
 
-    static nxt_str_t  apps_str = nxt_string("applications");
+    static const nxt_str_t  apps_str = nxt_string("applications");
 
     nxt_conf_get_string(value, &name);
 
@@ -2636,8 +2698,8 @@ nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     nxt_conf_value_t  *client_ip, *protocol;
 
-    static nxt_str_t  client_ip_str = nxt_string("client_ip");
-    static nxt_str_t  protocol_str = nxt_string("protocol");
+    static const nxt_str_t  client_ip_str = nxt_string("client_ip");
+    static const nxt_str_t  protocol_str = nxt_string("protocol");
 
     client_ip = nxt_conf_get_object_member(value, &client_ip_str, NULL);
     protocol = nxt_conf_get_object_member(value, &protocol_str, NULL);
@@ -2653,6 +2715,32 @@ nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 
 static nxt_int_t
+nxt_conf_vldt_listen_backlog(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  backlog;
+
+    backlog = nxt_conf_get_number(value);
+
+    /*
+     * POSIX allows this to be 0 and some systems use -1 to
+     * indicate to use the OS's default value.
+     */
+    if (backlog < -1) {
+        return nxt_conf_vldt_error(vldt, "The \"backlog\" number must be "
+                                   "equal to or greater than -1.");
+    }
+
+    if (backlog > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"backlog\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
 nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
@@ -2662,9 +2750,9 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t       *type_value;
     nxt_app_lang_module_t  *lang;
 
-    static nxt_str_t  type_str = nxt_string("type");
+    static const nxt_str_t  type_str = nxt_string("type");
 
-    static struct {
+    static const struct {
         nxt_conf_vldt_handler_t  validator;
         nxt_conf_vldt_object_t   *members;
 
@@ -3177,7 +3265,7 @@ nxt_conf_vldt_php(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     nxt_conf_value_t  *targets;
 
-    static nxt_str_t  targets_str = nxt_string("targets");
+    static const nxt_str_t  targets_str = nxt_string("targets");
 
     targets = nxt_conf_get_object_member(value, &targets_str, NULL);
 
@@ -3258,7 +3346,7 @@ nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_int_t         ret;
     nxt_conf_value_t  *conf;
 
-    static nxt_str_t  servers = nxt_string("servers");
+    static const nxt_str_t  servers = nxt_string("servers");
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
 
@@ -3403,7 +3491,7 @@ nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                        ret;
     nxt_conf_vldt_access_log_conf_t  conf;
 
-    static nxt_str_t  format_str = nxt_string("format");
+    static const nxt_str_t  format_str = nxt_string("format");
 
     if (nxt_conf_type(value) == NXT_CONF_STRING) {
         return NXT_OK;

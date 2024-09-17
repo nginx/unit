@@ -2791,6 +2791,72 @@ paths:
         "404":
           $ref: "#/components/responses/responseNotFound"
 
+  /config/listeners/{listenerName}/backlog:
+    summary: "Endpoint for the `listeners/{listenerName}/backlog` option"
+    get:
+      operationId: getListenerBacklog
+      summary: "Retrieve the backlog option in a listener"
+      description: "Retrieves the `backlog` option that configures the
+        listen(2) backlog parameter where the `{listenerName}` listener object
+        [passes its requests](https://unit.nginx.org/configuration/#listeners)."
+
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      responses:
+        "200":
+          description: "OK; the `backlog` option exists in the configuration."
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configListenerBacklog"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateListenerBacklog
+      summary: "Update the backlog option in a listener"
+      description: "Overwrites the `backlog` option."
+      tags:
+        - listeners
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/listenerName"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configListenerBacklog"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
   /config/routes:
     summary: "Endpoint for the `routes` entity in the configuration"
     get:
@@ -2932,6 +2998,87 @@ paths:
       operationId: deleteSettings
       summary: "Delete the settings object"
       description: "Deletes the `settings` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/listen_threads:
+    summary: "Endpoint for the `listen_threads` option in `settings`"
+    get:
+      operationId: getSettingsListenThreads
+      summary: "Retrieve the listen_threads option from settings"
+      description: "Retrieves the `listen_threads` option that represents
+        Unit's [listen threads]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `listen_threads` option exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: integer
+
+              examples:
+                ListenThreads:
+                  value: 16
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsListenThreads
+      summary: "Create or overwrite the listen_threads option"
+      description: "Creates or overwrites the `listen_threads` option in
+        the configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              ListenThreads:
+                value: 30
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsListenThreads
+      summary: "Delete the listen_threads option"
+      description: "Deletes the `listen_threads` option from the
+        configuration."
+
       tags:
         - settings
         - config
@@ -3906,7 +4053,7 @@ paths:
       operationId: getStatus
       summary: "Retrieve the status object"
       description: "Retrieves the entire `/status` section that represents
-        Unit's [usage statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [usage statistics and list of loaded modules](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3924,13 +4071,130 @@ paths:
                 example1:
                   $ref: "#/components/examples/status"
 
+  /status/modules:
+    summary: "Endpoint for the `modules` status object"
+    get:
+      operationId: getStatusModules
+      summary: "Retrieve the modules status object"
+      description: "Retrieves the `modules` status object that represents
+        Unit's [loaded language modules](https://unit.nginx.org/statusapi/)."
+
+      tags:
+        - status
+
+      responses:
+        "200":
+          description: "OK; the `modules` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModules"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModules"
+
+                example2:
+                  $ref: "#/components/examples/statusModulesArray"
+
+  /status/modules/{langMod}:
+    summary: "Endpoint for the loaded language `module` object"
+    get:
+      operationId: getStatusModulesLang
+      summary: "Retrieve the language module object"
+      description: "Retrieves the language `module` object that represents a
+        currently loaded language module."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/langMod"
+
+      responses:
+        "200":
+          description: "OK; the language `module` object exists."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLang"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLang"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/modules/{langMod}/version:
+    summary: "Endpoint for the loaded language module `version` object"
+    get:
+      operationId: getStatusModulesLangVersion
+      summary: "Retrieve the language module version object"
+      description: "Retrieves the language module `version` object that
+        represents the version of a currently loaded language module."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/langMod"
+
+      responses:
+        "200":
+          description: "OK; the language module `version` object exists."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLangVersion"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLangVersion"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /status/modules/{langMod}/lib:
+    summary: "Endpoint for the loaded language module `lib` object"
+    get:
+      operationId: getStatusModulesLangLib
+      summary: "Retrieves the language module lib object"
+      description: "Retrieves the language module `lib` object that represents
+        the file path to the loaded language module."
+
+      tags:
+        - status
+
+      parameters:
+        - $ref: "#/components/parameters/langMod"
+
+      responses:
+        "200":
+          description: "OK; the language module `lib` object exists."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/statusModulesLangLib"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/statusModulesLangLib"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
   /status/connections:
     summary: "Endpoint for the `connections` status object"
     get:
       operationId: getStatusConnections
       summary: "Retrieve the connections status object"
       description: "Retrieves the `connections` status object that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3955,7 +4219,7 @@ paths:
       operationId: getStatusConnectionsAccepted
       summary: "Retrieve the accepted connections number"
       description: "Retrieves the `accepted` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -3979,7 +4243,7 @@ paths:
       operationId: getStatusConnectionsActive
       summary: "Retrieve the active connections number"
       description: "Retrieves the `active` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4003,7 +4267,7 @@ paths:
       operationId: getStatusConnectionsIdle
       summary: "Retrieve the idle connections number"
       description: "Retrieves the `idle` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4026,7 +4290,7 @@ paths:
       operationId: getStatusConnectionsClosed
       summary: "Retrieve the closed connections number"
       description: "Retrieves the `closed` connections number that represents
-        Unit's [connection statistics](https://unit.nginx.org/usagestats/)."
+        Unit's [connection statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4051,7 +4315,7 @@ paths:
       summary: "Retrieve the requests status object"
       description: "Retrieves the `requests` status object that represents
         Unit's instance [request statistics]
-        (https://unit.nginx.org/usagestats/)."
+        (https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4075,7 +4339,7 @@ paths:
       operationId: getStatusRequestsTotal
       summary: "Retrieve the total requests number"
       description: "Retrieves the `total` requests number that represents Unit's
-        instance [request statistics](https://unit.nginx.org/usagestats/)."
+        instance [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4100,7 +4364,7 @@ paths:
       summary: "Retrieve the applications status object"
       description: "Retrieves the `applications` status object that represents
         Unit's per-app
-        [process and request statistics](https://unit.nginx.org/usagestats/)."
+        [process and request statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4125,7 +4389,7 @@ paths:
       summary: "Retrieve the app status object"
       description: "Retrieves the app status object that represents
         Unit's per-app
-        [process and request statistics](https://unit.nginx.org/usagestats/)."
+        [process and request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4156,7 +4420,7 @@ paths:
       summary: "Retrieve the processes app status object"
       description: "Retrieves the `processes` app status object that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
       tags:
         - status
 
@@ -4186,7 +4450,7 @@ paths:
       summary: "Retrieve the running processes app status number"
       description: "Retrieves the `running` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4217,7 +4481,7 @@ paths:
       summary: "Retrieve the starting processes app status number"
       description: "Retrieves the `starting` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4248,7 +4512,7 @@ paths:
       summary: "Retrieve the idle processes app status number"
       description: "Retrieves the `idle` processes number that represents
         Unit's per-app
-        [process statistics](https://unit.nginx.org/usagestats/)."
+        [process statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4278,7 +4542,7 @@ paths:
       summary: "Retrieve the requests app status object"
       description: "Retrieves the `requests` app status object that represents
         Unit's per-app
-        [request statistics](https://unit.nginx.org/usagestats/)."
+        [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4306,7 +4570,7 @@ paths:
       summary: "Retrieve the active requests app status number"
       description: "Retrieves the `active` requests number that represents
         Unit's per-app
-        [request statistics](https://unit.nginx.org/usagestats/)."
+        [request statistics](https://unit.nginx.org/statusapi/)."
 
       tags:
         - status
@@ -4362,6 +4626,14 @@ components:
       in: path
       description: "A certificate bundle's name"
       name: bundleName
+      required: true
+      schema:
+        type: string
+
+    langMod:
+      in: path
+      description: "A language modules name in the modules status."
+      name: langMod
       required: true
       schema:
         type: string
@@ -4730,6 +5002,9 @@ components:
           isolation:
             rootfs: "/www/"
 
+        wasiapp:
+          type: "wasm-wasi-component"
+
     # /config/listeners
     configListeners:
       summary: "Multiple listeners"
@@ -4832,6 +5107,11 @@ components:
     configListenerPassAppTarget:
       summary: "App target destination in a listener"
       value: "applications/php_app/index_target"
+
+    # /config/listeners/listenerName}/backlog
+    configListenerBacklog:
+      summary: "listen(2) backlog in a listener"
+      value: 1024
 
     # /config/listeners/{listenerName}/tls
     configListenerTls:
@@ -4990,6 +5270,10 @@ components:
     status:
       summary: "Regular status object"
       value:
+        modules:
+          php:
+            version: "8.3.4"
+            lib: "/opt/unit/modules/php.unit.so"
         connections:
           accepted: 1067
           active: 13
@@ -5005,6 +5289,45 @@ components:
               idle: 0
             requests:
               active: 15
+
+    # /status/modules
+    statusModules:
+      summary: "Loaded language modules status object"
+      value:
+        php:
+          version: "8.3.4"
+          lib: "/opt/unit/modules/php.unit.so"
+
+    statusModulesArray:
+      summary: "Loaded language modules status array"
+      value:
+        php:
+          version: "8.3.4"
+          lib: "/opt/unit/modules/php.unit.so"
+        python:
+          - { version: "3.12.3", lib: "/opt/unit/modules/python.unit.so" }
+          - { version: "3.11.1", lib: "/opt/unit/modules/python-3.11.1.unit.so" }
+        wasm:
+          version: "0.2"
+          lib: "/opt/unit/modules/wasm.unit.so"
+
+    # /status/modules/{langMod}
+    statusModulesLang:
+      summary: "Object or array of objects of specified language module"
+      value:
+        python:
+          version: "3.12.3"
+          lib: "/opt/unit/modules/python.unit.so"
+
+    # /status/modules/{langMod}/version
+    statusModulesLangVersion:
+      summary: "String describing the version of the language module"
+      value: "3.12.3"
+
+    # /status/modules/{langMod}/lib
+    statusModulesLangLib:
+      summary: "String describing the path to the loaded language module"
+      value: "/opt/unit/modules/python.unit.so"
 
     # /status/connections
     statusConnections:
@@ -5304,6 +5627,8 @@ components:
         - $ref: "#/components/schemas/configApplicationPHP"
         - $ref: "#/components/schemas/configApplicationPython"
         - $ref: "#/components/schemas/configApplicationRuby"
+        - $ref: "#/components/schemas/configApplicationWasm"
+        - $ref: "#/components/schemas/configApplicationWasi"
 
       discriminator:
         propertyName: type
@@ -5314,6 +5639,8 @@ components:
           php: "#/components/schemas/configApplicationPHP"
           python: "#/components/schemas/configApplicationPython"
           ruby: "#/components/schemas/configApplicationRuby"
+          wasm: "#/components/schemas/configApplicationWasm"
+          wasm-wasi-component: "#/components/schemas/configApplicationWasi"
 
     # ABSTRACT BASE SCHEMA, NOT PRESENT IN THE CONFIGURATION; STORES COMMON OPTIONS
     configApplicationCommon:
@@ -5326,7 +5653,7 @@ components:
         type:
           type: string
           description: "Application type and language version."
-          enum: [external, java, perl, php, python, ruby]
+          enum: [external, java, perl, php, python, ruby, wasm, wasm-wasi-component]
 
         environment:
           type: object
@@ -5591,6 +5918,82 @@ components:
               type: integer
               description: "Number of worker threads per app process."
               default: 1
+
+    configApplicationWasm:
+      description: "WASM application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - module
+            - request_handler
+            - malloc_handler
+            - free_handler
+
+          properties:
+            module:
+              type: string
+              description: "Path to WebAssembly module."
+
+            request_handler:
+              type: string
+              description: "Name of request handling function."
+
+            malloc_handler:
+              type: string
+              description: "Name of memory allocator function."
+
+            free_handler:
+              type: string
+              description: "Name of memory free function."
+
+            access:
+              type: object
+              properties:
+                filesystem:
+                  $ref: "#/components/schemas/stringArray"
+                  description:  "Host directories this application may have access to."
+
+            module_init_handler:
+              type: string
+              description: "Name of function called to initialize module."
+
+            module_end_handler:
+              type: string
+              description: "Name of function called to teardown module."
+
+            request_init_handler:
+              type: string
+              description: "Name of function called to initialize request."
+
+            request_end_handler:
+              type: string
+              description: "Name of function called to teardown request."
+
+            response_end_handler:
+              type: string
+              description: "Name of function called to teardown response."
+
+
+    configApplicationWasi:
+      description: "WASI application on Unit."
+      allOf:
+        - $ref: "#/components/schemas/configApplicationCommon"
+        - type: object
+          required:
+            - component
+
+          properties:
+            component:
+              type: string
+              description: "Path to wasm wasi component application."
+
+            access:
+              type: object
+              properties:
+                filesystem:
+                  $ref: "#/components/schemas/stringArray"
+                  description:  "Host directories this application may have access to."
 
     configApplicationPHP:
       description: "PHP application on Unit."
@@ -6236,9 +6639,13 @@ components:
 
     # /status
     status:
-      description: "Represents Unit's usage statistics."
+      description: "Represents Unit's loaded language modules and usage
+        statistics."
       type: object
       properties:
+        modules:
+          $ref: "#/components/schemas/statusModules"
+
         connections:
           $ref: "#/components/schemas/statusConnections"
 
@@ -6247,6 +6654,29 @@ components:
 
         applications:
           $ref: "#/components/schemas/statusApplications"
+
+    # /status/modules
+    statusModules:
+      description: "Lists currently loaded language modules."
+      type: object
+
+    # /status/modules/{langMod}
+    statusModulesLang:
+      description: "Lists currently loaded versions of the specified language
+        module."
+      oneOf:
+        - type: string
+        - type: object
+
+    # /status/modules/{langMod}/version
+    statusModulesLangVersion:
+      description: "Describes the version of the specified language module."
+      type: string
+
+    # /status/modules/{langMod}/lib
+    statusModulesLangLib:
+      description: "Describes the path to the specified language module."
+      type: string
 
     # /status/applications
     statusApplications:
@@ -6372,7 +6802,7 @@ tags:
   - name: status
     description: Everything about the /status section in Unit's control API
     externalDocs:
-      url: https://unit.nginx.org/usagestats/
+      url: https://unit.nginx.org/statusapi/
 
   - name: tls
     description: Everything about SSL/TLS in Unit's control API

@@ -11,10 +11,6 @@ else
 CARGO = $(error Cargo (Rust package manager) not found)
 endif
 
-ifeq ($(shell uname -s),Linux)
-WASMTIME_ARGS=-Clink-arg=-Wl,-soname,libwasmtime.so
-endif
-
 $(TARBALLS)/wasmtime-v$(WASMTIME_VERSION)-src.tar.gz:
 	$(call download_pkg,$(WASMTIME_URL),wasmtime)
 
@@ -25,6 +21,11 @@ wasmtime: wasmtime-v$(WASMTIME_VERSION)-src.tar.gz .sum-wasmtime
 	$(MOVE)
 
 .wasmtime: wasmtime
-	cd $< && $(CARGO) rustc --release -p wasmtime-c-api -- $(WASMTIME_ARGS)
-	cp $</crates/c-api/wasm-c-api/include/wasm.h $</crates/c-api/include/
+	cd $< && cmake \
+				-DCMAKE_INSTALL_LIBDIR=lib \
+				-S crates/c-api \
+				-B target/c-api \
+				--install-prefix "$(TOPSRC)/wasmtime/artifacts"
+	cd $< && cmake --build target/c-api
+	cd $< && cmake --install target/c-api
 	touch $@

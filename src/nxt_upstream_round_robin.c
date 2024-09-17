@@ -23,7 +23,7 @@ struct nxt_upstream_round_robin_server_s {
 
 struct nxt_upstream_round_robin_s {
     uint32_t                           items;
-    nxt_upstream_round_robin_server_t  server[0];
+    nxt_upstream_round_robin_server_t  server[];
 };
 
 
@@ -52,8 +52,8 @@ nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *servers_conf, *srvcf, *wtcf;
     nxt_upstream_round_robin_t  *urr;
 
-    static nxt_str_t  servers = nxt_string("servers");
-    static nxt_str_t  weight = nxt_string("weight");
+    static const nxt_str_t  servers = nxt_string("servers");
+    static const nxt_str_t  weight = nxt_string("weight");
 
     mp = tmcf->router_conf->mem_pool;
 

@@ -2009,3 +2009,75 @@ def test_routes_match_destination_proxy():
     ), 'proxy configure'
 
     assert client.get()['status'] == 200, 'proxy'
+
+
+def set_if(condition):
+    assert 'success' in client.conf(f'"{condition}"', 'routes/0/match/if')
+
+
+def test_routes_match_if():
+
+    def try_if(condition, status):
+        set_if(condition)
+        assert client.get(url=f'/{condition}')['status'] == status
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:8080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"method": "GET"},
+                    "action": {"return": 200},
+                }
+            ],
+            "applications": {},
+        }
+    ), 'routing configure'
+
+    # const
+
+    try_if('', 404)
+    try_if('0', 404)
+    try_if('false', 404)
+    try_if('undefined', 404)
+    try_if('!', 200)
+    try_if('!null', 200)
+    try_if('1', 200)
+
+    # variable
+
+    set_if('$arg_foo')
+    assert client.get(url='/bar?bar')['status'] == 404
+    assert client.get(url='/foo_empty?foo')['status'] == 404
+    assert client.get(url='/foo?foo=1')['status'] == 200
+
+    set_if('!$arg_foo')
+    assert client.get(url='/bar?bar')['status'] == 200
+    assert client.get(url='/foo_empty?foo')['status'] == 200
+    assert client.get(url='/foo?foo=1')['status'] == 404
+
+def test_routes_match_if_njs(require):
+    require({'modules': {'njs': 'any'}})
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:8080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"method": "GET"},
+                    "action": {"return": 200},
+                }
+            ],
+            "applications": {},
+        }
+    )
+
+    set_if('`${args.foo == \'1\'}`')
+    assert client.get(url='/foo_1?foo=1')['status'] == 200
+    assert client.get(url='/foo_2?foo=2')['status'] == 404
+
+    set_if('!`${args.foo == \'1\'}`')
+    assert client.get(url='/foo_1?foo=1')['status'] == 404
+    assert client.get(url='/foo_2?foo=2')['status'] == 200
+
+    assert 'error' in client.conf('$arg_', 'routes/0/match/if')

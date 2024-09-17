@@ -1,0 +1,205 @@
+
+name: unitctl
+
+on:
+  pull_request:
+    paths:
+      - tools/unitctl/**
+      - docs/unit-openapi.yaml
+  push:
+    branches:
+      - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: "Semver tag"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: tools/unitctl
+    env:
+      MAKE: make
+      CARGO: cargo
+      VERSION:
+      SHORT_VERSION:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - build: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: rustup update stable
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Install macOS depedencies
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install make gnu-sed grep gawk
+          echo "MAKE=gmake" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: ${{ env.MAKE }} list-targets
+
+      - name: Generate openapi
+        run: ${{ env.MAKE }} openapi-generate
+      - name: Test ${{ matrix.os }}
+        run: ${{ env.MAKE }} test
+
+  build:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: tools/unitctl
+    env:
+      MAKE: make
+      CARGO: cargo
+      VERSION:
+      SHORT_VERSION:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: linux-aarch64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - build: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - build: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - build: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: rustup update stable
+      - run: rustup target add ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-${{ matrix.build }}
+          workspaces: ./tools/unitctl -> target
+          save-if: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Configure linux arm dependencies
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          cat <<EOF > Cross.toml
+          [target.aarch64-unknown-linux-gnu]
+          pre-build = [
+              "dpkg --add-architecture \$CROSS_DEB_ARCH",
+              "apt-get update && apt-get install --assume-yes libssl-dev:\$CROSS_DEB_ARCH"
+          ]
+          EOF
+
+          cat Cross.toml
+          echo "CARGO=cross" >> $GITHUB_ENV
+
+      - name: Install macOS dependencies
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install make gnu-sed grep gawk
+          echo "MAKE=gmake" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: ${{ env.MAKE }} list-targets
+
+      - name: Make unitctl (${{ env.MAKE }}, ${{ matrix.target }})
+        run: ${{ env.MAKE }} ${{ matrix.target }}
+
+      - name: Get the version from the tag
+        run: |
+          version=${version:=${{ github.ref_name }}}
+          short="${version#*/}"
+          echo $version; echo $short
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "SHORT_VERSION=$short" >> $GITHUB_ENV
+
+      - name: Generate sha256 sum
+        run: |
+          shasum -a 256 ./target/${{ matrix.target }}/release/unitctl > unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}.sha256
+          mv ./target/${{ matrix.target }}/release/unitctl unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}
+
+      - name: Upload sha256 sum
+        uses: actions/upload-artifact@v4
+        with:
+          name: unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}.sha256
+          path: tools/unitctl/unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}.sha256
+
+      - name: Upload unitctl
+        uses: actions/upload-artifact@v4
+        with:
+          name: unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}
+          path: tools/unitctl/unitctl-${{ env.SHORT_VERSION }}-${{ matrix.target }}
+
+  release:
+    # Create a draft release if a tag
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "unitctl-*"
+          prerelease: ${{ github.event_name == 'workflow_dispatch' }}
+          tag: ${{ inputs.version && format('unitctl/{0}', inputs.version) || github.ref_name }}
+          body: >
+            ## Unitctl
+
+            This is a released binary of unitctl.
+
+            Unitctl is an official command line tool for managing Unit installations.
+
+
+            ## Unit
+
+            For the current release of the NGINX Unit application server check the
+            [Unit Installation Guide](https://unit.nginx.org/installation/) and the
+            [Unit Quickstart Guide](https://github.com/nginx/unit/).
+
+          allowUpdates: true

@@ -191,8 +191,9 @@ for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	mkdir -p $NXT_BUILD_DIR/src/python
-	\$(CC) -c \$(CFLAGS) -DNXT_PYTHON_MOUNTS_H=\"$NXT_PYTHON_MOUNTS_HEADER\" \\
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/python
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_PYTHON_MOUNTS_H=\"$NXT_PYTHON_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
@@ -216,7 +217,8 @@ all: ${NXT_PYTHON_MODULE}
 ${NXT_PYTHON_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so
 
 $NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o \$@ \\
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ \\
 	$nxt_objs $NXT_PYTHON_LIBS $NXT_PYTHON_LDFLAGS $NXT_LD_OPT
 
 

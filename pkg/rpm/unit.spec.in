@@ -31,7 +31,6 @@ Release: %%RELEASE%%%{?dist}.ngx
 License: ASL 2.0
 Vendor: %%PACKAGE_VENDOR%%
 URL: https://unit.nginx.org/
-Group: System Environment/Daemons
 
 Source0: unit-%{version}.tar.gz
 Source1: unit.service
@@ -39,7 +38,6 @@ Source2: unit-debug.service
 Source3: unit.example.config
 Source4: unit.logrotate
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires: systemd
 Requires(post):    systemd
 Requires(preun):   systemd
@@ -68,7 +66,6 @@ dynamically via an API.
 Summary: NGINX Unit (development files)
 Version: %%VERSION%%
 Release: %%RELEASE%%%{?dist}.ngx
-Group: Development/Libraries
 Requires: unit == %%VERSION%%-%%RELEASE%%%{?dist}.ngx
 %description devel
 Library and include files required for NGINX Unit modules development.
@@ -106,7 +103,6 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 %endif
 
 %install
-%{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
 DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 %{__mkdir} -p %{buildroot}%{_bindir}
@@ -160,9 +156,6 @@ cd %{bdir}
 grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
 cat /dev/null > debugsources.list
 
-%clean
-%{__rm} -rf %{buildroot}
-
 %post
 getent group unit >/dev/null || groupadd -r unit
 getent passwd unit >/dev/null || \
@@ -213,7 +206,6 @@ More info: https://unit.nginx.org/installation/#official-packages
 BANNER
 
 %files
-%defattr(-,root,root,-)
 %attr(0755,root,root) %{_bindir}/unitc
 %attr(0755,root,root) %{_bindir}/setup-unit
 %attr(0755,root,root) %{_sbindir}/unitd

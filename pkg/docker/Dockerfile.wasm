@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.title="Unit (wasm)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="1.32.1"
+LABEL org.opencontainers.image.version="1.33.0"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
@@ -15,7 +15,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && git clone --depth 1 -b 1.32.1-1 https://github.com/nginx/unit \
+    && git clone --depth 1 -b 1.33.0-1 https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
@@ -46,17 +46,17 @@ RUN set -ex \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
     && apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \
-    && export RUST_VERSION=1.76.0 \
+    && export RUST_VERSION=1.80.1 \
     && export RUSTUP_HOME=/usr/src/unit/rustup \
     && export CARGO_HOME=/usr/src/unit/cargo \
     && export PATH=/usr/src/unit/cargo/bin:$PATH \
     && dpkgArch="$(dpkg --print-architecture)" \
     && case "${dpkgArch##*-}" in \
-       amd64) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="0b2f6c8f85a3d02fde2efc0ced4657869d73fccfce59defb4e8d29233116e6db" ;; \
-       arm64) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="673e336c81c65e6b16dcdede33f4cc9ed0f08bde1dbe7a935f113605292dc800" ;; \
+       amd64) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="6aeece6993e902708983b209d04c0d1dbb14ebb405ddb87def578d41f920f56d" ;; \
+       arm64) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="1cffbf51e63e634c746f741de50649bbbcbd9dbe1de363c9ecef64e278dba2b2" ;; \
        *) echo >&2 "unsupported architecture: ${dpkgArch}"; exit 1 ;; \
     esac \
-    && url="https://static.rust-lang.org/rustup/archive/1.26.0/${rustArch}/rustup-init" \
+    && url="https://static.rust-lang.org/rustup/archive/1.27.1/${rustArch}/rustup-init" \
     && curl -L -O "$url" \
     && echo "${rustupSha256} *rustup-init" | sha256sum -c - \
     && chmod +x rustup-init \

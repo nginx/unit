@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="1.32.1"
+LABEL org.opencontainers.image.version="1.33.0"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
@@ -15,7 +15,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && git clone --depth 1 -b 1.32.1-1 https://github.com/nginx/unit \
+    && git clone --depth 1 -b 1.33.0-1 https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \

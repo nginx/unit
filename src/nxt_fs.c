@@ -1,5 +1,6 @@
 /*
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_main.h>
@@ -9,25 +10,22 @@ static nxt_int_t nxt_fs_mkdir(const u_char *dir, mode_t mode);
 
 
 nxt_int_t
-nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
+nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
 {
-    char    *start, *end, *dst;
-    size_t  dirlen;
-    char    path[PATH_MAX];
+    char       *start, *end, *dst;
+    size_t     dirlen;
+    nxt_int_t  ret;
+    char       path[PATH_MAX];
 
     dirlen = nxt_strlen(dir);
 
-    nxt_assert(dirlen < PATH_MAX && dirlen > 1 && dir[0] == '/');
+    nxt_assert(dirlen < PATH_MAX && dirlen > 0);
 
     dst = path;
     start = (char *) dir;
 
     while (*start != '\0') {
-        if (*start == '/') {
-            *dst++ = *start++;
-        }
-
-        end = strchr(start, '/');
+        end = strchr(start + 1, '/');
         if (end == NULL) {
             end = ((char *)dir + dirlen);
         }
@@ -35,9 +33,8 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
         dst = nxt_cpymem(dst, start, end - start);
         *dst = '\0';
 
-        if (nxt_slow_path(nxt_fs_mkdir((u_char *) path, mode) != NXT_OK
-                          && nxt_errno != EEXIST))
-        {
+        ret = nxt_fs_mkdir((u_char *) path, mode);
+        if (nxt_slow_path(ret != NXT_OK && nxt_errno != EEXIST)) {
             return NXT_ERROR;
         }
 
@@ -49,7 +46,7 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
 
 
 nxt_int_t
-nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
+nxt_fs_mkdir_p_dirname(const u_char *path, mode_t mode)
 {
     char       *ptr, *dir;
     nxt_int_t  ret;
@@ -62,11 +59,14 @@ nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
     ret = NXT_OK;
 
     ptr = strrchr(dir, '/');
-    if (nxt_fast_path(ptr != NULL)) {
-        *ptr = '\0';
-        ret = nxt_fs_mkdir((const u_char *) dir, mode);
+    if (ptr == dir || nxt_slow_path(ptr == NULL)) {
+        goto out_free;
     }
 
+    *ptr = '\0';
+    ret = nxt_fs_mkdir_p((const u_char *) dir, mode);
+
+out_free:
     nxt_free(dir);
 
     return ret;

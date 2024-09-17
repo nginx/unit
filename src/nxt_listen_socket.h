@@ -35,16 +35,16 @@ typedef struct {
 } nxt_listen_socket_t;
 
 
-#if (NXT_FREEBSD || NXT_MACOSX || NXT_OPENBSD)
+#if (NXT_LINUX || NXT_FREEBSD || NXT_MACOSX || NXT_OPENBSD)
 /*
- * A backlog is limited by system-wide sysctl kern.ipc.somaxconn.
- * This is supported by FreeBSD 2.2, OpenBSD 2.0, and MacOSX.
+ * A backlog is limited by system-wide sysctl {net.core,kern.ipc}.somaxconn.
+ * This is supported by Linux, FreeBSD 2.2, OpenBSD 2.0, and MacOSX.
  */
 #define NXT_LISTEN_BACKLOG    -1
 
 #else
 /*
- * Linux, Solaris, and NetBSD treat negative value as 0.
+ * Solaris and NetBSD treat negative value as 0.
  * 511 is a safe default.
  */
 #define NXT_LISTEN_BACKLOG    511

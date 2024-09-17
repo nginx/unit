@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.86
+NXT_TOMCAT_VERSION=9.0.93
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
@@ -284,7 +284,7 @@ static const char *nxt_java_unit_jars[] = {
     "$NXT_UNIT_JAR",
 END
 
-NXT_JAR_VERSION=9.4.54.v20240208
+NXT_JAR_VERSION=9.4.56.v20240826
 NXT_JAR_NAMESPACE=org/eclipse/jetty/
 
 NXT_JAR_NAME=jetty-util
@@ -297,7 +297,7 @@ NXT_JAR_NAME=jetty-http
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=classgraph
-NXT_JAR_VERSION=4.8.165
+NXT_JAR_VERSION=4.8.175
 NXT_JAR_NAMESPACE=io/github/classgraph/
 . auto/modules/java_get_jar
 
@@ -371,8 +371,9 @@ for nxt_src in $NXT_JAVA_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
-	mkdir -p $NXT_BUILD_DIR/src/java
-	\$(CC) -c \$(CFLAGS) -DNXT_JAVA_MOUNTS_H=\"$NXT_JAVA_MOUNTS_HEADER\" \\
+	\$(v)mkdir -p $NXT_BUILD_DIR/src/java
+	\$(PP_CC) \$@
+	\$(v)\$(CC) -c \$(CFLAGS) -DNXT_JAVA_MOUNTS_H=\"$NXT_JAVA_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_JAVA_INCLUDE \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
@@ -525,7 +526,8 @@ ${NXT_JAVA_MODULE}: $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \
     $NXT_BUILD_DIR/$NXT_WS_API_JAR
 
 $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
-	\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_JAVA_LDFLAGS $NXT_LD_OPT
+	\$(PP_LD) \$@
+	\$(v)\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_JAVA_LDFLAGS $NXT_LD_OPT
 
 
 install: ${NXT_JAVA_MODULE}-install

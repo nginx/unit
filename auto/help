@@ -50,9 +50,11 @@ cat << END
 
   --openssl            enable OpenSSL library usage
 
-  --njs                enable NJS library usage
+  --njs                enable njs library usage
 
   --debug              enable debug logging
+
+  --fuzz=ENGINE        enable fuzz testing
 
 
   python OPTIONS       configure Python module

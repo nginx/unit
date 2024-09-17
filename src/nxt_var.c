@@ -30,14 +30,8 @@ struct nxt_var_query_s {
 
     nxt_var_cache_t     cache;
 
-    nxt_uint_t          waiting;
-    nxt_uint_t          failed;   /* 1 bit */
-
     void                *ctx;
     void                *data;
-
-    nxt_work_handler_t  ready;
-    nxt_work_handler_t  error;
 };
 
 
@@ -566,7 +560,7 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     }
 
     if (last != var->length) {
-        p = nxt_cpymem(p, &src[last], var->length - last);
+        nxt_cpymem(p, &src[last], var->length - last);
     }
 
     return NXT_OK;

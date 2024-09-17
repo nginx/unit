@@ -381,9 +381,10 @@ nxt_http_proxy_error(nxt_task_t *task, void *obj, void *data)
     r = obj;
     peer = r->peer;
 
-    nxt_http_proto[peer->protocol].peer_close(task, peer);
-
-    nxt_mp_release(r->mem_pool);
+    if (!peer->closed) {
+        nxt_http_proto[peer->protocol].peer_close(task, peer);
+        nxt_mp_release(r->mem_pool);
+    }
 
     nxt_http_request_error(&r->task, r, peer->status);
 }

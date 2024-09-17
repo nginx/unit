@@ -6,6 +6,7 @@ should be considered experimental.
 
 * [`setup-unit`](#setup-unit)
 * [`unitc`](#unitc)
+* [`unitctl`](#unitctl)
 
 ---
 
@@ -102,5 +103,16 @@ echo '{"http": {"log_route": true}}' | unitc docker://d43251184c54 /settings
 unitc docker://f4f3d9e918e6/root/unit.sock /control/applications/my_app/restart
 UNIT_CTRL=docker://4d0431488982 unitc /status/requests/total
 ```
+
+---
+
+## unitctl
+
+### NGINX Unit Rust SDK and unitctl CLI
+
+This project provides a Rust SDK interface to the
+[NGINX UNIT](https://unit.nginx.org/)
+[control API](https://unit.nginx.org/howto/source/#source-startup)
+and a CLI (`unitctl`) that exposes the functionality provided by the SDK.
 
 ---

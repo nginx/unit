@@ -14,10 +14,24 @@ SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
 
-BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc libssl-dev
+BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc libssl-dev clang llvm
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
+
+# Ubuntu 24.04
+ifeq ($(CODENAME),noble)
+include Makefile.php
+include Makefile.python312
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc21
+include Makefile.wasm
+endif
 
 # Ubuntu 23.10
 ifeq ($(CODENAME),mantic)
@@ -36,38 +50,6 @@ include Makefile.jsc21
 include Makefile.wasm
 endif
 
-# Ubuntu 23.04
-ifeq ($(CODENAME),lunar)
-include Makefile.php
-include Makefile.python311
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.jsc17
-include Makefile.jsc18
-include Makefile.jsc19
-include Makefile.jsc20
-include Makefile.wasm
-endif
-
-# Ubuntu 22.10
-ifeq ($(CODENAME),kinetic)
-include Makefile.php
-include Makefile.python27
-include Makefile.python310
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.jsc17
-include Makefile.jsc18
-include Makefile.jsc19
-include Makefile.wasm
-endif
-
 # Ubuntu 22.04
 ifeq ($(CODENAME),jammy)
 include Makefile.php
@@ -83,23 +65,6 @@ include Makefile.jsc18
 include Makefile.wasm
 endif
 
-# Ubuntu 21.10
-ifeq ($(CODENAME),impish)
-include Makefile.php
-include Makefile.python27
-include Makefile.python39
-include Makefile.python310
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.jsc16
-include Makefile.jsc17
-include Makefile.jsc18
-include Makefile.wasm
-endif
-
 # Ubuntu 20.04
 ifeq ($(CODENAME),focal)
 include Makefile.php
@@ -109,22 +74,6 @@ include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.wasm
-endif
-
-# Ubuntu 18.04
-ifeq ($(CODENAME),bionic)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.python37
-include Makefile.python38
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
 include Makefile.jsc11
 include Makefile.wasm
 endif
@@ -157,19 +106,6 @@ ifeq ($(CODENAME),bullseye)
 include Makefile.php
 include Makefile.python27
 include Makefile.python39
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.wasm
-endif
-
-# Debian 10
-ifeq ($(CODENAME),buster)
-include Makefile.php
-include Makefile.python27
-include Makefile.python37
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
@@ -214,9 +150,12 @@ check-build-depends-%:
 	esac ; \
 	not_installed= ; \
 	for pkg in $${pkgs}; do \
-		dpkg-query -W $${pkg} >/dev/null 2>&1 ; \
-		if [ $$? -ne 0 ]; then \
-			not_installed="$${not_installed} $${pkg}" ; \
+		i=$$(dpkg-query -f '$${db:Status-Status}' -W $${pkg}:$$(dpkg --print-architecture) 2>/dev/null) ; \
+		if [ $$? -ne 0 -o "$${i}" != "installed" ]; then \
+			i=$$(dpkg-query -f '$${db:Status-Status}' -W $${pkg}:all 2>/dev/null) ; \
+			if [ $$? -ne 0 -o "$${i}" != "installed" ]; then \
+				not_installed="$${not_installed} $${pkg}" ; \
+			fi; \
 		fi ; \
 	done ; \
 	if test -n "$${not_installed}" ; then \

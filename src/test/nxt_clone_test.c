@@ -560,9 +560,9 @@ nxt_clone_test_parse_map(nxt_task_t *task, nxt_str_t *map_str,
     nxt_runtime_t     *rt;
     nxt_conf_value_t  *array, *obj, *value;
 
-    static nxt_str_t  host_name = nxt_string("host");
-    static nxt_str_t  cont_name = nxt_string("container");
-    static nxt_str_t  size_name = nxt_string("size");
+    static const nxt_str_t  host_name = nxt_string("host");
+    static const nxt_str_t  cont_name = nxt_string("container");
+    static const nxt_str_t  size_name = nxt_string("size");
 
     rt = task->thread->runtime;
 

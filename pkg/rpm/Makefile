@@ -10,9 +10,7 @@ RELEASE ?= $(DEFAULT_RELEASE)
 
 PACKAGE_VENDOR = NGINX Packaging <nginx-packaging@f5.com>
 
-ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
-OSVER = centos7
-else ifeq ($(shell rpm --eval "%{?rhel}"), 8)
+ifeq ($(shell rpm --eval "%{?rhel}"), 8)
 OSVER = centos8
 else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
@@ -20,19 +18,11 @@ else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2023)
 OSVER = amazonlinux2023
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35 -a 0%{?fedora} -le 36'`; echo $$?),0)
-OSVER = fedora
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37 -a 0%{?fedora} -le 38'`; echo $$?),0)
-OSVER = fedora37
 else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 39'`; echo $$?),0)
 OSVER = fedora39
 endif
 
-BUILD_DEPENDS_unit = gcc rpm-build rpmlint
-
-ifeq ($(OSVER), centos7)
-BUILD_DEPENDS_unit += which
-endif
+BUILD_DEPENDS_unit = gcc rpm-build rpmlint clang llvm
 
 ifneq (,$(findstring $(OSVER),amazonlinux2))
 BUILD_DEPENDS_unit += libxml2 libxslt openssl11-devel
@@ -43,17 +33,6 @@ endif
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
-
-ifeq ($(OSVER), centos7)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.go
-include Makefile.perl
-include Makefile.jsc-common
-include Makefile.jsc8
-include Makefile.jsc11
-endif
 
 ifeq ($(OSVER), centos8)
 include Makefile.php
@@ -99,30 +78,6 @@ include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc17
-include Makefile.wasm
-endif
-
-ifeq ($(OSVER), fedora)
-include Makefile.php
-include Makefile.python310
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
-include Makefile.jsc11
-include Makefile.wasm
-endif
-
-ifeq ($(OSVER), fedora37)
-include Makefile.php
-include Makefile.python311
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
-include Makefile.jsc11
 include Makefile.wasm
 endif
 

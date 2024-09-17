@@ -48,9 +48,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
 
     for (b = in; b != NULL; b = next) {
 
-        hcp->pos = b->mem.pos;
-
-        while (hcp->pos < b->mem.free) {
+        while (b->mem.pos < b->mem.free) {
             /*
              * The sw_chunk state is tested outside the switch
              * to preserve hcp->pos and to not touch memory.
@@ -76,7 +74,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                 /* ret == NXT_HTTP_CHUNK_END */
             }
 
-            ch = *hcp->pos++;
+            ch = *b->mem.pos++;
 
             switch (state) {
 
@@ -203,7 +201,7 @@ nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
     size_t     size;
     nxt_buf_t  *b;
 
-    p = hcp->pos;
+    p = in->mem.pos;
     size = in->mem.free - p;
 
     b = nxt_buf_mem_alloc(hcp->mem_pool, 0, 0);
@@ -224,7 +222,7 @@ nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
 
     if (hcp->chunk_size < size) {
         p += hcp->chunk_size;
-        hcp->pos = p;
+        in->mem.pos = p;
 
         b->mem.free = p;
         b->mem.end = p;

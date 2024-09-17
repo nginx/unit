@@ -90,6 +90,8 @@ static void nxt_h1p_peer_connect(nxt_task_t *task, nxt_http_peer_t *peer);
 static void nxt_h1p_peer_connected(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_refused(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer);
+static nxt_int_t nxt_h1p_peer_request_target(nxt_http_request_t *r,
+    nxt_str_t *target);
 static void nxt_h1p_peer_header_sent(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_header_read(nxt_task_t *task, nxt_http_peer_t *peer);
 static ssize_t nxt_h1p_peer_io_read_handler(nxt_task_t *task, nxt_conn_t *c);
@@ -654,6 +656,8 @@ nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
     r->target.start = h1p->parser.target_start;
     r->target.length = h1p->parser.target_end - h1p->parser.target_start;
 
+    r->quoted_target = h1p->parser.quoted_target;
+
     if (h1p->parser.version.ui64 != 0) {
         r->version.start = h1p->parser.version.str;
         r->version.length = sizeof(h1p->parser.version.str);
@@ -835,7 +839,12 @@ nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field, uintptr_t data)
     if (field->value_length == 7
         && memcmp(field->value, "chunked", 7) == 0)
     {
+        if (r->chunked_field != NULL) {
+            return NXT_HTTP_BAD_REQUEST;
+        }
+
         te = NXT_HTTP_TE_CHUNKED;
+        r->chunked_field = field;
 
     } else {
         te = NXT_HTTP_TE_UNSUPPORTED;
@@ -852,15 +861,16 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 {
     size_t             size, body_length, body_buffer_size, body_rest;
     ssize_t            res;
-    nxt_str_t          *tmp_path, tmp_name;
-    nxt_buf_t          *in, *b;
+    nxt_buf_t          *in, *b, *out, *chunk;
     nxt_conn_t         *c;
     nxt_h1proto_t      *h1p;
+    nxt_socket_conf_t  *skcf;
     nxt_http_status_t  status;
 
     static const nxt_str_t tmp_name_pattern = nxt_string("/req-XXXXXXXX");
 
     h1p = r->proto.h1;
+    skcf = r->conf->socket_conf;
 
     nxt_debug(task, "h1p request body read %O te:%d",
               r->content_length_n, h1p->transfer_encoding);
@@ -868,8 +878,19 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
     switch (h1p->transfer_encoding) {
 
     case NXT_HTTP_TE_CHUNKED:
-        status = NXT_HTTP_LENGTH_REQUIRED;
-        goto error;
+        if (!skcf->chunked_transform) {
+            status = NXT_HTTP_LENGTH_REQUIRED;
+            goto error;
+        }
+
+        if (r->content_length != NULL || !nxt_h1p_is_http11(h1p)) {
+            status = NXT_HTTP_BAD_REQUEST;
+            goto error;
+        }
+
+        r->chunked = 1;
+        h1p->chunked_parse.mem_pool = r->mem_pool;
+        break;
 
     case NXT_HTTP_TE_UNSUPPORTED:
         status = NXT_HTTP_NOT_IMPLEMENTED;
@@ -880,40 +901,31 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         break;
     }
 
-    if (r->content_length_n == -1 || r->content_length_n == 0) {
+    if (!r->chunked &&
+        (r->content_length_n == -1 || r->content_length_n == 0))
+    {
         goto ready;
     }
 
     body_length = (size_t) r->content_length_n;
 
-    body_buffer_size = nxt_min(r->conf->socket_conf->body_buffer_size,
-                               body_length);
+    body_buffer_size = nxt_min(skcf->body_buffer_size, body_length);
 
     if (body_length > body_buffer_size) {
-        tmp_path = &r->conf->socket_conf->body_temp_path;
+        nxt_str_t  *tmp_path, tmp_name;
+
+        tmp_path = &skcf->body_temp_path;
 
         tmp_name.length = tmp_path->length + tmp_name_pattern.length;
 
         b = nxt_buf_file_alloc(r->mem_pool,
                                body_buffer_size + sizeof(nxt_file_t)
                                + tmp_name.length + 1, 0);
+        if (nxt_slow_path(b == NULL)) {
+            status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+            goto error;
+        }
 
-    } else {
-        /* This initialization required for CentOS 6, gcc 4.4.7. */
-        tmp_path = NULL;
-        tmp_name.length = 0;
-
-        b = nxt_buf_mem_alloc(r->mem_pool, body_buffer_size, 0);
-    }
-
-    if (nxt_slow_path(b == NULL)) {
-        status = NXT_HTTP_INTERNAL_SERVER_ERROR;
-        goto error;
-    }
-
-    r->body = b;
-
-    if (body_length > body_buffer_size) {
         tmp_name.start = nxt_pointer_to(b->mem.start, sizeof(nxt_file_t));
 
         memcpy(tmp_name.start, tmp_path->start, tmp_path->length);
@@ -942,33 +954,80 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
                   &tmp_name, b->file->fd);
 
         unlink((char *) tmp_name.start);
+
+    } else {
+        b = nxt_buf_mem_alloc(r->mem_pool, body_buffer_size, 0);
+        if (nxt_slow_path(b == NULL)) {
+            status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+            goto error;
+        }
     }
 
-    body_rest = body_length;
+    r->body = b;
+
+    body_rest = r->chunked ? 1 : body_length;
 
     in = h1p->conn->read;
 
     size = nxt_buf_mem_used_size(&in->mem);
 
     if (size != 0) {
-        size = nxt_min(size, body_length);
-
         if (nxt_buf_is_file(b)) {
-            res = nxt_fd_write(b->file->fd, in->mem.pos, size);
-            if (nxt_slow_path(res < (ssize_t) size)) {
-                status = NXT_HTTP_INTERNAL_SERVER_ERROR;
-                goto error;
-            }
+            if (r->chunked) {
+                out = nxt_http_chunk_parse(task, &h1p->chunked_parse, in);
 
-            b->file_end += size;
+                if (h1p->chunked_parse.error) {
+                    status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+                    goto error;
+                }
+
+                if (h1p->chunked_parse.chunk_error) {
+                    status = NXT_HTTP_BAD_REQUEST;
+                    goto error;
+                }
+
+                for (chunk = out; chunk != NULL; chunk = chunk->next) {
+                    size = nxt_buf_mem_used_size(&chunk->mem);
+
+                    res = nxt_fd_write(b->file->fd, chunk->mem.pos, size);
+                    if (nxt_slow_path(res < (ssize_t) size)) {
+                        status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+                        goto error;
+                    }
+
+                    b->file_end += size;
+
+                    if ((size_t) b->file_end > skcf->max_body_size) {
+                        status = NXT_HTTP_PAYLOAD_TOO_LARGE;
+                        goto error;
+                    }
+                }
+
+                if (h1p->chunked_parse.last) {
+                    body_rest = 0;
+                }
+
+            } else {
+                size = nxt_min(size, body_length);
+                res = nxt_fd_write(b->file->fd, in->mem.pos, size);
+                if (nxt_slow_path(res < (ssize_t) size)) {
+                    status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+                    goto error;
+                }
+
+                b->file_end += size;
+
+                in->mem.pos += size;
+                body_rest -= size;
+            }
 
         } else {
             size = nxt_min(body_buffer_size, size);
             b->mem.free = nxt_cpymem(b->mem.free, in->mem.pos, size);
-        }
 
-        in->mem.pos += size;
-        body_rest -= size;
+            in->mem.pos += size;
+            body_rest -= size;
+        }
     }
 
     nxt_debug(task, "h1p body rest: %uz", body_rest);
@@ -1026,9 +1085,10 @@ nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj, void *data)
 {
     size_t              size, body_rest;
     ssize_t             res;
-    nxt_buf_t           *b;
+    nxt_buf_t           *b, *out, *chunk;
     nxt_conn_t          *c;
     nxt_h1proto_t       *h1p;
+    nxt_socket_conf_t   *skcf;
     nxt_http_request_t  *r;
     nxt_event_engine_t  *engine;
 
@@ -1038,38 +1098,77 @@ nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request body read");
 
     r = h1p->request;
+    skcf = r->conf->socket_conf;
 
     engine = task->thread->engine;
 
     b = c->read;
 
     if (nxt_buf_is_file(b)) {
-        body_rest = b->file->size - b->file_end;
 
-        size = nxt_buf_mem_used_size(&b->mem);
-        size = nxt_min(size, body_rest);
+        if (r->chunked) {
+            body_rest = 1;
 
-        res = nxt_fd_write(b->file->fd, b->mem.pos, size);
-        if (nxt_slow_path(res < (ssize_t) size)) {
-            nxt_h1p_request_error(task, h1p, r);
-            return;
-        }
+            out = nxt_http_chunk_parse(task, &h1p->chunked_parse, b);
 
-        b->file_end += size;
-        body_rest -= res;
-
-        b->mem.pos += size;
-
-        if (b->mem.pos == b->mem.free) {
-            if (body_rest >= (size_t) nxt_buf_mem_size(&b->mem)) {
-                b->mem.free = b->mem.start;
-
-            } else {
-                /* This required to avoid reading next request. */
-                b->mem.free = b->mem.end - body_rest;
+            if (h1p->chunked_parse.error) {
+                nxt_h1p_request_error(task, h1p, r);
+                return;
             }
 
-            b->mem.pos = b->mem.free;
+            if (h1p->chunked_parse.chunk_error) {
+                nxt_http_request_error(task, r, NXT_HTTP_BAD_REQUEST);
+                return;
+            }
+
+            for (chunk = out; chunk != NULL; chunk = chunk->next) {
+                size = nxt_buf_mem_used_size(&chunk->mem);
+                res = nxt_fd_write(b->file->fd, chunk->mem.pos, size);
+                if (nxt_slow_path(res < (ssize_t) size)) {
+                    nxt_h1p_request_error(task, h1p, r);
+                    return;
+                }
+
+                b->file_end += size;
+
+                if ((size_t) b->file_end > skcf->max_body_size) {
+                    nxt_h1p_request_error(task, h1p, r);
+                    return;
+                }
+            }
+
+            if (h1p->chunked_parse.last) {
+                body_rest = 0;
+            }
+
+        } else {
+            body_rest = b->file->size - b->file_end;
+
+            size = nxt_buf_mem_used_size(&b->mem);
+            size = nxt_min(size, body_rest);
+
+            res = nxt_fd_write(b->file->fd, b->mem.pos, size);
+            if (nxt_slow_path(res < (ssize_t) size)) {
+                nxt_h1p_request_error(task, h1p, r);
+                return;
+            }
+
+            b->file_end += size;
+            body_rest -= res;
+
+            b->mem.pos += size;
+
+            if (b->mem.pos == b->mem.free) {
+                if (body_rest >= (size_t) nxt_buf_mem_size(&b->mem)) {
+                    b->mem.free = b->mem.start;
+
+                } else {
+                    /* This required to avoid reading next request. */
+                    b->mem.free = b->mem.end - body_rest;
+                }
+
+                b->mem.pos = b->mem.free;
+            }
         }
 
     } else {
@@ -2263,6 +2362,8 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 {
     u_char              *p;
     size_t              size;
+    nxt_int_t           ret;
+    nxt_str_t           target;
     nxt_buf_t           *header, *body;
     nxt_conn_t          *c;
     nxt_http_field_t    *field;
@@ -2272,7 +2373,12 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 
     r = peer->request;
 
-    size = r->method->length + sizeof(" ") + r->target.length
+    ret = nxt_h1p_peer_request_target(r, &target);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    size = r->method->length + sizeof(" ") + target.length
            + sizeof(" HTTP/1.1\r\n")
            + sizeof("Connection: close\r\n")
            + sizeof("\r\n");
@@ -2288,15 +2394,14 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 
     header = nxt_http_buf_mem(task, r, size);
     if (nxt_slow_path(header == NULL)) {
-        r->state->error_handler(task, r, peer);
-        return;
+        goto fail;
     }
 
     p = header->mem.free;
 
     p = nxt_cpymem(p, r->method->start, r->method->length);
     *p++ = ' ';
-    p = nxt_cpymem(p, r->target.start, r->target.length);
+    p = nxt_cpymem(p, target.start, target.length);
     p = nxt_cpymem(p, " HTTP/1.1\r\n", 11);
     p = nxt_cpymem(p, "Connection: close\r\n", 19);
 
@@ -2328,8 +2433,7 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
         }
 
         if (nxt_slow_path(body == NULL)) {
-            r->state->error_handler(task, r, peer);
-            return;
+            goto fail;
         }
 
         header->next = body;
@@ -2353,6 +2457,61 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
     }
 
     nxt_conn_write(task->thread->engine, c);
+
+    return;
+
+fail:
+
+    r->state->error_handler(task, r, peer);
+}
+
+
+static nxt_int_t
+nxt_h1p_peer_request_target(nxt_http_request_t *r, nxt_str_t *target)
+{
+    u_char  *p;
+    size_t  size, encode;
+
+    if (!r->uri_changed) {
+        *target = r->target;
+        return NXT_OK;
+    }
+
+    if (!r->quoted_target && r->args->length == 0) {
+        *target = *r->path;
+        return NXT_OK;
+    }
+
+    if (r->quoted_target) {
+        encode = nxt_encode_complex_uri(NULL, r->path->start,
+                                        r->path->length);
+    } else {
+        encode = 0;
+    }
+
+    size = r->path->length + encode * 2 + 1 + r->args->length;
+
+    target->start = nxt_mp_nget(r->mem_pool, size);
+    if (target->start == NULL) {
+        return NXT_ERROR;
+    }
+
+    if (r->quoted_target) {
+        p = (u_char *) nxt_encode_complex_uri(target->start, r->path->start,
+                                              r->path->length);
+
+    } else {
+        p = nxt_cpymem(target->start, r->path->start, r->path->length);
+    }
+
+    if (r->args->length > 0) {
+        *p++ = '?';
+        p = nxt_cpymem(p, r->args->start, r->args->length);
+    }
+
+    target->length = p - target->start;
+
+    return NXT_OK;
 }
 
 
@@ -2710,6 +2869,11 @@ nxt_h1p_peer_body_process(nxt_task_t *task, nxt_http_peer_t *peer,
     } else if (h1p->remainder > 0) {
         length = nxt_buf_chain_length(out);
         h1p->remainder -= length;
+
+        if (h1p->remainder == 0) {
+            nxt_buf_chain_add(&out, nxt_http_buf_last(peer->request));
+            peer->closed = 1;
+        }
     }
 
     peer->body = out;

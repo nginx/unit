@@ -157,6 +157,7 @@ struct nxt_http_request_s {
     nxt_list_t                      *fields;
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
+    nxt_http_field_t                *chunked_field;
     nxt_http_field_t                *cookie;
     nxt_http_field_t                *referer;
     nxt_http_field_t                *user_agent;
@@ -192,6 +193,8 @@ struct nxt_http_request_s {
     nxt_http_status_t               status:16;
 
     uint8_t                         log_route;    /* 1 bit */
+    uint8_t                         quoted_target;  /* 1 bit */
+    uint8_t                         uri_changed;  /* 1 bit */
 
     uint8_t                         pass_count;   /* 8 bits */
     uint8_t                         app_target;
@@ -202,6 +205,7 @@ struct nxt_http_request_s {
     uint8_t                         inconsistent; /* 1 bit  */
     uint8_t                         error;        /* 1 bit  */
     uint8_t                         websocket_handshake;  /* 1 bit */
+    uint8_t                         chunked;  /* 1 bit */
 };
 
 
@@ -303,11 +307,12 @@ struct nxt_http_forward_s {
 nxt_inline u_char *
 nxt_http_date(u_char *buf, struct tm *tm)
 {
-    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
-                                   "Sat" };
+    static const char * const  week[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
+                                          "Fri", "Sat" };
 
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    static const char * const  month[] = { "Jan", "Feb", "Mar", "Apr", "May",
+                                           "Jun", "Jul", "Aug", "Sep", "Oct",
+                                           "Nov", "Dec" };
 
     return nxt_sprintf(buf, buf + NXT_HTTP_DATE_LEN,
                        "%s, %02d %s %4d %02d:%02d:%02d GMT",
@@ -435,6 +440,9 @@ void nxt_h1p_websocket_frame_start(nxt_task_t *task, nxt_http_request_t *r,
 void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p,
     nxt_bool_t all);
 nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
+
+int nxt_http_cond_value(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_tstr_cond_t *cond);
 
 extern const nxt_conn_state_t  nxt_h1p_idle_close_state;
 
