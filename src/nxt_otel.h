@@ -33,8 +33,8 @@ nxt_int_t nxt_otel_validate_protocol(nxt_conf_validation_t *, nxt_conf_value_t *
  * more efficient than a single handler state struct
  */
 typedef enum {
-    // 0 = uninitialized and/or unset status
-    NXT_OTEL_INIT_STATE = 1,
+    NXT_OTEL_UNINIT_STATE = 0,
+    NXT_OTEL_INIT_STATE,
     NXT_OTEL_HEADER_STATE,
     NXT_OTEL_BODY_STATE,
     NXT_OTEL_COLLECT_STATE,

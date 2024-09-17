@@ -286,7 +286,7 @@ nxt_http_request_create(nxt_task_t *task)
 #if (NXT_HAVE_OTEL)
     if (nxt_otel_is_init()) {
         r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
-        if (!r->otel) {
+        if (r->otel == NULL) {
             goto fail;
         }
         r->otel->status = NXT_OTEL_INIT_STATE;

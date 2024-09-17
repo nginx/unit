@@ -311,19 +311,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 #if (NXT_HAVE_OTEL)
 static nxt_conf_vldt_object_t nxt_conf_vldt_otel_members[] = {
     {
-      .name = nxt_string("endpoint"),
-      .type = NXT_CONF_VLDT_STRING,
-      .validator = nxt_otel_validate_endpoint,
-      .flags      = NXT_CONF_VLDT_REQUIRED
+        .name      = nxt_string("endpoint"),
+        .type      = NXT_CONF_VLDT_STRING,
+        .validator = nxt_otel_validate_endpoint,
+        .flags     = NXT_CONF_VLDT_REQUIRED
     }, {
-      .name = nxt_string("batch_size"),
-      .type = NXT_CONF_VLDT_INTEGER,
-      .validator = nxt_otel_validate_batch_size,
+        .name      = nxt_string("batch_size"),
+        .type      = NXT_CONF_VLDT_INTEGER,
+        .validator = nxt_otel_validate_batch_size,
     }, {
-      .name = nxt_string("protocol"),
-      .type = NXT_CONF_VLDT_STRING,
-      .validator = nxt_otel_validate_protocol,
-      .flags      = NXT_CONF_VLDT_REQUIRED
+        .name      = nxt_string("protocol"),
+        .type      = NXT_CONF_VLDT_STRING,
+        .validator = nxt_otel_validate_protocol,
+        .flags     = NXT_CONF_VLDT_REQUIRED
     },
 
     NXT_CONF_VLDT_END
@@ -355,7 +355,6 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
         .validator  = nxt_conf_vldt_js_module,
 #endif
     },
-
 
     NXT_CONF_VLDT_END
 };
@@ -914,7 +913,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[] = {
     {
         .name       = nxt_string("module"),
         .type       = NXT_CONF_VLDT_STRING,
-        .flags      = NXT_CONF_VLDT_REQUIRED
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
