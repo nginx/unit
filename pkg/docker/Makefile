@@ -163,7 +163,7 @@ library:
 			fi; \
 		fi; \
 		echo "Architectures: amd64, arm64v8"; \
-		echo "GitFetch: refs/heads/branches/packaging"; \
+		echo "GitFetch: refs/heads/packaging"; \
 		echo "GitCommit: $(shell git describe --always --abbrev=0 HEAD)"; \
 		echo "Directory: pkg/docker"; \
 		echo "File: Dockerfile.$$mod"; \
