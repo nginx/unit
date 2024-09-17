@@ -45,7 +45,7 @@ RUN set -ex \
     && make -j $NCPU unitd \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
-    && apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \
+    && apt-get install --no-install-recommends --no-install-suggests -y libclang-dev cmake \
     && export RUST_VERSION=1.80.1 \
     && export RUSTUP_HOME=/usr/src/unit/rustup \
     && export CARGO_HOME=/usr/src/unit/cargo \
@@ -66,13 +66,13 @@ RUN set -ex \
     && cargo --version \
     && rustc --version \
     && make -C pkg/contrib .wasmtime \
-    && install -pm 755 pkg/contrib/wasmtime/target/release/libwasmtime.so /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \
+    && install -pm 755 pkg/contrib/wasmtime/artifacts/lib/libwasmtime.so /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure wasm --include-path=`pwd`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ && ./configure wasm-wasi-component \
+    && ./configure wasm --include-path=`pwd`/pkg/contrib/wasmtime/artifacts/include --lib-path=/usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ && ./configure wasm-wasi-component \
     && make -j $NCPU wasm-install wasm-wasi-component-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure wasm --include-path=`pwd`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ && ./configure wasm-wasi-component \
+    && ./configure wasm --include-path=`pwd`/pkg/contrib/wasmtime/artifacts/include --lib-path=/usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ && ./configure wasm-wasi-component \
     && make -j $NCPU wasm-install wasm-wasi-component-install \
     && cd \
     && rm -rf /usr/src/unit \

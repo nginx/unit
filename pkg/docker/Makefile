@@ -79,12 +79,12 @@ MODULE_PREBUILD_ruby ?=	/bin/true
 
 VERSIONS_wasm ?=
 CONTAINER_wasm ?= debian:$(VARIANT)-slim
-CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
+CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/artifacts/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
 INSTALL_wasm ?=   wasm-install wasm-wasi-component-install
 RUN_wasm ?=       /bin/true
 
 define MODULE_PREBUILD_wasm
-apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
+apt-get install --no-install-recommends --no-install-suggests -y libclang-dev cmake \\\n \
 \ \ \ \&\& export RUST_VERSION=1.80.1 \\\n \
 \ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
 \ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
@@ -105,7 +105,7 @@ apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\
 \ \ \ \&\& cargo --version \\\n \
 \ \ \ \&\& rustc --version \\\n \
 \ \ \ \&\& make -C pkg/contrib .wasmtime \\\n \
-\ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/target/release/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
+\ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/artifacts/lib/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
 endef
 
 default:
