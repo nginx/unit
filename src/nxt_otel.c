@@ -3,6 +3,7 @@
  * Copyright (C) F5, Inc.
  */
 
+#include "nxt_clang.h"
 #include <math.h>
 
 #include <nxt_router.h>
@@ -22,7 +23,7 @@
 #define NXT_OTEL_PATH_TAG "path"
 
 
-static inline void
+nxt_inline void
 nxt_otel_state_transition(nxt_otel_state_t *state, nxt_otel_status_t status)
 {
     if (status == NXT_OTEL_ERROR_STATE || state->status != NXT_OTEL_ERROR_STATE) {
@@ -31,7 +32,7 @@ nxt_otel_state_transition(nxt_otel_state_t *state, nxt_otel_status_t status)
 }
 
 
-static inline void
+nxt_inline void
 nxt_otel_trace_and_span_init(nxt_task_t *t, nxt_http_request_t *r)
 {
     r->otel->trace =
@@ -132,6 +133,7 @@ nxt_otel_span_add_headers(nxt_task_t *t, nxt_http_request_t *r)
     if (f == NULL) {
         nxt_log(t, NXT_LOG_ERR,
                 "couldnt allocate traceparent header in response");
+        goto next;
     }
 
     nxt_http_field_name_set(f, "traceparent");
@@ -183,7 +185,7 @@ nxt_otel_send_trace_and_span_data(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static inline void
+nxt_inline void
 nxt_otel_span_collect(nxt_task_t *t, nxt_http_request_t *r)
 {
     nxt_log(t, NXT_LOG_DEBUG, "collecting span by adding the task to the fast work queue");

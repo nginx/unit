@@ -154,6 +154,7 @@ typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr, nxt_conn_t *c);
 #include <nxt_runtime.h>
 #include <nxt_port_hash.h>
 
+
 /*
  * The envp argument must be &environ if application may
  * change its process title with nxt_process_title().
