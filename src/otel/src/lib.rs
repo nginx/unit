@@ -16,6 +16,9 @@ use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 
+const TRACEPARENT_HEADER_LEN: u8 = 55;
+
+
 // Stored sender channel to send spans or a shutdown message to within the
 // Tokio runtime.
 unsafe fn span_tx(destruct: bool) -> *const OnceLock<Sender<SpanMessage>> {
@@ -193,15 +196,15 @@ pub unsafe fn nxt_otel_copy_traceparent(buf: *mut i8, span: *const BoxedSpan) {
         (*span).span_context().trace_flags()  // 1 char, 2 hex
     );
 
-    assert_eq!(traceparent.len(), 55);
+    assert_eq!(traceparent.len(), TRACEPARENT_HEADER_LEN);
 
     ptr::copy_nonoverlapping(
         traceparent.as_bytes().as_ptr(),
         buf as _,
-        55,
+        TRACEPARENT_HEADER_LEN,
     );
     // set null terminator
-    *buf.add(55) = b'\0' as _;
+    *buf.add(TRACEPARENT_HEADER_LEN) = b'\0' as _;
 }
 
 #[no_mangle]

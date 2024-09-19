@@ -241,6 +241,18 @@ static nxt_int_t nxt_conf_vldt_js_module_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 #endif
 
+#if (NXT_HAVE_OTEL)
+nxt_inline nxt_int_t nxt_otel_validate_endpoint(nxt_conf_validation_t *vldt,
+                                                nxt_conf_value_t *value,
+                                                void *data);
+nxt_int_t nxt_otel_validate_batch_size(nxt_conf_validation_t *vldt,
+                                       nxt_conf_value_t *value,
+                                       void *data);
+nxt_int_t nxt_otel_validate_protocol(nxt_conf_validation_t *vldt,
+                                     nxt_conf_value_t *value,
+                                     void *data);
+#endif
+
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
@@ -1494,6 +1506,59 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 #define NXT_CONF_VLDT_ANY_TYPE_STR                                            \
     "either a null, a boolean, an integer, "                                  \
     "a number, a string, an array, or an object"
+
+
+
+#if (NXT_HAVE_OTEL)
+inline nxt_int_t
+nxt_otel_validate_endpoint(nxt_conf_validation_t *vldt,
+                           nxt_conf_value_t *value,
+                           void *data)
+{
+    // This function is a stub for now
+    return NXT_OK;
+}
+
+
+nxt_int_t
+nxt_otel_validate_batch_size(nxt_conf_validation_t *vldt,
+                             nxt_conf_value_t *value,
+                             void *data)
+{
+    double batch_size;
+    batch_size = nxt_conf_get_number(value);
+    if (batch_size <= 0) {
+      return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+nxt_int_t
+nxt_otel_validate_protocol(nxt_conf_validation_t *vldt,
+                           nxt_conf_value_t *value,
+                           void *data)
+{
+    nxt_str_t proto;
+
+    nxt_conf_get_string(value, &proto);
+    if (nxt_str_eq(&proto, "HTTP", 4) ||
+        nxt_str_eq(&proto, "http", 4)) {
+          goto happy;
+    }
+
+    if (nxt_str_eq(&proto, "GRPC", 4) ||
+        nxt_str_eq(&proto, "grpc", 4)) {
+        goto happy;
+    }
+
+    return NXT_ERROR;
+
+ happy:
+    return NXT_OK;
+}
+#endif
 
 
 static nxt_int_t

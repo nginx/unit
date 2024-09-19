@@ -8,8 +8,10 @@
 #define _NXT_HTTP_H_INCLUDED_
 
 #include <nxt_regex.h>
-#include <nxt_otel.h>
 
+#if (NXT_HAVE_OTEL)
+#include <nxt_otel.h>
+#endif
 
 typedef enum {
     NXT_HTTP_UNSET = -1,
