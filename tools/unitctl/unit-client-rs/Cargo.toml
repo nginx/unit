@@ -15,7 +15,7 @@ default = ["serde_json/preserve_order"]
 [dependencies]
 custom_error = "1.9"
 hyper = { version = "0.14", features = ["stream"] }
-hyper-tls = "0.5"
+hyper-rustls = { version = "0.25.0", features = ["rustls-native-certs", "webpki-roots"] }
 hyperlocal = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
