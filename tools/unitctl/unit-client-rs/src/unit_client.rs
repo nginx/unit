@@ -191,7 +191,7 @@ impl UnitClient {
                    .unwrap_or_else(|_| HttpsConnectorBuilder::default()
                                    .with_webpki_roots())
                    .https_or_http()
-                   .enable_http1()
+                   .enable_all_versions()
                    .wrap_connector(HttpConnector::new()));
         Self {
             control_socket,
