@@ -1,7 +1,6 @@
 extern crate custom_error;
 extern crate futures;
 extern crate hyper;
-extern crate hyper_tls;
 extern crate hyperlocal;
 extern crate serde;
 extern crate serde_json;
