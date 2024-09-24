@@ -370,18 +370,14 @@ nxt_process_pipe_timer(nxt_fd_t fd, short event)
 static nxt_int_t
 nxt_process_check_pid_status(const nxt_fd_t *gc_pipe)
 {
-    int8_t   status;
+    int8_t   status = -1;
     ssize_t  ret;
 
     close(gc_pipe[1]);
 
     ret = nxt_process_pipe_timer(gc_pipe[0], POLLIN);
     if (ret == NXT_OK) {
-        ret = read(gc_pipe[0], &status, sizeof(int8_t));
-    }
-
-    if (ret <= 0) {
-        status = -1;
+        read(gc_pipe[0], &status, sizeof(int8_t));
     }
 
     close(gc_pipe[0]);
