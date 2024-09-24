@@ -23,6 +23,7 @@ static const nxt_term_parse_test_t  terms[] = {
     { nxt_string("1w  d"),                 0,  -1 },
     { nxt_string("w"),                     0,  -1 },
     { nxt_string("1d 1w"),                 0,  -1 },
+    { nxt_string("1 "),                    1,   1 },
     { nxt_string("25d"),                   0,  -2 },
     { nxt_string("300"),                   1,  300 },
     { nxt_string("300"),                   0,  300000 },
