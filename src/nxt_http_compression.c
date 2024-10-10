@@ -167,6 +167,79 @@ nxt_http_comp_bound(size_t size)
 
 
 nxt_int_t
+nxt_http_comp_compress_app_response(nxt_http_request_t *r, nxt_buf_t **b)
+{
+    bool                 last;
+    size_t               buf_len, in_len;
+    ssize_t              cbytes;
+//    uint8_t              *buf;
+//    nxt_buf_t            *buf;
+    nxt_http_comp_ctx_t  *ctx = nxt_http_comp_ctx();
+
+    if (ctx->idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        return NXT_OK;
+    }
+
+    if ((*b)->mem.pos == NULL) {
+        return NXT_OK;
+    }
+
+    last = !(*b)->next || nxt_buf_is_last(*b);
+
+    in_len = (*b)->mem.free - (*b)->mem.pos;
+    buf_len = nxt_http_comp_bound(in_len);
+
+#if 1
+    if (buf_len > (size_t)nxt_buf_mem_size(&(*b)->mem)) {
+        return NXT_OK;
+    }
+
+    uint8_t *buf = nxt_malloc(buf_len);
+
+    cbytes = nxt_http_comp_compress(buf, buf_len, (*b)->mem.pos, in_len, last);
+    if (cbytes == -1) {
+        nxt_free(buf);
+        return NXT_ERROR;
+    }
+
+    (*b)->mem.free = nxt_cpymem((*b)->mem.pos, buf, cbytes);
+
+    nxt_free(buf);
+#else
+    /*
+     * While this produces correct compressed output, the router
+     * process then crashes doing some shutdown/cleanup work.
+     *
+     * My best guess as to why this happens is due to our *new* b
+     * not being allocated from the same memory pool as the original.
+     */
+    nxt_buf_t *buf = nxt_buf_mem_alloc(r->mem_pool, buf_len, 0);
+    if (nxt_slow_path(buf == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(buf, *b, offsetof(nxt_buf_t, mem));
+
+    cbytes = nxt_http_comp_compress(buf->mem.start, buf_len,
+                                    (*b)->mem.pos, in_len, last);
+    printf("%s: cbytes = %ld\n", __func__, cbytes);
+    if (cbytes == -1) {
+        return NXT_ERROR;
+    }
+
+    buf->mem.free += cbytes;
+    /* Seemingly *not* the memory ppol b was allocated from... */
+//    nxt_buf_free(r->mem_pool, *b);
+    *b = buf;
+
+    printf("%s: buf [%p] *b [%p]\n", __func__, buf, *b);
+#endif
+
+    return NXT_OK;
+}
+
+
+nxt_int_t
 nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
                                        nxt_file_info_t *fi,
                                        size_t static_buf_len,
@@ -406,6 +479,26 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
     f->name_length = content_encoding_str.length;
     f->value = token->start;
     f->value_length = token->length;
+
+    r->resp.content_length = NULL;
+    r->resp.content_length_n = -1;
+
+    if (r->resp.mime_type == NULL) {
+        nxt_http_field_t *f;
+
+        /*
+         * As per RFC 2616 section 4.4 item 3, you should not send
+         * Content-Length when a Transfer-Encoding header is present.
+         */
+        nxt_list_each(f, r->resp.fields) {
+            if (nxt_strcasecmp(f->name,
+                               (const u_char *)"Content-Length") == 0)
+            {
+                f->skip = true;
+                break;
+            }
+        } nxt_list_loop;
+    }
 
     return NXT_OK;
 }
