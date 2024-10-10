@@ -5,6 +5,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_http_compression.h>
 
 
 typedef struct {
@@ -326,6 +327,8 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t      body_handler;
     nxt_http_static_conf_t  *conf;
 
+    printf("%s: \n", __func__);
+
     action = ctx->action;
     conf = action->u.conf;
     rtcf = r->conf->socket_conf->router_conf;
@@ -576,7 +579,121 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
             field->value_length = mtype->length;
         }
 
+        r->resp.mime_type = mtype;
+
         if (ctx->need_body && nxt_file_size(&fi) > 0) {
+            bool  compress;
+
+            ret = nxt_http_comp_check_compression(task, r);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto fail;
+            }
+
+            compress = nxt_http_comp_wants_compression();
+            if (compress) {
+                char           tmp_path[NXT_MAX_PATH_LEN];
+                size_t         in_size, out_size, out_total = 0, rest;
+                u_char         *p;
+                uint8_t        *in, *out;
+                nxt_file_t     tfile;
+                nxt_runtime_t  *rt = task->thread->runtime;
+
+                static const char  *template = "unit-compr-XXXXXX";
+
+                if (nxt_slow_path(strlen(rt->tmp) + 1 + strlen(template) + 1
+                                  > NXT_MAX_PATH_LEN))
+                {
+                    goto fail;
+                }
+
+                p = nxt_cpymem(tmp_path, rt->tmp, strlen(rt->tmp));
+                *p++ = '/';
+                p = nxt_cpymem(tmp_path, template, strlen(template));
+                *p = '\0';
+
+                tfile.fd = mkstemp(tmp_path);
+                if (nxt_slow_path(tfile.fd == -1)) {
+                    nxt_alert(task, "mkstemp(%s) failed %E", tmp_path,
+                              nxt_errno);
+                    goto fail;
+                }
+
+                in_size = nxt_file_size(&fi);
+                out_size = nxt_http_comp_bound(in_size);
+
+                ret = ftruncate(tfile.fd, out_size);
+                if (nxt_slow_path(ret == -1)) {
+                    nxt_alert(task, "ftruncate(%d<%s>, %uz) failed %E",
+                              tfile.fd, tmp_path, out_size, nxt_errno);
+                    nxt_file_close(task, &tfile);
+                    goto fail;
+                }
+
+                in = nxt_mem_mmap(NULL, in_size, PROT_READ, MAP_SHARED, f->fd,
+                                  0);
+                if (nxt_slow_path(in == MAP_FAILED)) {
+                    nxt_file_close(task, &tfile);
+                    goto fail;
+                }
+
+                out = nxt_mem_mmap(NULL, out_size, PROT_READ|PROT_WRITE,
+                                   MAP_SHARED, tfile.fd, 0);
+                if (nxt_slow_path(out == MAP_FAILED)) {
+                    nxt_mem_munmap(in, in_size);
+                    nxt_file_close(task, &tfile);
+                    goto fail;
+                }
+
+                rest = in_size;
+
+                do {
+                    bool     last;
+                    size_t   n;
+                    ssize_t  cbytes;
+
+                    n = rest > NXT_HTTP_STATIC_BUF_SIZE
+                                        ? NXT_HTTP_STATIC_BUF_SIZE : rest;
+
+                    last = n == rest;
+
+                    printf("%s: out_off [%ld] in_off [%ld] last [%s]\n",
+                           __func__, out_total, in_size - rest,
+                           last ? "true" : "false");
+
+                    cbytes = nxt_http_comp_compress(out + out_total,
+                                                    out_size - out_total,
+                                                    in + in_size - rest, n,
+                                                    last);
+                    printf("%s: cbytes [%ld]\n", __func__, cbytes);
+
+                    out_total += cbytes;
+                    rest -= n;
+                } while (rest > 0);
+
+                nxt_mem_munmap(in, in_size);
+                msync(out, out_size, MS_ASYNC);
+                nxt_mem_munmap(out, out_size);
+
+                ret = ftruncate(tfile.fd, out_total);
+                if (nxt_slow_path(ret == -1)) {
+                    nxt_alert(task, "ftruncate(%d<%s>, %uz) failed %E",
+                              tfile.fd, tmp_path, out_total, nxt_errno);
+                    nxt_file_close(task, &tfile);
+                    goto fail;
+                }
+
+                nxt_file_close(task, f);
+
+                *f = tfile;
+
+                ret = nxt_file_info(f, &fi);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    goto fail;
+                }
+
+                r->resp.content_length_n = out_total;
+            }
+
             fb = nxt_mp_zget(r->mem_pool, NXT_BUF_FILE_SIZE);
             if (nxt_slow_path(fb == NULL)) {
                 goto fail;
@@ -793,6 +910,8 @@ nxt_http_static_body_handler(nxt_task_t *task, void *obj, void *data)
     nxt_work_queue_t    *wq;
     nxt_http_request_t  *r;
 
+    printf("%s: \n", __func__);
+
     r = obj;
     fb = r->out;
 
@@ -852,6 +971,8 @@ nxt_http_static_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t           *b, *fb, *next;
     nxt_off_t           rest;
     nxt_http_request_t  *r;
+
+    printf("%s: \n", __func__);
 
     b = obj;
     r = data;

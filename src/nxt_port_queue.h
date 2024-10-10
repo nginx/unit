@@ -81,6 +81,8 @@ nxt_port_queue_recv(nxt_port_queue_t volatile *q, void *p)
     nxt_nncq_atomic_t      i;
     nxt_port_queue_item_t  *qi;
 
+//    printf("%s \n", __func__);
+
     i = nxt_nncq_dequeue(&q->queue);
     if (i == nxt_nncq_empty(&q->queue)) {
         return -1;
