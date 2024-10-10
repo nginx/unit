@@ -81,6 +81,7 @@ extern const nxt_http_comp_operations_t  nxt_comp_zstd_ops;
 extern const nxt_http_comp_operations_t  nxt_comp_brotli_ops;
 #endif
 
+extern nxt_int_t nxt_http_comp_compress_response(nxt_http_request_t *r);
 extern bool nxt_http_comp_wants_compression(void);
 extern size_t nxt_http_comp_bound(size_t size);
 extern ssize_t nxt_http_comp_compress(uint8_t *dst, size_t dst_size,
