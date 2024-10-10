@@ -67,6 +67,7 @@ struct nxt_http_comp_ctx_s {
     nxt_uint_t                      idx;
 
     nxt_off_t                       resp_clen;
+    nxt_off_t                       clen_sent;
 
     nxt_http_comp_compressor_ctx_t  ctx;
 };
@@ -163,6 +164,70 @@ nxt_http_comp_bound(size_t size)
     cops = compressor->type->cops;
 
     return cops->bound(&ctx->ctx, size);
+}
+
+
+nxt_int_t
+nxt_http_comp_compress_app_response(nxt_task_t *task, nxt_http_request_t *r,
+                                    nxt_buf_t **b)
+{
+    bool                 last;
+    size_t               buf_len;
+    ssize_t              cbytes;
+    nxt_buf_t            *buf;
+    nxt_off_t            in_len;
+    nxt_http_comp_ctx_t  *ctx = nxt_http_comp_ctx();
+
+    if (ctx->idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        return NXT_OK;
+    }
+
+    if (!nxt_buf_is_port_mmap(*b)) {
+        return NXT_OK;
+    }
+
+    in_len = (*b)->mem.free - (*b)->mem.pos;
+    buf_len = nxt_http_comp_bound(in_len);
+
+    buf = nxt_buf_mem_ts_alloc(task, (*b)->data, buf_len);
+    if (nxt_slow_path(buf == NULL)) {
+        return NXT_ERROR;
+    }
+
+    buf->data = (*b)->data;
+    buf->parent = (*b)->parent;
+
+    last = ctx->clen_sent + in_len == ctx->resp_clen;
+
+    cbytes = nxt_http_comp_compress(buf->mem.start, buf_len,
+                                    (*b)->mem.pos, in_len, last);
+    if (cbytes == -1) {
+        nxt_buf_free(buf->data, buf);
+        return NXT_ERROR;
+    }
+
+    buf->mem.free += cbytes;
+
+    ctx->clen_sent += in_len;
+
+#define nxt_swap_buf(db, sb)                                                  \
+    do {                                                                      \
+        nxt_buf_t  **db_ = (db);                                              \
+        nxt_buf_t  **sb_ = (sb);                                              \
+        nxt_buf_t  *tmp_;                                                     \
+                                                                              \
+        tmp_ = *db_;                                                          \
+        *db_ = *sb_;                                                          \
+        *sb_ = tmp_;                                                          \
+    } while (0)
+
+    nxt_swap_buf(b, &buf);
+
+#undef nxt_swap_buf
+
+    nxt_buf_free(buf->data, buf);
+
+    return NXT_OK;
 }
 
 
@@ -407,6 +472,26 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
     f->value = token->start;
     f->value_length = token->length;
 
+    r->resp.content_length = NULL;
+    r->resp.content_length_n = -1;
+
+    if (r->resp.mime_type == NULL) {
+        nxt_http_field_t *f;
+
+        /*
+         * As per RFC 2616 section 4.4 item 3, you should not send
+         * Content-Length when a Transfer-Encoding header is present.
+         */
+        nxt_list_each(f, r->resp.fields) {
+            if (nxt_strcasecmp(f->name,
+                               (const u_char *)"Content-Length") == 0)
+            {
+                f->skip = true;
+                break;
+            }
+        } nxt_list_loop;
+    }
+
     return NXT_OK;
 }
 
@@ -440,6 +525,10 @@ nxt_http_comp_check_compression(nxt_task_t *task, nxt_http_request_t *r)
     *ctx = (nxt_http_comp_ctx_t){ .resp_clen = -1 };
 
     if (nxt_http_comp_nr_enabled_compressors == 0) {
+        return NXT_OK;
+    }
+
+    if (r->resp.content_length == NULL && r->resp.content_length_n == -1) {
         return NXT_OK;
     }
 
