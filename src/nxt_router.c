@@ -4190,9 +4190,10 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     }
 
     if (r->header_sent) {
+        nxt_http_comp_compress_app_response(r, &b);
+
         nxt_buf_chain_add(&r->out, b);
         nxt_http_request_send_body(task, r, NULL);
-
     } else {
         b_size = nxt_buf_is_mem(b) ? nxt_buf_mem_used_size(&b->mem) : 0;
 
@@ -4270,6 +4271,11 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         if (b != NULL) {
             nxt_buf_chain_add(&r->out, b);
+        }
+
+        ret = nxt_http_comp_check_compression(task, r);
+        if (ret != NXT_OK) {
+            goto fail;
         }
 
         nxt_http_request_header_send(task, r, nxt_http_request_send_body, NULL);
