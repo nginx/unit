@@ -100,7 +100,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
                 return NULL;
             }
 
-            mod_name.start = (u_char *)modules[i].name;
+            mod_name.start = modules[i].name;
             mod_name.length = strlen(modules[i].name);
             nxt_conf_set_member(mods, &mod_name, mod_obj, l++);
         }
@@ -118,7 +118,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         item.length = nxt_strlen(modules[i].version);
         nxt_conf_set_member_string(obj, &version_str, &item, 0);
 
-        item.start = (u_char *)modules[i].file;
+        item.start = modules[i].file;
         item.length = strlen(modules[i].file);
         nxt_conf_set_member_string(obj, &lib_str, &item, 1);
 

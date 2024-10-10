@@ -32,9 +32,9 @@ typedef struct {
 
 
 struct nxt_tls_ticket_s {
-    u_char            name[16];
-    u_char            hmac_key[32];
-    u_char            aes_key[32];
+    char            name[16];
+    char            hmac_key[32];
+    char            aes_key[32];
     uint8_t           size;
 };
 
@@ -636,7 +636,7 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
     nxt_conf_value_t   *member, *tickets_conf;
     nxt_tls_ticket_t   *ticket;
     nxt_tls_tickets_t  *tickets;
-    u_char             buf[80];
+    char             buf[80];
 
     tickets_conf = tls_init->tickets_conf;
 
@@ -874,7 +874,7 @@ nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert, nxt_tls_conf_t *conf,
 
             str.length = ASN1_STRING_length(name->d.dNSName);
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
-            str.start = (u_char *) ASN1_STRING_get0_data(name->d.dNSName);
+            str.start = (char *) ASN1_STRING_get0_data(name->d.dNSName);
 #else
             str.start = ASN1_STRING_data(name->d.dNSName);
 #endif
@@ -1070,7 +1070,7 @@ nxt_openssl_servername(SSL *s, int *ad, void *arg)
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 
-    nxt_memcpy_lowcase(str.start, (const u_char *) servername, str.length);
+    nxt_memcpy_lowcase(str.start, (const char *) servername, str.length);
 
     tls = c->u.tls;
     conf = tls->conf;
@@ -1626,10 +1626,10 @@ nxt_openssl_conn_io_shutdown_timeout(nxt_task_t *task, void *obj, void *data)
 static void nxt_cdecl
 nxt_openssl_conn_error(nxt_task_t *task, nxt_err_t err, const char *fmt, ...)
 {
-    u_char      *p, *end;
+    char      *p, *end;
     va_list     args;
     nxt_uint_t  level;
-    u_char      msg[NXT_MAX_ERROR_STR];
+    char      msg[NXT_MAX_ERROR_STR];
 
     level = nxt_openssl_log_error_level(err);
 
@@ -1735,9 +1735,9 @@ nxt_openssl_log_error_level(nxt_err_t err)
 void nxt_cdecl
 nxt_openssl_log_error(nxt_task_t *task, nxt_uint_t level, const char *fmt, ...)
 {
-    u_char   *p, *end;
+    char   *p, *end;
     va_list  args;
-    u_char   msg[NXT_MAX_ERROR_STR];
+    char   msg[NXT_MAX_ERROR_STR];
 
     end = msg + sizeof(msg);
 
@@ -1751,8 +1751,8 @@ nxt_openssl_log_error(nxt_task_t *task, nxt_uint_t level, const char *fmt, ...)
 }
 
 
-u_char *
-nxt_openssl_copy_error(u_char *p, u_char *end)
+char *
+nxt_openssl_copy_error(char *p, char *end)
 {
     int         flags;
     u_long      err;

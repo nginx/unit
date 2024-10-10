@@ -17,7 +17,7 @@
 
 typedef struct {
     nxt_atomic_t               slot;
-    u_char                     *(*handler)(u_char *buf, nxt_realtime_t *now,
+    char                     *(*handler)(char *buf, nxt_realtime_t *now,
                                    struct tm *tm, size_t size,
                                    const char *format);
     const char                 *format;
@@ -65,8 +65,8 @@ NXT_EXPORT void nxt_thread_time_update(nxt_thread_t *thr);
 void nxt_thread_time_free(nxt_thread_t *thr);
 NXT_EXPORT nxt_time_t nxt_thread_time(nxt_thread_t *thr);
 NXT_EXPORT nxt_realtime_t *nxt_thread_realtime(nxt_thread_t *thr);
-NXT_EXPORT u_char *nxt_thread_time_string(nxt_thread_t *thr,
-    nxt_time_string_t *ts, u_char *buf);
+NXT_EXPORT char *nxt_thread_time_string(nxt_thread_t *thr,
+    nxt_time_string_t *ts, char *buf);
 void nxt_time_thread_start(nxt_msec_t interval);
 
 

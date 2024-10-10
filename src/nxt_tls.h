@@ -97,7 +97,7 @@ extern const nxt_tls_lib_t        nxt_openssl_lib;
 
 void nxt_cdecl nxt_openssl_log_error(nxt_task_t *task, nxt_uint_t level,
     const char *fmt, ...);
-u_char *nxt_openssl_copy_error(u_char *p, u_char *end);
+char *nxt_openssl_copy_error(char *p, char *end);
 #endif
 
 #if (NXT_HAVE_GNUTLS)

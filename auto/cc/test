@@ -79,6 +79,9 @@ case $NXT_CC_NAME in
         #NXT_CFLAGS="$NXT_CFLAGS -Wshorten-64-to-32"
         NXT_CFLAGS="$NXT_CFLAGS -Wwrite-strings"
 
+        # OK due to -funsigned-char
+        NXT_CFLAGS="$NXT_CFLAGS -Wno-char-subscripts"
+
         # -O2 enables -fstrict-aliasing and -fstrict-overflow.
         #NXT_CFLAGS="$NXT_CFLAGS -O2"
         NXT_CFLAGS="$NXT_CFLAGS -fno-strict-aliasing"
@@ -125,6 +128,9 @@ case $NXT_CC_NAME in
         #NXT_CFLAGS="$NXT_CFLAGS -O2"
         # strict-aliasing is always enabled by default in clang
         NXT_CFLAGS="$NXT_CFLAGS -fno-strict-aliasing"
+
+        # OK due to -funsigned-char
+        NXT_CFLAGS="$NXT_CFLAGS -Wno-char-subscripts"
 
         #NXT_CFLAGS="$NXT_CFLAGS -fomit-frame-pointer"
         NXT_CFLAGS="$NXT_CFLAGS -Wstrict-overflow=5"

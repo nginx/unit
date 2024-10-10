@@ -24,7 +24,7 @@ static nxt_int_t nxt_http_var_remote_addr(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 static nxt_int_t nxt_http_var_time_local(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
-static u_char *nxt_http_log_date(u_char *buf, nxt_realtime_t *now,
+static char *nxt_http_log_date(char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 static nxt_int_t nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
@@ -237,7 +237,7 @@ static nxt_int_t
 nxt_http_var_request_time(nxt_task_t *task, nxt_str_t *str, void *ctx,
     void *data)
 {
-    u_char              *p;
+    char              *p;
     nxt_msec_t          ms;
     nxt_nsec_t          now;
     nxt_http_request_t  *r;
@@ -359,11 +359,11 @@ nxt_http_var_time_local(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 }
 
 
-static u_char *
-nxt_http_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+static char *
+nxt_http_log_date(char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
-    u_char  sign;
+    char  sign;
     time_t  gmtoff;
 
     static const char * const  month[] = { "Jan", "Feb", "Mar", "Apr", "May",
@@ -431,7 +431,7 @@ static nxt_int_t
 nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
     void *data)
 {
-    u_char              *p;
+    char              *p;
     nxt_off_t           bytes;
     nxt_http_request_t  *r;
 
@@ -556,7 +556,7 @@ static nxt_int_t
 nxt_http_var_response_content_length(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data)
 {
-    u_char              *p;
+    char              *p;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -721,7 +721,7 @@ static int
 nxt_http_field_name_cmp(nxt_str_t *name, nxt_http_field_t *field)
 {
     size_t  i;
-    u_char  c1, c2;
+    char  c1, c2;
 
     if (name->length != field->name_length) {
         return 1;

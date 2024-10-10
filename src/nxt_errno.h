@@ -81,7 +81,7 @@ typedef int                        nxt_err_t;
 nxt_int_t nxt_strerror_start(void);
 
 
-typedef u_char *(*nxt_strerror_t)(nxt_err_t err, u_char *errstr, size_t size);
+typedef char *(*nxt_strerror_t)(nxt_err_t err, char *errstr, size_t size);
 extern nxt_strerror_t  nxt_strerror;
 
 

@@ -118,7 +118,7 @@ static void nxt_router_conf_send(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type);
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
+    nxt_router_temp_conf_t *tmcf, char *start, char *end);
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
 static nxt_http_forward_t *nxt_router_conf_forward(nxt_task_t *task,
@@ -948,7 +948,7 @@ fail:
 static void
 nxt_router_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char               *p;
+    char               *p;
     size_t               alloc;
     nxt_app_t            *app;
     nxt_buf_t            *b;
@@ -1004,7 +1004,7 @@ nxt_router_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_memcpy(p, app->name.start, app->name.length);
 
         app_stat->name.length = app->name.length;
-        app_stat->name.start = (u_char *) (p - b->mem.pos);
+        app_stat->name.start = (char *) (p - b->mem.pos);
 
         app_stat->active_requests = app->active_requests;
         app_stat->pending_processes = app->pending_processes;
@@ -1615,9 +1615,9 @@ static nxt_conf_map_t  nxt_router_websocket_conf[] = {
 
 static nxt_int_t
 nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    u_char *start, u_char *end)
+    char *start, char *end)
 {
-    u_char                      *p;
+    char                      *p;
     size_t                      size;
     nxt_mp_t                    *mp, *app_mp;
     uint32_t                    next, next_target;
@@ -2045,7 +2045,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             t = &skcf->body_temp_path;
 
             if (t->length == 0) {
-                t->start = (u_char *) task->thread->runtime->tmp;
+                t->start = (char *) task->thread->runtime->tmp;
                 t->length = nxt_strlen(t->start);
             }
 
@@ -2919,7 +2919,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     tmcf = rpc->temp_conf;
 
 #if 0
-    u_char                  *p;
+    char                  *p;
     size_t                  size;
     uint8_t                 error;
     nxt_buf_t               *in, *out;
@@ -5413,7 +5413,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     nxt_app_t *app, const nxt_str_t *prefix)
 {
     void                *target_pos, *query_pos;
-    u_char              *pos, *end, *p, c;
+    char              *pos, *end, *p, c;
     size_t              fields_count, req_size, size, free_size;
     size_t              copy_size;
     nxt_off_t           content_length;
@@ -5465,7 +5465,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
     req->content_length = content_length;
 
-    p = (u_char *) (req->fields + fields_count);
+    p = (char *) (req->fields + fields_count);
 
     nxt_debug(task, "fields_count=%d", (int) fields_count);
 

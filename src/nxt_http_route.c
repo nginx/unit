@@ -56,7 +56,7 @@ typedef struct {
 
 
 typedef struct {
-    u_char                         *start;
+    char                         *start;
     uint32_t                       length;
     nxt_http_route_pattern_type_t  type:8;
 } nxt_http_route_pattern_slice_t;
@@ -84,8 +84,8 @@ typedef struct {
     uint16_t                       hash;
     uint16_t                       name_length;
     uint32_t                       value_length;
-    u_char                         *name;
-    u_char                         *value;
+    char                         *name;
+    char                         *value;
 } nxt_http_cookie_t;
 
 
@@ -98,7 +98,7 @@ struct nxt_http_route_rule_s {
         uintptr_t                  offset;
 
         struct {
-            u_char                 *start;
+            char                 *start;
             uint16_t               hash;
             uint16_t               length;
         } name;
@@ -227,8 +227,8 @@ static nxt_int_t nxt_http_route_cookies(nxt_http_request_t *r,
 static nxt_int_t nxt_http_route_test_cookie(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array);
 static nxt_int_t nxt_http_route_pattern(nxt_http_request_t *r,
-    nxt_http_route_pattern_t *pattern, u_char *start, size_t length);
-static nxt_int_t nxt_http_route_memcmp(u_char *start, u_char *test,
+    nxt_http_route_pattern_t *pattern, char *start, size_t length);
+static nxt_int_t nxt_http_route_memcmp(char *start, char *test,
     size_t length, nxt_bool_t case_sensitive);
 
 
@@ -983,7 +983,7 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_http_route_pattern_case_t pattern_case,
     nxt_http_uri_encoding_t encoding)
 {
-    u_char                          c, *p, *end;
+    char                          c, *p, *end;
     nxt_str_t                       test, tmp;
     nxt_int_t                       ret;
     nxt_array_t                     *slices;
@@ -1179,7 +1179,7 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
 static nxt_int_t
 nxt_http_route_decode_str(nxt_str_t *str, nxt_http_uri_encoding_t encoding)
 {
-    u_char  *start, *end;
+    char  *start, *end;
 
     switch (encoding) {
     case NXT_HTTP_URI_ENCODING_NONE:
@@ -1221,7 +1221,7 @@ nxt_http_route_pattern_slice(nxt_array_t *slices,
     nxt_http_uri_encoding_t encoding,
     nxt_http_route_pattern_case_t pattern_case)
 {
-    u_char                          *start;
+    char                          *start;
     nxt_int_t                       ret;
     nxt_http_route_pattern_slice_t  *slice;
 
@@ -1453,7 +1453,7 @@ nxt_int_t
 nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass, nxt_str_t *segments,
     nxt_uint_t n)
 {
-    u_char     *p;
+    char     *p;
     nxt_str_t  rest;
 
     if (nxt_slow_path(nxt_str_dup(mp, &rest, pass) == NULL)) {
@@ -1720,7 +1720,7 @@ static nxt_int_t
 nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
     void       *p, **pp;
-    u_char     *start;
+    char     *start;
     size_t     length;
     nxt_str_t  *s;
 
@@ -2105,7 +2105,7 @@ nxt_http_route_test_cookie(nxt_http_request_t *r,
 
 nxt_int_t
 nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
-    u_char *start, size_t length)
+    char *start, size_t length)
 {
     nxt_int_t                 ret;
     nxt_http_route_pattern_t  *pattern, *end;
@@ -2136,9 +2136,9 @@ nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
 
 static nxt_int_t
 nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
-    u_char *start, size_t length)
+    char *start, size_t length)
 {
-    u_char                          *p, *end, *test;
+    char                          *p, *end, *test;
     size_t                          test_length;
     uint32_t                        i;
     nxt_array_t                     *pattern_slices;
@@ -2224,7 +2224,7 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
 
 
 static nxt_int_t
-nxt_http_route_memcmp(u_char *start, u_char *test, size_t test_length,
+nxt_http_route_memcmp(char *start, char *test, size_t test_length,
     nxt_bool_t case_sensitive)
 {
     nxt_int_t  n;

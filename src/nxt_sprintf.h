@@ -12,9 +12,9 @@
 #define NXT_DOUBLE_LEN  (1 + DBL_MAX_10_EXP)
 
 
-NXT_EXPORT u_char *nxt_cdecl nxt_sprintf(u_char *buf, u_char *end,
+NXT_EXPORT char *nxt_cdecl nxt_sprintf(char *buf, char *end,
     const char *fmt, ...);
-NXT_EXPORT u_char *nxt_vsprintf(u_char *buf, u_char *end,
+NXT_EXPORT char *nxt_vsprintf(char *buf, char *end,
     const char *fmt, va_list args);
 
 

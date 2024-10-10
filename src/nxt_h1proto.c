@@ -310,7 +310,7 @@ nxt_http_idle_io_read_handler(nxt_task_t *task, nxt_conn_t *c)
 static void
 nxt_http_conn_test(nxt_task_t *task, void *obj, void *data)
 {
-    u_char                   *p;
+    char                   *p;
     nxt_buf_t                *b;
     nxt_conn_t               *c;
     nxt_tls_conf_t           *tls;
@@ -338,7 +338,7 @@ nxt_http_conn_test(nxt_task_t *task, void *obj, void *data)
 
 #if (NXT_DEBUG)
     if (nxt_buf_mem_used_size(&b->mem) >= 11) {
-        u_char      major, minor;
+        char      major, minor;
         const char  *protocol;
 
         major = p[9];
@@ -650,7 +650,7 @@ static nxt_int_t
 nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
     nxt_http_request_t *r)
 {
-    u_char     *m;
+    char     *m;
     nxt_int_t  ret;
 
     r->target.start = h1p->parser.target_start;
@@ -1306,7 +1306,7 @@ static void
 nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t body_handler, void *data)
 {
-    u_char              *p;
+    char              *p;
     size_t              size;
     nxt_buf_t           *header;
     nxt_str_t           unknown_status;
@@ -1317,7 +1317,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_h1proto_t       *h1p;
     const nxt_str_t     *status;
     nxt_http_field_t    *field;
-    u_char              buf[UNKNOWN_STATUS_LENGTH];
+    char              buf[UNKNOWN_STATUS_LENGTH];
 
     static const char   chunked[] = "Transfer-Encoding: chunked\r\n";
     static const char   websocket_version[] = "Sec-WebSocket-Version: 13\r\n";
@@ -2001,7 +2001,7 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 {
-    u_char     *p;
+    char     *p;
     size_t     size;
     nxt_buf_t  *out, *last;
 
@@ -2360,7 +2360,7 @@ nxt_h1p_peer_refused(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
 {
-    u_char              *p;
+    char              *p;
     size_t              size;
     nxt_int_t           ret;
     nxt_str_t           target;
@@ -2469,7 +2469,7 @@ fail:
 static nxt_int_t
 nxt_h1p_peer_request_target(nxt_http_request_t *r, nxt_str_t *target)
 {
-    u_char  *p;
+    char  *p;
     size_t  size, encode;
 
     if (!r->uri_changed) {
@@ -2497,7 +2497,7 @@ nxt_h1p_peer_request_target(nxt_http_request_t *r, nxt_str_t *target)
     }
 
     if (r->quoted_target) {
-        p = (u_char *) nxt_encode_complex_uri(target->start, r->path->start,
+        p = (char *) nxt_encode_complex_uri(target->start, r->path->start,
                                               r->path->length);
 
     } else {
@@ -2750,7 +2750,7 @@ nxt_h1p_peer_header_read_done(nxt_task_t *task, void *obj, void *data)
 static nxt_int_t
 nxt_h1p_peer_header_parse(nxt_http_peer_t *peer, nxt_buf_mem_t *bm)
 {
-    u_char     *p;
+    char     *p;
     size_t     length;
     nxt_int_t  status;
 

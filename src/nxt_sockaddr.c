@@ -8,7 +8,7 @@
 
 
 #if (NXT_INET6)
-static u_char *nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end);
+static char *nxt_inet6_ntop(uint8_t *addr, char *buf, char *end);
 #endif
 
 static nxt_sockaddr_t *nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr);
@@ -229,7 +229,7 @@ void
 nxt_sockaddr_text(nxt_sockaddr_t *sa)
 {
     size_t    offset;
-    u_char    *p, *start, *end, *octet;
+    char    *p, *start, *end, *octet;
     uint32_t  port;
 
     offset = offsetof(nxt_sockaddr_t, u) + sa->socklen;
@@ -244,7 +244,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
     case AF_INET:
         sa->address_start = offset;
 
-        octet = (u_char *) &sa->u.sockaddr_in.sin_addr;
+        octet = (char *) &sa->u.sockaddr_in.sin_addr;
 
         p = nxt_sprintf(start, end, "%ud.%ud.%ud.%ud",
                         octet[0], octet[1], octet[2], octet[3]);
@@ -282,7 +282,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
     case AF_UNIX:
         sa->address_start = offset;
 
-        p = (u_char *) sa->u.sockaddr_un.sun_path;
+        p = (char *) sa->u.sockaddr_un.sun_path;
 
 #if (NXT_LINUX)
 
@@ -431,10 +431,10 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
 #if (NXT_INET6)
 
-static u_char *
-nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
+static char *
+nxt_inet6_ntop(uint8_t *addr, char *buf, char *end)
 {
-    u_char       *p;
+    char       *p;
     size_t       zero_groups, last_zero_groups, ipv6_bytes;
     nxt_uint_t   i, zero_start, last_zero_start;
 
@@ -573,7 +573,7 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
 {
 #if (NXT_HAVE_UNIX_DOMAIN)
     size_t          length, socklen;
-    u_char          *path;
+    char          *path;
     nxt_sockaddr_t  *sa;
 
     /*
@@ -644,7 +644,7 @@ static nxt_sockaddr_t *
 nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
 {
 #if (NXT_INET6)
-    u_char          *p, *start, *end;
+    char          *p, *start, *end;
     size_t          length;
     nxt_int_t       ret, port;
     nxt_sockaddr_t  *sa;
@@ -717,7 +717,7 @@ nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
 static nxt_sockaddr_t *
 nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
 {
-    u_char          *p;
+    char          *p;
     size_t          length;
     nxt_int_t       port;
     in_addr_t       inaddr;
@@ -776,9 +776,9 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
 
 
 in_addr_t
-nxt_inet_addr(u_char *buf, size_t length)
+nxt_inet_addr(char *buf, size_t length)
 {
-    u_char      c, *end;
+    char      c, *end;
     in_addr_t   addr;
     nxt_uint_t  digit, octet, dots;
 
@@ -826,9 +826,10 @@ nxt_inet_addr(u_char *buf, size_t length)
 #if (NXT_INET6)
 
 nxt_int_t
-nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
+nxt_inet6_addr(struct in6_addr *in6_addr, char *buf, size_t length)
 {
-    u_char      c, *addr, *zero_start, *ipv4, *dst, *src, *end;
+    char      c, *ipv4, *end;
+    uint8_t  *addr, *zero_start, *src, *dst;
     nxt_uint_t  digit, group, nibbles, groups_left;
 
     if (length == 0) {
@@ -855,8 +856,8 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
             if (nibbles != 0) {
                 ipv4 = buf;
 
-                *addr++ = (u_char) (group >> 8);
-                *addr++ = (u_char) (group & 0xFF);
+                *addr++ = (uint8_t) (group >> 8);
+                *addr++ = (uint8_t) (group & 0xFF);
                 groups_left--;
 
                 if (groups_left != 0) {
@@ -967,7 +968,7 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
 nxt_bool_t
 nxt_inet6_probe(nxt_str_t *str)
 {
-    u_char  *colon, *end;
+    char  *colon, *end;
 
     colon = memchr(str->start, ':', str->length);
 

@@ -117,7 +117,7 @@ nxt_js_set_proto(nxt_js_conf_t *jcf, njs_external_t *proto, njs_uint_t n)
 static njs_vm_t *
 nxt_js_vm_create(nxt_js_conf_t *jcf)
 {
-    u_char           *p;
+    char           *p;
     size_t           size;
     njs_vm_t         *vm;
     nxt_uint_t       i;
@@ -132,7 +132,7 @@ nxt_js_vm_create(nxt_js_conf_t *jcf)
 
     opts.backtrace = 1;
 
-    opts.file.start = (u_char *) "default";
+    opts.file.start = (char *) "default";
     opts.file.length = 7;
 
     if (jcf->test || jcf->modules->nelts == 0) {
@@ -233,7 +233,7 @@ nxt_js_t *
 nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
 {
     size_t     size;
-    u_char     *p, *start;
+    char     *p, *start;
     nxt_js_t   *js;
     nxt_str_t  *func;
 
@@ -292,7 +292,7 @@ nxt_int_t
 nxt_js_compile(nxt_js_conf_t *jcf)
 {
     size_t      size;
-    u_char      *p, *start;
+    char      *p, *start;
     njs_int_t   ret;
     nxt_str_t   *func;
     nxt_uint_t  i;
@@ -343,9 +343,9 @@ nxt_js_compile(nxt_js_conf_t *jcf)
 
 
 nxt_int_t
-nxt_js_test(nxt_js_conf_t *jcf, nxt_str_t *str, u_char *error)
+nxt_js_test(nxt_js_conf_t *jcf, nxt_str_t *str, char *error)
 {
-    u_char     *start;
+    char     *start;
     njs_vm_t   *vm;
     njs_int_t  ret;
 
@@ -468,7 +468,7 @@ nxt_js_release(nxt_js_cache_t *cache)
 
 
 nxt_int_t
-nxt_js_error(njs_vm_t *vm, u_char *error)
+nxt_js_error(njs_vm_t *vm, char *error)
 {
     njs_int_t  ret;
     njs_str_t  res;

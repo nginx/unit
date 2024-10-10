@@ -7,8 +7,8 @@
 #include <nxt_main.h>
 
 
-static u_char *nxt_listen_socket_log_handler(void *ctx, u_char *pos,
-    u_char *last);
+static char *nxt_listen_socket_log_handler(void *ctx, char *pos,
+    char *last);
 
 
 nxt_int_t
@@ -37,7 +37,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_sockaddr_t     *sa;
 #if (NXT_HAVE_UNIX_DOMAIN)
     int                ret;
-    u_char             *p;
+    char             *p;
     nxt_err_t          err;
     nxt_socket_t       ts;
     nxt_sockaddr_t     *orig_sa;
@@ -106,8 +106,8 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         sa->type = SOCK_STREAM;
         sa->u.sockaddr_un.sun_family = AF_UNIX;
 
-        p = nxt_cpystr((u_char *) sa->u.sockaddr_un.sun_path,
-                       (u_char *) orig_sa->u.sockaddr_un.sun_path);
+        p = nxt_cpystr((char *) sa->u.sockaddr_un.sun_path,
+                       (char *) orig_sa->u.sockaddr_un.sun_path);
         nxt_memcpy(p, ".tmp", 4);
 
         nxt_sockaddr_text(sa);
@@ -382,8 +382,8 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 }
 
 
-static u_char *
-nxt_listen_socket_log_handler(void *ctx, u_char *pos, u_char *end)
+static char *
+nxt_listen_socket_log_handler(void *ctx, char *pos, char *end)
 {
     nxt_sockaddr_t  *sa;
 

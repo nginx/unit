@@ -117,7 +117,7 @@ nxt_port_mmaps_destroy(nxt_port_mmaps_t *port_mmaps, nxt_bool_t free_elts)
 static void
 nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    u_char                   *p;
+    char                   *p;
     nxt_mp_t                 *mp;
     nxt_buf_t                *b, *next;
     nxt_process_t            *process;
@@ -371,7 +371,7 @@ nxt_shm_open(nxt_task_t *task, size_t size)
 
 #if (NXT_HAVE_MEMFD_CREATE || NXT_HAVE_SHM_OPEN)
 
-    u_char    *p, name[64];
+    char    *p, name[64];
 
     p = nxt_sprintf(name, name + sizeof(name), NXT_SHM_PREFIX "unit.%PI.%uxD",
                     nxt_pid, nxt_random(&task->thread->random));

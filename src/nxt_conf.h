@@ -34,8 +34,8 @@ typedef struct nxt_conf_op_s     nxt_conf_op_t;
 
 
 typedef struct {
-    u_char               *pos;
-    u_char               *detail;
+    char               *pos;
+    char               *detail;
 } nxt_conf_json_error_t;
 
 
@@ -102,7 +102,7 @@ nxt_conf_op_ret_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
 nxt_conf_value_t *nxt_conf_clone(nxt_mp_t *mp, nxt_conf_op_t *op,
     const nxt_conf_value_t *value);
 
-nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
+nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, char *start, char *end,
     nxt_conf_json_error_t *error);
 
 #define nxt_conf_json_parse_str(mp, str)                                      \
@@ -110,9 +110,9 @@ nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 
 size_t nxt_conf_json_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-u_char *nxt_conf_json_print(u_char *p, const nxt_conf_value_t *value,
+char *nxt_conf_json_print(char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-void nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
+void nxt_conf_json_position(char *start, const char *pos, nxt_uint_t *line,
     nxt_uint_t *column);
 
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);

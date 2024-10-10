@@ -41,7 +41,7 @@ static nxt_uint_t nxt_cyassl_log_error_level(nxt_event_conn_t *c, nxt_err_t err,
     int ssl_error);
 static void nxt_cdecl nxt_cyassl_log_error(nxt_uint_t level, nxt_log_t *log,
     int ret, const char *fmt, ...);
-static u_char *nxt_cyassl_copy_error(int err, u_char *p, u_char *end);
+static char *nxt_cyassl_copy_error(int err, char *p, char *end);
 
 
 const nxt_ssltls_lib_t  nxt_cyassl_lib = {
@@ -249,7 +249,7 @@ nxt_cyassl_io_recv(CYASSL *ssl, char *buf, int size, void *data)
     c = data;
     thr = nxt_thread();
 
-    n = thr->engine->event->io->recv(c, (u_char *) buf, size, 0);
+    n = thr->engine->event->io->recv(c, (char *) buf, size, 0);
 
     if (n > 0) {
         return n;
@@ -277,7 +277,7 @@ nxt_cyassl_io_send(CYASSL *ssl, char *buf, int size, void *data)
     c = data;
     thr = nxt_thread();
 
-    n = thr->engine->event->io->send(c, (u_char *) buf, size);
+    n = thr->engine->event->io->send(c, (char *) buf, size);
 
     if (n > 0) {
         return n;
@@ -535,11 +535,11 @@ nxt_cyassl_conn_test_error(nxt_thread_t *thr, nxt_event_conn_t *c, int ret,
 static void nxt_cdecl
 nxt_cyassl_conn_error(nxt_event_conn_t *c, nxt_err_t err, const char *fmt, ...)
 {
-    u_char             *p, *end;
+    char             *p, *end;
     va_list            args;
     nxt_uint_t         level;
     nxt_cyassl_conn_t  *ssltls;
-    u_char             msg[NXT_MAX_ERROR_STR];
+    char             msg[NXT_MAX_ERROR_STR];
 
     ssltls = c->u.ssltls;
 
@@ -585,9 +585,9 @@ static void nxt_cdecl
 nxt_cyassl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
     const char *fmt, ...)
 {
-    u_char   *p, *end;
+    char   *p, *end;
     va_list  args;
-    u_char   msg[NXT_MAX_ERROR_STR];
+    char   msg[NXT_MAX_ERROR_STR];
 
     if (nxt_log_level_enough(log, level)) {
 
@@ -604,8 +604,8 @@ nxt_cyassl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
 }
 
 
-static u_char *
-nxt_cyassl_copy_error(int err, u_char *p, u_char *end)
+static char *
+nxt_cyassl_copy_error(int err, char *p, char *end)
 {
     p = nxt_sprintf(p, end, " (SSL:%d ", err);
 

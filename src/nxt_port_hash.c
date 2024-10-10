@@ -53,7 +53,7 @@ nxt_port_hash_lhq(nxt_lvlhsh_query_t *lhq, nxt_pid_port_id_t *pid_port)
 {
     lhq->key_hash = nxt_murmur_hash2(pid_port, sizeof(nxt_pid_port_id_t));
     lhq->key.length = sizeof(nxt_pid_port_id_t);
-    lhq->key.start = (u_char *) pid_port;
+    lhq->key.start = (char *) pid_port;
     lhq->proto = &lvlhsh_ports_proto;
     lhq->pool = NULL;
 }

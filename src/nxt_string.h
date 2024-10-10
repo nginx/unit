@@ -30,7 +30,7 @@
 
 
 #define nxt_strchr(buf, delim)                                                \
-    (u_char *) strchr((char *) buf, delim)
+    (char *) strchr((char *) buf, delim)
 
 
 #define nxt_memzero(buf, length)                                              \
@@ -45,9 +45,9 @@
     (void) memcpy(dst, src, length)
 
 
-NXT_EXPORT void nxt_memcpy_lowcase(u_char *dst, const u_char *src,
+NXT_EXPORT void nxt_memcpy_lowcase(char *dst, const char *src,
     size_t length);
-NXT_EXPORT void nxt_memcpy_upcase(u_char *dst, const u_char *src,
+NXT_EXPORT void nxt_memcpy_upcase(char *dst, const char *src,
     size_t length);
 
 
@@ -58,7 +58,7 @@ NXT_EXPORT void nxt_memcpy_upcase(u_char *dst, const u_char *src,
 nxt_inline void *
 nxt_cpymem(void *dst, const void *src, size_t length)
 {
-    return ((u_char *) memcpy(dst, src, length)) + length;
+    return ((char *) memcpy(dst, src, length)) + length;
 }
 
 
@@ -74,38 +74,38 @@ nxt_cpymem(void *dst, const void *src, size_t length)
     strncmp((char *) s1, (char *) s2, length)
 
 
-NXT_EXPORT u_char *nxt_cpystr(u_char *dst, const u_char *src);
-NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t length);
-NXT_EXPORT nxt_int_t nxt_strcasecmp(const u_char *s1, const u_char *s2);
-NXT_EXPORT nxt_int_t nxt_strncasecmp(const u_char *s1, const u_char *s2,
+NXT_EXPORT char *nxt_cpystr(char *dst, const char *src);
+NXT_EXPORT char *nxt_cpystrn(char *dst, const char *src, size_t length);
+NXT_EXPORT nxt_int_t nxt_strcasecmp(const char *s1, const char *s2);
+NXT_EXPORT nxt_int_t nxt_strncasecmp(const char *s1, const char *s2,
     size_t length);
 NXT_EXPORT nxt_int_t nxt_memcasecmp(const void *p1, const void *p2,
     size_t length);
 
-NXT_EXPORT u_char *nxt_memstrn(const u_char *s, const u_char *end,
+NXT_EXPORT char *nxt_memstrn(const char *s, const char *end,
     const char *ss, size_t length);
-NXT_EXPORT u_char *nxt_memcasestrn(const u_char *s, const u_char *end,
+NXT_EXPORT char *nxt_memcasestrn(const char *s, const char *end,
     const char *ss, size_t length);
-NXT_EXPORT u_char *nxt_rmemstrn(const u_char *s, const u_char *end,
+NXT_EXPORT char *nxt_rmemstrn(const char *s, const char *end,
     const char *ss, size_t length);
-NXT_EXPORT size_t nxt_str_strip(const u_char *start, u_char *end);
+NXT_EXPORT size_t nxt_str_strip(const char *start, char *end);
 
 
 typedef struct {
     size_t                    length;
-    u_char                    *start;
+    char                    *start;
 } nxt_str_t;
 
 
-#define nxt_string(str)       { nxt_length(str), (u_char *) str }
-#define nxt_string_zero(str)  { sizeof(str), (u_char *) str }
+#define nxt_string(str)       { nxt_length(str), (char *) str }
+#define nxt_string_zero(str)  { sizeof(str), (char *) str }
 #define nxt_null_string       { 0, NULL }
 
 
 #define nxt_str_set(str, text)                                                \
     do {                                                                      \
         (str)->length = nxt_length(text);                                     \
-        (str)->start = (u_char *) text;                                       \
+        (str)->start = (char *) text;                                       \
     } while (0)
 
 
@@ -148,18 +148,18 @@ NXT_EXPORT char *nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src);
     (((s)->length != 0) && ((s)->start[0] == c))
 
 
-NXT_EXPORT nxt_int_t nxt_strverscmp(const u_char *s1, const u_char *s2);
-NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
+NXT_EXPORT nxt_int_t nxt_strverscmp(const char *s1, const char *s2);
+NXT_EXPORT nxt_bool_t nxt_strvers_match(char *version, char *prefix,
     size_t length);
 
-NXT_EXPORT u_char *nxt_decode_uri(u_char *dst, u_char *src, size_t length);
-NXT_EXPORT u_char *nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length);
-NXT_EXPORT uintptr_t nxt_encode_uri(u_char *dst, u_char *src, size_t length);
-NXT_EXPORT uintptr_t nxt_encode_complex_uri(u_char *dst, u_char *src,
+NXT_EXPORT char *nxt_decode_uri(char *dst, char *src, size_t length);
+NXT_EXPORT char *nxt_decode_uri_plus(char *dst, char *src, size_t length);
+NXT_EXPORT uintptr_t nxt_encode_uri(char *dst, char *src, size_t length);
+NXT_EXPORT uintptr_t nxt_encode_complex_uri(char *dst, char *src,
     size_t length);
-NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(u_char *s, size_t length);
+NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(char *s, size_t length);
 
-NXT_EXPORT ssize_t nxt_base64_decode(u_char *dst, u_char *src, size_t length);
+NXT_EXPORT ssize_t nxt_base64_decode(char *dst, char *src, size_t length);
 
 extern const uint8_t  nxt_hex2int[256];
 

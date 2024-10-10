@@ -104,8 +104,8 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
     EVP_PKEY                    *key;
     nxt_uint_t                  nalloc;
     nxt_cert_t                  *cert, *new_cert;
-    u_char                      *data;
-    const u_char                *data_copy;
+    char                      *data;
+    const char                *data_copy;
     PKCS8_PRIV_KEY_INFO         *p8inf;
     const EVP_PKEY_ASN1_METHOD  *ameth;
 
@@ -493,14 +493,14 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
 {
     BIO               *bio;
     X509              *x509;
-    u_char            *end;
+    char            *end;
     EVP_PKEY          *key;
     ASN1_TIME         *asn1_time;
     nxt_str_t         str;
     nxt_int_t         ret;
     nxt_uint_t        i;
     nxt_conf_value_t  *object, *chain, *element, *value;
-    u_char            buf[256];
+    char            buf[256];
 
     static nxt_str_t key_str = nxt_string("key");
     static nxt_str_t chain_str = nxt_string("chain");
@@ -658,7 +658,7 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
     nxt_uint_t              i, n, count;
     nxt_conf_value_t        *object, *names;
     STACK_OF(GENERAL_NAME)  *alt_names;
-    u_char                  buf[256];
+    char                  buf[256];
 
     static nxt_cert_nid_t  nids[] = {
         { NID_commonName, nxt_string("common_name") },
@@ -772,7 +772,7 @@ nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) *alt_names)
 
         str.length = ASN1_STRING_length(name->d.dNSName);
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
-        str.start = (u_char *) ASN1_STRING_get0_data(name->d.dNSName);
+        str.start = (char *) ASN1_STRING_get0_data(name->d.dNSName);
 #else
         str.start = ASN1_STRING_data(name->d.dNSName);
 #endif
@@ -815,7 +815,7 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 {
     DIR              *dir;
     size_t           size, alloc;
-    u_char           *buf, *p;
+    char           *buf, *p;
     nxt_str_t        name;
     nxt_int_t        ret;
     nxt_file_t       file;
@@ -855,7 +855,7 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
         nxt_debug(task, "readdir(\"%s\"): \"%s\"", rt->certs.start, de->d_name);
 
         name.length = nxt_strlen(de->d_name);
-        name.start = (u_char *) de->d_name;
+        name.start = (char *) de->d_name;
 
         if (nxt_str_eq(&name, ".", 1) || nxt_str_eq(&name, "..", 2)) {
             continue;
@@ -1123,7 +1123,7 @@ nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data)
 void
 nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char               *p;
+    char               *p;
     nxt_int_t            ret;
     nxt_str_t            name;
     nxt_file_t           file;
@@ -1213,7 +1213,7 @@ nxt_cert_store_delete(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp)
 void
 nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char           *p;
+    char           *p;
     nxt_str_t        name;
     nxt_port_t       *ctl_port;
     nxt_runtime_t    *rt;

@@ -30,7 +30,7 @@ nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
     pcre2_general_context  *general_ctx;
     pcre2_compile_context  *compile_ctx;
 
-    static const u_char    alloc_error[] = "memory allocation failed";
+    static const char    alloc_error[] = "memory allocation failed";
 
     general_ctx = pcre2_general_context_create(nxt_pcre2_malloc,
                                                nxt_pcre2_free, mp);
@@ -130,7 +130,7 @@ nxt_regex_match_create(nxt_mp_t *mp, size_t size)
 
 
 nxt_int_t
-nxt_regex_match(nxt_regex_t *re, u_char *subject, size_t length,
+nxt_regex_match(nxt_regex_t *re, char *subject, size_t length,
     nxt_regex_match_t *match)
 {
     nxt_int_t    ret;

@@ -13,9 +13,9 @@
  */
 
 nxt_int_t
-nxt_int_parse(const u_char *p, size_t length)
+nxt_int_parse(const char *p, size_t length)
 {
-    u_char      c;
+    char      c;
     nxt_uint_t  val;
 
     static const nxt_uint_t cutoff = NXT_INT_T_MAX / 10;
@@ -59,9 +59,9 @@ nxt_int_parse(const u_char *p, size_t length)
  */
 
 ssize_t
-nxt_size_t_parse(const u_char *p, size_t length)
+nxt_size_t_parse(const char *p, size_t length)
 {
-    u_char  c;
+    char  c;
     size_t  val;
 
     static const size_t cutoff = NXT_SIZE_T_MAX / 10;
@@ -105,9 +105,9 @@ nxt_size_t_parse(const u_char *p, size_t length)
  */
 
 ssize_t
-nxt_size_parse(const u_char *p, size_t length)
+nxt_size_parse(const char *p, size_t length)
 {
-    u_char      unit;
+    char      unit;
     ssize_t     val, max;
     nxt_uint_t  shift;
 
@@ -164,9 +164,9 @@ nxt_size_parse(const u_char *p, size_t length)
  */
 
 nxt_off_t
-nxt_off_t_parse(const u_char *p, size_t length)
+nxt_off_t_parse(const char *p, size_t length)
 {
-    u_char      c;
+    char      c;
     nxt_uoff_t  val;
 
     static const nxt_uoff_t cutoff = NXT_OFF_T_MAX / 10;
@@ -212,7 +212,7 @@ nxt_off_t_parse(const u_char *p, size_t length)
 nxt_int_t
 nxt_str_int_parse(nxt_str_t *s)
 {
-    u_char      c, *p;
+    char      c, *p;
     size_t      length;
     nxt_uint_t  val;
 
@@ -263,12 +263,12 @@ nxt_str_int_parse(nxt_str_t *s)
  */
 
 double
-nxt_number_parse(const u_char **start, const u_char *end)
+nxt_number_parse(const char **start, const char *end)
 {
-    u_char        c;
+    char        c;
     nxt_bool_t    overflow;
     nxt_uint_t    integral, frac, power;
-    const u_char  *p;
+    const char  *p;
 
     static const nxt_uint_t cutoff = NXT_INT_T_MAX / 10;
     static const nxt_uint_t cutlim = NXT_INT_T_MAX % 10;

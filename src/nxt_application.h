@@ -36,7 +36,7 @@ typedef nxt_int_t (*nxt_application_setup_t)(nxt_task_t *task,
 typedef struct {
     nxt_app_type_t            type;
     char                      *name;
-    u_char                    *version;
+    char                      *version;
     char                      *file;
     nxt_app_module_t          *module;
     nxt_array_t               *mounts;    /* of nxt_fs_mount_t */
@@ -165,7 +165,7 @@ struct nxt_app_module_s {
 
 
 nxt_app_lang_module_t *nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name);
-nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
+nxt_app_type_t nxt_app_parse_type(char *p, size_t length);
 
 NXT_EXPORT extern nxt_str_t  nxt_server;
 extern nxt_app_module_t      nxt_external_module;

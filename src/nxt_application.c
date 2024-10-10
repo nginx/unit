@@ -63,7 +63,7 @@ static void nxt_proto_quit_children(nxt_task_t *task);
 static nxt_process_t *nxt_proto_process_find(nxt_task_t *task, nxt_pid_t pid);
 static void nxt_proto_process_add(nxt_task_t *task, nxt_process_t *process);
 static nxt_process_t *nxt_proto_process_remove(nxt_task_t *task, nxt_pid_t pid);
-static u_char *nxt_cstr_dup(nxt_mp_t *mp, u_char *dst, u_char *src);
+static char *nxt_cstr_dup(nxt_mp_t *mp, char *dst, char *src);
 static void nxt_proto_signal_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_proto_sigterm_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_proto_sigchld_handler(nxt_task_t *task, void *obj, void *data);
@@ -207,7 +207,7 @@ static nxt_buf_t *
 nxt_discovery_modules(nxt_task_t *task, const char *path)
 {
     char            *name;
-    u_char          *p, *end;
+    char          *p, *end;
     size_t          size;
     glob_t          glb;
     nxt_mp_t        *mp;
@@ -310,7 +310,7 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
                             "\"data\": \"%s\"},",
                             mnt[j].src, mnt[j].dst, mnt[j].name, mnt[j].type,
                             mnt[j].flags,
-                            mnt[j].data == NULL ? (u_char *) "" : mnt[j].data);
+                            mnt[j].data == NULL ? (char *) "" : mnt[j].data);
         }
 
         *p++ = ']';
@@ -388,7 +388,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
         module = modules->elts;
         n = modules->nelts;
 
-        version.start = (u_char *) app->version;
+        version.start = (char *) app->version;
         version.length = nxt_strlen(app->version);
 
         for (i = 0; i < n; i++) {
@@ -603,7 +603,7 @@ nxt_proto_start(nxt_task_t *task, nxt_process_data_t *data)
 static void
 nxt_proto_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char              *p;
+    char              *p;
     nxt_int_t           ret;
     nxt_port_t          *port;
     nxt_runtime_t       *rt;
@@ -641,7 +641,7 @@ nxt_proto_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     init->name = (const char *) nxt_app_conf->name.start;
 
-    p = (u_char *) process->name;
+    p = (char *) process->name;
     *p++ = '"';
     p = nxt_cpymem(p, nxt_app_conf->name.start, nxt_app_conf->name.length);
     p = nxt_cpymem(p, "\" application", 13);
@@ -968,7 +968,7 @@ nxt_app_set_logs(void)
     if (app_conf->stdout_log != NULL) {
         nxt_memzero(&file, sizeof(nxt_file_t));
         file.log_level = 1;
-        file.name = (u_char *) app_conf->stdout_log;
+        file.name = (char *) app_conf->stdout_log;
         ret = nxt_file_open(task, &file, O_WRONLY | O_APPEND, O_CREAT, 0666);
         if (ret == NXT_ERROR) {
             return NXT_ERROR;
@@ -981,7 +981,7 @@ nxt_app_set_logs(void)
     if (app_conf->stderr_log != NULL) {
         nxt_memzero(&file, sizeof(nxt_file_t));
         file.log_level = 1;
-        file.name = (u_char *) app_conf->stderr_log;
+        file.name = (char *) app_conf->stderr_log;
         ret = nxt_file_open(task, &file, O_WRONLY | O_APPEND, O_CREAT, 0666);
         if (ret == NXT_ERROR) {
             return NXT_ERROR;
@@ -995,10 +995,10 @@ nxt_app_set_logs(void)
 }
 
 
-static u_char *
-nxt_cstr_dup(nxt_mp_t *mp, u_char *dst, u_char *src)
+static char *
+nxt_cstr_dup(nxt_mp_t *mp, char *dst, char *src)
 {
-    u_char  *p;
+    char  *p;
     size_t  len;
 
     len = nxt_strlen(src);
@@ -1033,7 +1033,7 @@ nxt_app_setup(nxt_task_t *task, nxt_process_t *process)
 nxt_app_lang_module_t *
 nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
 {
-    u_char                 *p, *end, *version;
+    char                 *p, *end, *version;
     size_t                 version_length;
     nxt_uint_t             i, n;
     nxt_app_type_t         type;
@@ -1084,7 +1084,7 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
 
 
 nxt_app_type_t
-nxt_app_parse_type(u_char *p, size_t length)
+nxt_app_parse_type(char *p, size_t length)
 {
     nxt_str_t str;
 
@@ -1205,7 +1205,7 @@ nxt_proto_process_lhq_pid(nxt_lvlhsh_query_t *lhq, nxt_pid_t *pid)
 {
     lhq->key_hash = nxt_murmur_hash2(pid, sizeof(nxt_pid_t));
     lhq->key.length = sizeof(nxt_pid_t);
-    lhq->key.start = (u_char *) pid;
+    lhq->key.start = (char *) pid;
     lhq->proto = &lvlhsh_processes_proto;
 }
 

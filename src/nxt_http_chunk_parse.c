@@ -28,7 +28,7 @@ nxt_buf_t *
 nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
     nxt_buf_t *in)
 {
-    u_char        c, ch;
+    char        c, ch;
     nxt_int_t     ret;
     nxt_buf_t     *b, *out, *next, **tail;
     enum {
@@ -197,7 +197,7 @@ static nxt_int_t
 nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
     nxt_buf_t *in)
 {
-    u_char     *p;
+    char     *p;
     size_t     size;
     nxt_buf_t  *b;
 
