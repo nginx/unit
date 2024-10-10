@@ -262,7 +262,7 @@ jobs:
 
       - name: Configure python3
         run: |
-          sudo ./configure python --config=python3-config
+          sudo ./configure python --config=${Python_ROOT_DIR}/bin/python3-config --lib-path=$LD_LIBRARY_PATH
         if: steps.metadata.outputs.module == 'python'
 
       - name: Make python3
