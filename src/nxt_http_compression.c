@@ -182,6 +182,57 @@ nxt_http_comp_bound(size_t size)
 
 
 nxt_int_t
+nxt_http_comp_compress_app_response(nxt_http_request_t *r)
+{
+    bool                 last;
+    size_t               buf_len, in_len;
+    ssize_t              cbytes;
+    nxt_buf_t            *buf, *b = r->out;
+    nxt_http_comp_ctx_t  *ctx = &compressor_ctx;
+
+    printf("%s: \n", __func__);
+
+    if (ctx->idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        printf("%s: NXT_HTTP_COMP_SCHEME_IDENTITY [skipping/identity]\n",
+               __func__);
+        return NXT_OK;
+    }
+
+    if (b->mem.pos == NULL) {
+        return NXT_OK;
+    }
+
+    in_len = b->mem.free - b->mem.pos;
+
+    last = !b->next || b->next->is_last == 1;
+
+    buf_len = nxt_http_comp_bound(in_len);
+
+    buf = nxt_buf_mem_alloc(r->mem_pool, buf_len, 0);
+    if (nxt_slow_path(buf == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(buf, b, offsetof(nxt_buf_t, mem));
+    buf->data = r->mem_pool;
+
+    cbytes = nxt_http_comp_compress(b->mem.pos, in_len, buf->mem.start,
+                                    buf->mem.end - buf->mem.start, last);
+    printf("%s: cbytes = %ld\n", __func__, cbytes);
+    if (cbytes == -1) {
+        return NXT_ERROR;
+    }
+
+//    if (cbytes != -1) {
+//        b->mem.free = nxt_cpymem(b->mem.pos, tmp->mem.start, cbytes);
+//    }
+    b = buf;
+
+    return NXT_OK;
+}
+
+
+nxt_int_t
 nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
                                        nxt_file_info_t *fi,
                                        size_t static_buf_len,
@@ -401,6 +452,14 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
     static const nxt_str_t  content_encoding_str =
                                     nxt_string("Content-Encoding");
 
+    printf("%s: \n", __func__);
+
+#if 0
+    if (comp_idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        return NXT_OK;
+    }
+#endif
+
     f = nxt_list_add(r->resp.fields);
     if (nxt_slow_path(f == NULL)) {
         return NXT_ERROR;
@@ -414,6 +473,28 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
     f->name_length = content_encoding_str.length;
     f->value = token->start;
     f->value_length = token->length;
+
+    r->resp.content_length = NULL;
+    r->resp.content_length_n = -1;
+
+    if (r->resp.mime_type == NULL) {
+        nxt_http_field_t *f;
+
+        /*
+         * As per RFC 2616 section 4.4 item 3, you should not send
+         * Content-Length when a Transfer-Encoding header is present.
+         */
+        nxt_list_each(f, r->resp.fields) {
+            if (nxt_strcasecmp(f->name,
+                               (const u_char *)"Content-Length") == 0)
+            {
+                printf("%s: Found (%s: %s), marking as 'skip'\n", __func__,
+                       f->name, f->value);
+                f->skip = true;
+                break;
+            }
+        } nxt_list_loop;
+    }
 
     return NXT_OK;
 }

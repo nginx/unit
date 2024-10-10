@@ -4136,6 +4136,8 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_unit_response_t     *resp;
     nxt_request_rpc_data_t  *req_rpc_data;
 
+    printf("%s: \n", __func__);
+
     req_rpc_data = data;
 
     r = req_rpc_data->request;
@@ -4191,8 +4193,11 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     if (r->header_sent) {
         nxt_buf_chain_add(&r->out, b);
-        nxt_http_request_send_body(task, r, NULL);
 
+        /* XXX Do compression here */
+        nxt_http_comp_compress_app_response(r);
+
+        nxt_http_request_send_body(task, r, NULL);
     } else {
         b_size = nxt_buf_is_mem(b) ? nxt_buf_mem_used_size(&b->mem) : 0;
 
@@ -4270,6 +4275,12 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         if (b != NULL) {
             nxt_buf_chain_add(&r->out, b);
+        }
+
+        /* XXX Check compression / modify headers here */
+        ret = nxt_http_comp_check_compression(task, r);
+        if (ret != NXT_OK) {
+            goto fail;
         }
 
         nxt_http_request_header_send(task, r, nxt_http_request_send_body, NULL);
