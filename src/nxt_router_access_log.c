@@ -65,7 +65,6 @@ nxt_int_t
 nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_conf_value_t *value)
 {
-    u_char                        *p;
     nxt_int_t                     ret;
     nxt_str_t                     str;
     nxt_tstr_t                    *format;
@@ -121,18 +120,8 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
         nxt_memcpy(access_log->path.start, alcf.path.start, alcf.path.length);
     }
 
-    str.length = alcf.format.length + 1;
-
-    str.start = nxt_malloc(str.length);
-    if (str.start == NULL) {
-        nxt_alert(task, "failed to allocate log format structure");
-        return NXT_ERROR;
-    }
-
-    p = nxt_cpymem(str.start, alcf.format.start, alcf.format.length);
-    *p = '\n';
-
-    format = nxt_tstr_compile(rtcf->tstr_state, &str, NXT_TSTR_LOGGING);
+    format = nxt_tstr_compile(rtcf->tstr_state, &alcf.format,
+                              NXT_TSTR_LOGGING | NXT_TSTR_NEWLINE);
     if (nxt_slow_path(format == NULL)) {
         return NXT_ERROR;
     }
