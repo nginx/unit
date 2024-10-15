@@ -101,12 +101,18 @@ jobs:
       # https://github.com/actions/runner-images/issues/2821
       - name: Kill mono process
         run: |
-          sudo systemctl stop mono-xsp4.service
-          sudo systemctl mask mono-xsp4.service
-          sudo systemctl status mono-xsp4.service || true
-          PID=$(sudo lsof -t -i :8084)
-          echo "Killing PID $PID"
-          sudo kill -9 $PID
+          set +e
+          sudo systemctl status mono-xsp4.service
+          if [ $? -ne 0 ]; then
+            true
+          else
+            sudo systemctl stop mono-xsp4.service
+            sudo systemctl mask mono-xsp4.service
+            sudo systemctl status mono-xsp4.service
+            PID=$(sudo lsof -t -i :8084)
+            echo "Killing PID $PID"
+            sudo kill -9 $PID
+          fi
 
       ##
       ## njs
