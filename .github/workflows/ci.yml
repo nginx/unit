@@ -360,18 +360,15 @@ jobs:
 
       - name: Install pytest
         run: |
-          if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
-            pip install pytest
-          else
-            sudo -H pip install pytest
-          fi
+          sudo apt install -y python3-pytest
+
         if: steps.metadata.outputs.module != 'wasm'
 
       - name: Run ${{ steps.metadata.outputs.module }} tests
         run: |
           if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
-            pytest --print-log ${{ steps.metadata.outputs.testpath }}
+            pytest-3 --print-log ${{ steps.metadata.outputs.testpath }}
           else
-            sudo -E pytest --print-log ${{ steps.metadata.outputs.testpath }}
+            sudo -E pytest-3 --print-log ${{ steps.metadata.outputs.testpath }}
           fi
         if: steps.metadata.outputs.module != 'wasm'
