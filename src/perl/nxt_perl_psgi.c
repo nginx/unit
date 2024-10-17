@@ -409,9 +409,6 @@ nxt_perl_psgi_module_create(const char *script)
 
     static const nxt_str_t  prefix = nxt_string(
         "package NGINX::Unit::Sandbox;"
-        "sub new {"
-        "   return bless {}, $_[0];"
-        "}"
         "{my $app = do \""
     );
 
