@@ -7,6 +7,10 @@
 #include <nxt_router.h>
 #include <nxt_http.h>
 
+#if(NXT_HAVE_OTEL)
+#include <nxt_otel.h>
+#endif
+
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
@@ -319,6 +323,10 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
 
+#if (NXT_HAVE_OTEL)
+    nxt_otel_test_and_call_state(task, r);
+#endif
+
     r->state = &nxt_http_request_body_state;
 
     skcf = r->conf->socket_conf;
@@ -589,6 +597,10 @@ nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+#if (NXT_HAVE_OTEL)
+    nxt_otel_test_and_call_state(task, r);
+#endif
 
     if (r->chunked) {
         ret = nxt_http_request_chunked_transform(r);
