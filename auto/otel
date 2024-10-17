@@ -1,0 +1,27 @@
+
+# Copyright (C) NGINX, Inc.
+
+if [ $NXT_DEBUG = YES ]; then
+    NXT_OTEL_LIB_DIR=src/otel/
+    NXT_OTEL_LIB_LOC=src/otel/target/debug/libotel.a
+    NXT_OTEL_BUILD_FLAG=""
+else
+    NXT_OTEL_LIB_DIR=src/otel/
+    NXT_OTEL_LIB_LOC=src/otel/target/release/libotel.a
+    NXT_OTEL_BUILD_FLAG="--release"
+fi
+
+if [ $NXT_OTEL ]; then
+    NXT_OTEL_LIBS="-lssl -lcrypto"
+    if [ $(which pkgconf) ]; then
+        NXT_OTEL_LIBS="$(pkgconf openssl --cflags --libs)"
+    elif [ $(which pkg-config) ]; then
+        NXT_OTEL_LIBS="$(pkg-config openssl --cflags --libs)"
+    fi
+    NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS $NXT_OTEL_LIBS"
+    cat << END >> $NXT_AUTO_CONFIG_H
+#ifndef NXT_HAVE_OTEL
+#define NXT_HAVE_OTEL 1
+#endif
+END
+fi

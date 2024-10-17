@@ -283,7 +283,15 @@ nxt_http_request_create(nxt_task_t *task)
     task->thread->engine->requests_cnt++;
 
     r->tstr_cache.var.pool = mp;
-
+#if (NXT_HAVE_OTEL)
+    if (nxt_otel_rs_is_init()) {
+        r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
+        if (r->otel == NULL) {
+            goto fail;
+        }
+        r->otel->status = NXT_OTEL_INIT_STATE;
+    }
+#endif
     return r;
 
 fail:

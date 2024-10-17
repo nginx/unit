@@ -27,6 +27,7 @@ NXT_CYASSL=NO
 NXT_POLARSSL=NO
 
 NXT_NJS=NO
+NXT_OTEL=NO
 
 NXT_TEST_BUILD_EPOLL=NO
 NXT_TEST_BUILD_EVENTPORT=NO
@@ -112,6 +113,7 @@ do
         --polarssl)                      NXT_POLARSSL=YES                    ;;
 
         --njs)                           NXT_NJS=YES                         ;;
+        --otel)                          NXT_OTEL=YES                        ;;
 
         --test-build-epoll)              NXT_TEST_BUILD_EPOLL=YES            ;;
         --test-build-eventport)          NXT_TEST_BUILD_EVENTPORT=YES        ;;

@@ -7,6 +7,11 @@
 
 $echo "creating $NXT_MAKEFILE"
 
+if [ $NXT_OTEL = "NO" ];  then
+    NXT_OTEL_LIB_LOC=
+    NXT_OTEL_BUILD_FLAG=
+    NXT_OTEL_LIB_DIR=
+fi
 
 cat << END > $NXT_MAKEFILE
 
@@ -138,14 +143,14 @@ cat << END >> $NXT_MAKEFILE
 
 libnxt:	$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
 
-$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS)
+$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS) $NXT_OTEL_LIB_LOC
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_SHARED_LOCAL_LINK) -o \$@ \$(NXT_LIB_OBJS) \\
-		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS $NXT_OTEL_LIB_LOC
 
-$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS)
+$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS) $NXT_OTEL_LIB_LOC
 	\$(PP_AR) \$@
-	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS)
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS) $NXT_OTEL_LIB_LOC
 
 $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC: \$(NXT_LIB_UNIT_OBJS) \\
 		$NXT_BUILD_DIR/share/pkgconfig/unit.pc \\
@@ -359,11 +364,11 @@ $echo >> $NXT_MAKEFILE
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/sbin/$NXT_DAEMON:	$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
-				\$(NXT_OBJS)
+				\$(NXT_OBJS) $NXT_OTEL_LIB_LOC
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o \$@ \$(CFLAGS) \\
 		\$(NXT_OBJS) $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
-		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS $NXT_OTEL_LIB_LOC
 
 END
 
@@ -535,10 +540,6 @@ cat << END > Makefile
 
 include $NXT_MAKEFILE
 
-.PHONY: clean
-clean:
-		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
-
 .PHONY: help
 help:
 	@echo "Variables to control make/build behaviour:"
@@ -551,4 +552,22 @@ help:
 	@echo
 	@echo "  Variables can be combined."
 
+.PHONY: clean
+clean:
+		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
 END
+
+if [ $NXT_OTEL = YES ]; then
+    cat << END >> Makefile
+		cd "$NXT_OTEL_LIB_DIR" && cargo clean
+END
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_OTEL_LIB_LOC:
+	cd src/otel/ && \
+	cargo build $NXT_OTEL_BUILD_FLAG && \
+	cd ../../
+
+END
+fi
