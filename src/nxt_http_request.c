@@ -6,6 +6,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_http_compression.h>
 
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
@@ -308,6 +309,8 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
     nxt_int_t           ret;
     nxt_socket_conf_t   *skcf;
     nxt_http_request_t  *r;
+
+    printf("%s: \n", __func__);
 
     r = obj;
 
@@ -677,6 +680,8 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_field_t   *server, *date, *content_length;
     nxt_socket_conf_t  *skcf;
 
+    printf("%s: \n", __func__);
+
     ret = nxt_http_set_headers(r);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
@@ -767,6 +772,10 @@ nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
 void
 nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
+    printf("%s: sending [%lu] bytes\n", __func__, nxt_buf_mem_size(&out->mem));
+
+//    nxt_http_comp_compress_response(out);
+
     if (nxt_fast_path(r->proto.any != NULL)) {
         nxt_http_proto[r->protocol].send(task, r, out);
     }
