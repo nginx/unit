@@ -109,6 +109,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**delete_settings_http_static_mime_types**](docs/ConfigApi.md#delete_settings_http_static_mime_types) | **Delete** /config/settings/http/static/mime_types | Delete the mime_types object
 *ConfigApi* | [**delete_settings_log_route**](docs/ConfigApi.md#delete_settings_log_route) | **Delete** /config/settings/http/log_route | Delete the log_route option
 *ConfigApi* | [**delete_settings_server_version**](docs/ConfigApi.md#delete_settings_server_version) | **Delete** /config/settings/http/server_version | Delete the server_version option
+*ConfigApi* | [**delete_settings_telemetry**](docs/ConfigApi.md#delete_settings_telemetry) | **Delete** /config/settings/telemetry | Delete the telemetry object
 *ConfigApi* | [**get_access_log**](docs/ConfigApi.md#get_access_log) | **Get** /config/access_log | Retrieve the access log
 *ConfigApi* | [**get_access_log_format**](docs/ConfigApi.md#get_access_log_format) | **Get** /config/access_log/format | Retrieve the access log format option
 *ConfigApi* | [**get_access_log_path**](docs/ConfigApi.md#get_access_log_path) | **Get** /config/access_log/path | Retrieve the access log path option
@@ -141,6 +142,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**get_settings_http_static_mime_types**](docs/ConfigApi.md#get_settings_http_static_mime_types) | **Get** /config/settings/http/static/mime_types | Retrieve the mime_types object from static settings
 *ConfigApi* | [**get_settings_log_route**](docs/ConfigApi.md#get_settings_log_route) | **Get** /config/settings/http/log_route | Retrieve the log_route option from http settings
 *ConfigApi* | [**get_settings_server_version**](docs/ConfigApi.md#get_settings_server_version) | **Get** /config/settings/http/server_version | Retrieve the server_version option from http settings
+*ConfigApi* | [**get_settings_telemetry**](docs/ConfigApi.md#get_settings_telemetry) | **Get** /config/settings/telemetry | Retrieve the `telemetry` object from settings
 *ConfigApi* | [**insert_listener_forwarded_source**](docs/ConfigApi.md#insert_listener_forwarded_source) | **Post** /config/listeners/{listenerName}/forwarded/source | Add a new source array item in a listener
 *ConfigApi* | [**insert_listener_tls_certificate**](docs/ConfigApi.md#insert_listener_tls_certificate) | **Post** /config/listeners/{listenerName}/tls/certificate | Add a new certificate array item in a listener
 *ConfigApi* | [**insert_listener_tls_session_ticket**](docs/ConfigApi.md#insert_listener_tls_session_ticket) | **Post** /config/listeners/{listenerName}/tls/session/tickets | Add a new tickets array item in a listener
@@ -148,6 +150,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**list_listener_tls_certificates**](docs/ConfigApi.md#list_listener_tls_certificates) | **Get** /config/listeners/{listenerName}/tls/certificate | Retrieve the certificate option in a listener
 *ConfigApi* | [**list_listener_tls_conf_commands**](docs/ConfigApi.md#list_listener_tls_conf_commands) | **Get** /config/listeners/{listenerName}/tls/conf_commands | Retrieve the conf_commands object in a listener
 *ConfigApi* | [**list_listener_tls_session_tickets**](docs/ConfigApi.md#list_listener_tls_session_tickets) | **Get** /config/listeners/{listenerName}/tls/session/tickets | Retrieve the tickets option in a listener
+*ConfigApi* | [**put_settings_telemetry**](docs/ConfigApi.md#put_settings_telemetry) | **Put** /config/settings/telemetry | Create or update the `telemetry` object in settings
 *ConfigApi* | [**update_access_log**](docs/ConfigApi.md#update_access_log) | **Put** /config/access_log | Create or overwrite the access log
 *ConfigApi* | [**update_access_log_format**](docs/ConfigApi.md#update_access_log_format) | **Put** /config/access_log/format | Create or overwrite the access log format
 *ConfigApi* | [**update_access_log_path**](docs/ConfigApi.md#update_access_log_path) | **Put** /config/access_log/path | Create or overwrite the access log path
@@ -249,6 +252,7 @@ Class | Method | HTTP request | Description
 *SettingsApi* | [**delete_settings_http_static_mime_types**](docs/SettingsApi.md#delete_settings_http_static_mime_types) | **Delete** /config/settings/http/static/mime_types | Delete the mime_types object
 *SettingsApi* | [**delete_settings_log_route**](docs/SettingsApi.md#delete_settings_log_route) | **Delete** /config/settings/http/log_route | Delete the log_route option
 *SettingsApi* | [**delete_settings_server_version**](docs/SettingsApi.md#delete_settings_server_version) | **Delete** /config/settings/http/server_version | Delete the server_version option
+*SettingsApi* | [**delete_settings_telemetry**](docs/SettingsApi.md#delete_settings_telemetry) | **Delete** /config/settings/telemetry | Delete the telemetry object
 *SettingsApi* | [**get_settings**](docs/SettingsApi.md#get_settings) | **Get** /config/settings | Retrieve the settings object
 *SettingsApi* | [**get_settings_discard_unsafe_fields**](docs/SettingsApi.md#get_settings_discard_unsafe_fields) | **Get** /config/settings/http/discard_unsafe_fields | Retrieve the discard_unsafe_fields option from http settings
 *SettingsApi* | [**get_settings_http**](docs/SettingsApi.md#get_settings_http) | **Get** /config/settings/http | Retrieve the http object from settings
@@ -262,6 +266,8 @@ Class | Method | HTTP request | Description
 *SettingsApi* | [**get_settings_http_static_mime_types**](docs/SettingsApi.md#get_settings_http_static_mime_types) | **Get** /config/settings/http/static/mime_types | Retrieve the mime_types object from static settings
 *SettingsApi* | [**get_settings_log_route**](docs/SettingsApi.md#get_settings_log_route) | **Get** /config/settings/http/log_route | Retrieve the log_route option from http settings
 *SettingsApi* | [**get_settings_server_version**](docs/SettingsApi.md#get_settings_server_version) | **Get** /config/settings/http/server_version | Retrieve the server_version option from http settings
+*SettingsApi* | [**get_settings_telemetry**](docs/SettingsApi.md#get_settings_telemetry) | **Get** /config/settings/telemetry | Retrieve the `telemetry` object from settings
+*SettingsApi* | [**put_settings_telemetry**](docs/SettingsApi.md#put_settings_telemetry) | **Put** /config/settings/telemetry | Create or update the `telemetry` object in settings
 *SettingsApi* | [**update_settings**](docs/SettingsApi.md#update_settings) | **Put** /config/settings | Create or overwrite the settings object
 *SettingsApi* | [**update_settings_discard_unsafe_fields**](docs/SettingsApi.md#update_settings_discard_unsafe_fields) | **Put** /config/settings/http/discard_unsafe_fields | Create or overwrite the discard_unsafe_fields option
 *SettingsApi* | [**update_settings_http**](docs/SettingsApi.md#update_settings_http) | **Put** /config/settings/http | Create or overwrite the http object
@@ -389,6 +395,7 @@ Class | Method | HTTP request | Description
  - [ConfigSettingsHttp](docs/ConfigSettingsHttp.md)
  - [ConfigSettingsHttpStatic](docs/ConfigSettingsHttpStatic.md)
  - [ConfigSettingsHttpStaticMimeType](docs/ConfigSettingsHttpStaticMimeType.md)
+ - [ConfigSettingsTelemetry](docs/ConfigSettingsTelemetry.md)
  - [Status](docs/Status.md)
  - [StatusApplicationsApp](docs/StatusApplicationsApp.md)
  - [StatusApplicationsAppProcesses](docs/StatusApplicationsAppProcesses.md)
