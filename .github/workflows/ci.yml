@@ -266,7 +266,8 @@ jobs:
 
       - name: Configure python3
         run: |
-          sudo ./configure python --config=python3-config
+          sudo ./configure python --config=${Python_ROOT_DIR}/bin/python3-config --lib-path=$LD_LIBRARY_PATH
+          cat build/include/nxt_python3_mounts.h
         if: steps.metadata.outputs.module == 'python'
 
       - name: Make python3
@@ -351,10 +352,10 @@ jobs:
           namei -l ${{ github.workspace }}
 
       # Install python3 if not present
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3'
-        if: steps.metadata.outputs.module != 'wasm'
+#      - uses: actions/setup-python@v5
+#        with:
+#          python-version: '3'
+#        if: steps.metadata.outputs.module != 'wasm'
 
       - name: Install pytest
         run: |
