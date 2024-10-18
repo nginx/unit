@@ -52,6 +52,8 @@ cat << END
 
   --njs                enable njs library usage
 
+  --otel               enable otel library usage
+
   --debug              enable debug logging
 
   --fuzz=ENGINE        enable fuzz testing

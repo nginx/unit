@@ -9,6 +9,9 @@
 
 #include <nxt_regex.h>
 
+#if (NXT_HAVE_OTEL)
+#include <nxt_otel.h>
+#endif
 
 typedef enum {
     NXT_HTTP_UNSET = -1,
@@ -189,6 +192,10 @@ struct nxt_http_request_s {
     nxt_work_t                      err_work;
 
     nxt_http_response_t             resp;
+
+#if (NXT_HAVE_OTEL)
+    nxt_otel_state_t                *otel;
+#endif
 
     nxt_http_status_t               status:16;
 

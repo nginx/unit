@@ -179,6 +179,10 @@ if [ $NXT_NJS != NO ]; then
     . auto/njs
 fi
 
+if [ $NXT_OTEL != NO ]; then
+    . auto/otel
+fi
+
 . auto/make
 . auto/fuzzing
 . auto/summary
