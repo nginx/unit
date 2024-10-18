@@ -10,8 +10,8 @@
 
 typedef struct nxt_script_s  nxt_script_t;
 
-nxt_script_t *nxt_script_new(nxt_task_t *task, nxt_str_t *name, u_char *data,
-    size_t size, u_char *error);
+nxt_script_t *nxt_script_new(nxt_task_t *task, nxt_str_t *name, char *data,
+    size_t size, char *error);
 void nxt_script_destroy(nxt_script_t *script);
 
 void nxt_script_info_init(nxt_task_t *task, nxt_array_t *scripts);

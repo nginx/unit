@@ -1433,7 +1433,7 @@ nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
-    u_char     error[NXT_MAX_ERROR_STR];
+    char     error[NXT_MAX_ERROR_STR];
 
     vldt->tstr_state = nxt_tstr_state_new(vldt->pool, 1);
     if (nxt_slow_path(vldt->tstr_state == NULL)) {
@@ -1469,11 +1469,11 @@ static nxt_int_t
 nxt_conf_vldt_type(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_conf_value_t *value, nxt_conf_vldt_type_t type)
 {
-    u_char      *p;
+    char      *p;
     nxt_str_t   expected;
     nxt_bool_t  comma;
     nxt_uint_t  value_type, n, t;
-    u_char      buf[nxt_length(NXT_CONF_VLDT_ANY_TYPE_STR)];
+    char      buf[nxt_length(NXT_CONF_VLDT_ANY_TYPE_STR)];
 
     static const nxt_str_t  type_name[] = {
         nxt_string("a null"),
@@ -1543,10 +1543,10 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, const nxt_str_t *name,
 static nxt_int_t
 nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
 {
-    u_char   *p, *end;
+    char   *p, *end;
     size_t   size;
     va_list  args;
-    u_char   error[NXT_MAX_ERROR_STR];
+    char   error[NXT_MAX_ERROR_STR];
 
     va_start(args, fmt);
     end = nxt_vsprintf(error, error + NXT_MAX_ERROR_STR, fmt, args);
@@ -1581,7 +1581,7 @@ static nxt_int_t
 nxt_conf_vldt_var(nxt_conf_validation_t *vldt, const nxt_str_t *name,
     nxt_str_t *value)
 {
-    u_char  error[NXT_MAX_ERROR_STR];
+    char  error[NXT_MAX_ERROR_STR];
 
     if (nxt_tstr_test(vldt->tstr_state, value, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
@@ -2323,7 +2323,7 @@ static nxt_int_t
 nxt_conf_vldt_match_encoded_patterns_set_member(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value)
 {
-    u_char  *p, *end;
+    char  *p, *end;
 
     if (nxt_slow_path(name->length == 0)) {
         return nxt_conf_vldt_error(vldt, "The \"match\" pattern objects must "
@@ -2373,7 +2373,7 @@ static nxt_int_t
 nxt_conf_vldt_match_encoded_pattern(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    u_char     *p, *end;
+    char     *p, *end;
     nxt_int_t  ret;
     nxt_str_t  pattern;
 

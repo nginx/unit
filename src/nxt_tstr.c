@@ -78,7 +78,7 @@ nxt_tstr_t *
 nxt_tstr_compile(nxt_tstr_state_t *state, const nxt_str_t *str,
     nxt_tstr_flags_t flags)
 {
-    u_char      *p;
+    char      *p;
     nxt_tstr_t  *tstr;
     nxt_bool_t  strz;
 
@@ -142,9 +142,9 @@ nxt_tstr_compile(nxt_tstr_state_t *state, const nxt_str_t *str,
 
 
 nxt_int_t
-nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
+nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, char *error)
 {
-    u_char  *p;
+    char  *p;
 
     if (nxt_tstr_is_js(str)) {
 #if (NXT_HAVE_NJS)
@@ -170,7 +170,7 @@ nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
 
 
 nxt_int_t
-nxt_tstr_state_done(nxt_tstr_state_t *state, u_char *error)
+nxt_tstr_state_done(nxt_tstr_state_t *state, char *error)
 {
 #if (NXT_HAVE_NJS)
     if (!state->test) {

@@ -20,7 +20,7 @@
 
 nxt_inline void nxt_random_start_schedule(nxt_random_t *r);
 static void nxt_random_stir(nxt_random_t *r);
-static void nxt_random_add(nxt_random_t *r, const u_char *key, uint32_t len);
+static void nxt_random_add(nxt_random_t *r, const char *key, uint32_t len);
 nxt_inline uint8_t nxt_random_byte(nxt_random_t *r);
 
 
@@ -55,7 +55,7 @@ nxt_random_stir(nxt_random_t *r)
     struct timeval  tv;
     union {
         uint32_t    value[4];
-        u_char      bytes[NXT_RANDOM_KEY_SIZE];
+        char      bytes[NXT_RANDOM_KEY_SIZE];
     } key;
 
 #if (NXT_HAVE_GETRANDOM)
@@ -115,7 +115,7 @@ nxt_random_stir(nxt_random_t *r)
 
 
 static void
-nxt_random_add(nxt_random_t *r, const u_char *key, uint32_t len)
+nxt_random_add(nxt_random_t *r, const char *key, uint32_t len)
 {
     uint8_t   val;
     uint32_t  n;
@@ -188,7 +188,7 @@ nxt_random_test(nxt_thread_t *thr)
 
     r.count = 400000;
 
-    nxt_random_add(&r, (u_char *) "arc4random", nxt_length("arc4random"));
+    nxt_random_add(&r, (char *) "arc4random", nxt_length("arc4random"));
 
     /*
      * Test arc4random() numbers.

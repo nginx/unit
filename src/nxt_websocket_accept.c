@@ -9,10 +9,10 @@
 
 
 static void
-nxt_websocket_base64_encode(u_char *d, const uint8_t *s, size_t len)
+nxt_websocket_base64_encode(char *d, const uint8_t *s, size_t len)
 {
-    u_char               c0, c1, c2;
-    static const u_char  basis[] =
+    char               c0, c1, c2;
+    static const char  basis[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     while (len > 2) {
@@ -51,16 +51,16 @@ nxt_websocket_base64_encode(u_char *d, const uint8_t *s, size_t len)
 
 
 void
-nxt_websocket_accept(u_char *accept, const void *key)
+nxt_websocket_accept(char *accept, const void *key)
 {
-    u_char             bin_accept[20];
+    uint8_t            bin_accept[20];
     nxt_sha1_t         ctx;
     static const char  accept_guid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
     nxt_sha1_init(&ctx);
     nxt_sha1_update(&ctx, key, 24);
     nxt_sha1_update(&ctx, accept_guid, nxt_length(accept_guid));
-    nxt_sha1_final(bin_accept, &ctx);
+    nxt_sha1_final((char *)bin_accept, &ctx);
 
     nxt_websocket_base64_encode(accept, bin_accept, sizeof(bin_accept));
 }

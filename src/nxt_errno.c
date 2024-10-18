@@ -22,9 +22,9 @@
  *    causing false bug reports.
  */
 
-static u_char *nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr,
+static char *nxt_bootstrap_strerror(nxt_err_t err, char *errstr,
     size_t size);
-static u_char *nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size);
+static char *nxt_runtime_strerror(nxt_err_t err, char *errstr, size_t size);
 
 
 nxt_strerror_t     nxt_strerror = nxt_bootstrap_strerror;
@@ -36,7 +36,7 @@ nxt_int_t
 nxt_strerror_start(void)
 {
     char        *msg;
-    u_char      *p;
+    char      *p;
     size_t      size, length, n;
     nxt_uint_t  err, invalid;
 
@@ -129,15 +129,15 @@ nxt_strerror_start(void)
 }
 
 
-static u_char *
-nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size)
+static char *
+nxt_bootstrap_strerror(nxt_err_t err, char *errstr, size_t size)
 {
-    return nxt_cpystrn(errstr, (u_char *) strerror(err), size);
+    return nxt_cpystrn(errstr, (char *) strerror(err), size);
 }
 
 
-static u_char *
-nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size)
+static char *
+nxt_runtime_strerror(nxt_err_t err, char *errstr, size_t size)
 {
     nxt_str_t   *msg;
     nxt_uint_t  n;

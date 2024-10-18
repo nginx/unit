@@ -73,7 +73,7 @@ nxt_port_rpc_lhq_stream(nxt_lvlhsh_query_t *lhq, uint32_t *stream)
 {
     lhq->key_hash = nxt_murmur_hash2(stream, sizeof(*stream));
     lhq->key.length = sizeof(*stream);
-    lhq->key.start = (u_char *) stream;
+    lhq->key.start = (char *) stream;
     lhq->proto = &lvlhsh_rpc_reg_proto;
 }
 
@@ -83,7 +83,7 @@ nxt_port_rpc_lhq_peer(nxt_lvlhsh_query_t *lhq, nxt_pid_t *peer)
 {
     lhq->key_hash = nxt_murmur_hash2(peer, sizeof(*peer));
     lhq->key.length = sizeof(*peer);
-    lhq->key.start = (u_char *) peer;
+    lhq->key.start = (char *) peer;
     lhq->proto = &lvlhsh_rpc_reg_proto;
 }
 

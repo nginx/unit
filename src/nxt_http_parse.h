@@ -21,27 +21,27 @@ typedef struct nxt_http_fields_hash_s    nxt_http_fields_hash_t;
 
 
 typedef union {
-    u_char                    str[8];
+    char                    str[8];
     uint64_t                  ui64;
 
     struct {
-        u_char                prefix[5];
-        u_char                major;
-        u_char                point;
-        u_char                minor;
+        char                prefix[5];
+        char                major;
+        char                point;
+        char                minor;
     } s;
 } nxt_http_ver_t;
 
 
 struct nxt_http_request_parse_s {
     nxt_int_t                 (*handler)(nxt_http_request_parse_t *rp,
-                                         u_char **pos, const u_char *end);
+                                         char **pos, const char *end);
 
     nxt_str_t                 method;
 
-    u_char                    *target_start;
-    u_char                    *target_end;
-    u_char                    *request_line_end;
+    char                    *target_start;
+    char                    *target_end;
+    char                    *request_line_end;
 
     nxt_str_t                 path;
     nxt_str_t                 args;
@@ -90,8 +90,8 @@ struct nxt_http_field_s {
     uint8_t                   hopbyhop:1;
     uint8_t                   name_length;
     uint32_t                  value_length;
-    u_char                    *name;
-    u_char                    *value;
+    char                    *name;
+    char                    *value;
 };
 
 

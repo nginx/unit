@@ -34,7 +34,7 @@ nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
         return NXT_ERROR;
     }
 
-    ret = nxt_fs_mkdir_p((const u_char *) cgprocs, 0777);
+    ret = nxt_fs_mkdir_p((const char *) cgprocs, 0777);
     if (nxt_slow_path(ret == NXT_ERROR)) {
         return NXT_ERROR;
     }

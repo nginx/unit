@@ -44,13 +44,13 @@ typedef struct cmsgcred     nxt_socket_cred_t;
 
 typedef struct {
     size_t  size;
-    u_char  buf[NXT_OOB_RECV_SIZE];
+    char  buf[NXT_OOB_RECV_SIZE];
 } nxt_recv_oob_t;
 
 
 typedef struct {
     size_t  size;
-    u_char  buf[NXT_OOB_SEND_SIZE];
+    char  buf[NXT_OOB_SEND_SIZE];
 } nxt_send_oob_t;
 
 

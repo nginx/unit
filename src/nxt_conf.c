@@ -47,15 +47,15 @@ typedef struct nxt_conf_object_s  nxt_conf_object_t;
 struct nxt_conf_value_s {
     union {
         uint8_t               boolean;  /* 1 bit. */
-        u_char                number[NXT_CONF_MAX_NUMBER_LEN + 1];
+        char                number[NXT_CONF_MAX_NUMBER_LEN + 1];
 
         struct {
-            u_char            start[NXT_CONF_MAX_SHORT_STRING];
+            char            start[NXT_CONF_MAX_SHORT_STRING];
             uint8_t           length;
         } str;
 
         struct {
-            u_char            *start;
+            char            *start;
             uint32_t          length;
         } nxt_packed string;
 
@@ -93,34 +93,34 @@ struct nxt_conf_op_s {
 
 
 typedef struct {
-    u_char                    *start;
-    u_char                    *end;
+    char                    *start;
+    char                    *end;
     nxt_bool_t                last;
-    u_char                    buf[NXT_CONF_MAX_TOKEN_LEN];
+    char                    buf[NXT_CONF_MAX_TOKEN_LEN];
 } nxt_conf_path_parse_t;
 
 
 static nxt_int_t nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
     nxt_str_t *token);
 
-static u_char *nxt_conf_json_skip_space(u_char *start, const u_char *end);
-static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end, nxt_conf_json_error_t *error);
-static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end, nxt_conf_json_error_t *error);
+static char *nxt_conf_json_skip_space(char *start, const char *end);
+static char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
+    char *start, char *end, nxt_conf_json_error_t *error);
+static char *nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value,
+    char *start, char *end, nxt_conf_json_error_t *error);
 static nxt_int_t nxt_conf_object_hash_add(nxt_mp_t *mp,
     nxt_lvlhsh_t *lvlhsh, nxt_conf_object_member_t *member);
 static nxt_int_t nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq,
     void *data);
 static void *nxt_conf_object_hash_alloc(void *data, size_t size);
 static void nxt_conf_object_hash_free(void *data, void *p);
-static u_char *nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end, nxt_conf_json_error_t *error);
-static u_char *nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end, nxt_conf_json_error_t *error);
-static u_char *nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end, nxt_conf_json_error_t *error);
-static void nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
+static char *nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value,
+    char *start, char *end, nxt_conf_json_error_t *error);
+static char *nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value,
+    char *start, char *end, nxt_conf_json_error_t *error);
+static char *nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value,
+    char *start, char *end, nxt_conf_json_error_t *error);
+static void nxt_conf_json_parse_error(nxt_conf_json_error_t *error, char *pos,
     const char *detail);
 
 static nxt_int_t nxt_conf_copy_value(nxt_mp_t *mp, const nxt_conf_op_t *op,
@@ -131,27 +131,27 @@ static nxt_int_t nxt_conf_copy_object(nxt_mp_t *mp, const nxt_conf_op_t *op,
     nxt_conf_value_t *dst, const nxt_conf_value_t *src);
 
 static size_t nxt_conf_json_string_length(const nxt_conf_value_t *value);
-static u_char *nxt_conf_json_print_string(u_char *p,
+static char *nxt_conf_json_print_string(char *p,
     const nxt_conf_value_t *value);
 static size_t nxt_conf_json_array_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_print_array(u_char *p,
+static char *nxt_conf_json_print_array(char *p,
     const nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty);
 static size_t nxt_conf_json_object_length(const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_print_object(u_char *p,
+static char *nxt_conf_json_print_object(char *p,
     const nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty);
 
-static size_t nxt_conf_json_escape_length(u_char *p, size_t size);
-static u_char *nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
+static size_t nxt_conf_json_escape_length(char *p, size_t size);
+static char *nxt_conf_json_escape(char *dst, char *src, size_t size);
 
 
 #define nxt_conf_json_newline(p)                                              \
     ((p)[0] = '\r', (p)[1] = '\n', (p) + 2)
 
 
-nxt_inline u_char *
-nxt_conf_json_indentation(u_char *p, uint32_t level)
+nxt_inline char *
+nxt_conf_json_indentation(char *p, uint32_t level)
 {
     while (level) {
         *p++ = '\t';
@@ -167,11 +167,11 @@ nxt_conf_get_string(const nxt_conf_value_t *value, nxt_str_t *str)
 {
     if (value->type == NXT_CONF_VALUE_SHORT_STRING) {
         str->length = value->u.str.length;
-        str->start = (u_char *) value->u.str.start;
+        str->start = (char *) value->u.str.start;
 
     } else {
         str->length = value->u.string.length;
-        str->start = (u_char *) value->u.string.start;
+        str->start = (char *) value->u.string.start;
     }
 }
 
@@ -337,7 +337,7 @@ void
 nxt_conf_set_member_integer(nxt_conf_value_t *object, const nxt_str_t *name,
     int64_t value, uint32_t index)
 {
-    u_char                    *p, *end;
+    char                    *p, *end;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
@@ -519,7 +519,7 @@ nxt_conf_get_path(nxt_conf_value_t *value, const nxt_str_t *path)
 static nxt_int_t
 nxt_conf_path_next_token(nxt_conf_path_parse_t *parse, nxt_str_t *token)
 {
-    u_char  *p, *start, *end;
+    char  *p, *start, *end;
     size_t  length;
 
     start = parse->start + 1;
@@ -1253,10 +1253,10 @@ nxt_conf_copy_object(nxt_mp_t *mp, const nxt_conf_op_t *op,
 
 
 nxt_conf_value_t *
-nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
+nxt_conf_json_parse(nxt_mp_t *mp, char *start, char *end,
     nxt_conf_json_error_t *error)
 {
-    u_char            *p;
+    char            *p;
     nxt_conf_value_t  *value;
 
     value = nxt_mp_get(mp, sizeof(nxt_conf_value_t));
@@ -1298,10 +1298,10 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 }
 
 
-static u_char *
-nxt_conf_json_skip_space(u_char *start, const u_char *end)
+static char *
+nxt_conf_json_skip_space(char *start, const char *end)
 {
-    u_char  *p, ch;
+    char  *p, ch;
 
     enum {
         sw_normal = 0,
@@ -1383,11 +1383,11 @@ nxt_conf_json_skip_space(u_char *start, const u_char *end)
 }
 
 
-static u_char *
-nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end, nxt_conf_json_error_t *error)
+static char *
+nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, char *start,
+    char *end, nxt_conf_json_error_t *error)
 {
-    u_char  ch, *p;
+    char  ch, *p;
 
     ch = *start;
 
@@ -1493,11 +1493,11 @@ static const nxt_lvlhsh_proto_t  nxt_conf_object_hash_proto
 };
 
 
-static u_char *
-nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end, nxt_conf_json_error_t *error)
+static char *
+nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, char *start,
+    char *end, nxt_conf_json_error_t *error)
 {
-    u_char                    *p, *name;
+    char                    *p, *name;
     nxt_mp_t                  *mp_temp;
     nxt_int_t                 rc;
     nxt_uint_t                count;
@@ -1720,11 +1720,11 @@ nxt_conf_object_hash_free(void *data, void *p)
 }
 
 
-static u_char *
-nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end, nxt_conf_json_error_t *error)
+static char *
+nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, char *start,
+    char *end, nxt_conf_json_error_t *error)
 {
-    u_char            *p;
+    char            *p;
     nxt_mp_t          *mp_temp;
     nxt_uint_t        count;
     nxt_list_t        *list;
@@ -1828,11 +1828,11 @@ error:
 }
 
 
-static u_char *
-nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end, nxt_conf_json_error_t *error)
+static char *
+nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, char *start,
+    char *end, nxt_conf_json_error_t *error)
 {
-    u_char      *p, ch, *last, *s;
+    char      *p, ch, *last, *s;
     size_t      size, surplus;
     uint32_t    utf, utf_high;
     nxt_uint_t  i;
@@ -2089,11 +2089,11 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 }
 
 
-static u_char *
-nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end, nxt_conf_json_error_t *error)
+static char *
+nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, char *start,
+    char *end, nxt_conf_json_error_t *error)
 {
-    u_char  *p, *s, ch, c, *dot_pos;
+    char  *p, *s, ch, c, *dot_pos;
     size_t  size;
     double  num;
 
@@ -2210,7 +2210,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     if (nxt_slow_path(end == NULL || *end != '\0')) {
         nxt_thread_log_alert("strtod(\"%s\", %s) failed %E", value->u.number,
-                             end == NULL ? (u_char *) "NULL" : end, nxt_errno);
+                             end == NULL ? (char *) "NULL" : end, nxt_errno);
         return NULL;
     }
 
@@ -2222,7 +2222,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
 
 static void
-nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
+nxt_conf_json_parse_error(nxt_conf_json_error_t *error, char *pos,
     const char *detail)
 {
     if (error == NULL) {
@@ -2230,7 +2230,7 @@ nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
     }
 
     error->pos = pos;
-    error->detail = (u_char *) detail;
+    error->detail = (char *) detail;
 }
 
 
@@ -2267,8 +2267,8 @@ nxt_conf_json_length(const nxt_conf_value_t *value,
 }
 
 
-u_char *
-nxt_conf_json_print(u_char *p, const nxt_conf_value_t *value,
+char *
+nxt_conf_json_print(char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
@@ -2312,8 +2312,8 @@ nxt_conf_json_string_length(const nxt_conf_value_t *value)
 }
 
 
-static u_char *
-nxt_conf_json_print_string(u_char *p, const nxt_conf_value_t *value)
+static char *
+nxt_conf_json_print_string(char *p, const nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 
@@ -2371,8 +2371,8 @@ nxt_conf_json_array_length(const nxt_conf_value_t *value,
 }
 
 
-static u_char *
-nxt_conf_json_print_array(u_char *p, const nxt_conf_value_t *value,
+static char *
+nxt_conf_json_print_array(char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     nxt_uint_t        n;
@@ -2467,8 +2467,8 @@ nxt_conf_json_object_length(const nxt_conf_value_t *value,
 }
 
 
-static u_char *
-nxt_conf_json_print_object(u_char *p, const nxt_conf_value_t *value,
+static char *
+nxt_conf_json_print_object(char *p, const nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     nxt_uint_t                n;
@@ -2540,9 +2540,9 @@ nxt_conf_json_print_object(u_char *p, const nxt_conf_value_t *value,
 
 
 static size_t
-nxt_conf_json_escape_length(u_char *p, size_t size)
+nxt_conf_json_escape_length(char *p, size_t size)
 {
-    u_char  ch;
+    char  ch;
     size_t  len;
 
     len = size;
@@ -2576,10 +2576,10 @@ nxt_conf_json_escape_length(u_char *p, size_t size)
 }
 
 
-static u_char *
-nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
+static char *
+nxt_conf_json_escape(char *dst, char *src, size_t size)
 {
-    u_char  ch;
+    char  ch;
 
     while (size) {
         ch = *src++;
@@ -2634,10 +2634,10 @@ nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
 
 
 void
-nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
+nxt_conf_json_position(char *start, const char *pos, nxt_uint_t *line,
     nxt_uint_t *column)
 {
-    u_char      *p;
+    char      *p;
     ssize_t     symbols;
     nxt_uint_t  lines;
 

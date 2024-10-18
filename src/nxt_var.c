@@ -9,11 +9,11 @@
 struct nxt_var_s {
     size_t              length;
     nxt_uint_t          vars;
-    u_char              data[];
+    char              data[];
 
 /*
     nxt_var_sub_t       subs[vars];
-    u_char              raw[length];
+    char              raw[length];
 */
 };
 
@@ -51,7 +51,7 @@ static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
     nxt_var_cache_t *cache, nxt_var_ref_t *ref, void *ctx);
 
-static u_char *nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part);
+static char *nxt_var_next_part(char *start, char *end, nxt_str_t *part);
 
 
 static const nxt_lvlhsh_proto_t  nxt_var_hash_proto  nxt_aligned(64) = {
@@ -234,7 +234,7 @@ nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
     lhq.key_hash = nxt_murmur_hash2_uint32(&ref->index);
     lhq.replace = 0;
     lhq.key.length = sizeof(uint32_t);
-    lhq.key.start = (u_char *) &ref->index;
+    lhq.key.start = (char *) &ref->index;
     lhq.value = value;
     lhq.proto = &nxt_var_cache_proto;
     lhq.pool = cache->pool;
@@ -314,7 +314,7 @@ nxt_var_index_init(void)
 nxt_var_t *
 nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
 {
-    u_char         *p, *end, *next, *src;
+    char         *p, *end, *next, *src;
     size_t         size;
     nxt_var_t      *var;
     nxt_str_t      part;
@@ -380,9 +380,9 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
 
 
 nxt_int_t
-nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
+nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, char *error)
 {
-    u_char         *p, *end, *next;
+    char         *p, *end, *next;
     nxt_str_t      part;
     nxt_var_ref_t  *ref;
 
@@ -417,11 +417,11 @@ nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
 }
 
 
-static u_char *
-nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part)
+static char *
+nxt_var_next_part(char *start, char *end, nxt_str_t *part)
 {
     size_t      length;
-    u_char      *p, ch, c;
+    char      *p, ch, c;
     nxt_bool_t  bracket;
 
     p = memchr(start, '$', end - start);
@@ -492,7 +492,7 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     nxt_var_cache_t *cache, nxt_var_t *var, nxt_str_t *str, void *ctx,
     nxt_bool_t logging)
 {
-    u_char         *p, *src;
+    char         *p, *src;
     size_t         length, last, next;
     uint32_t       index;
     nxt_str_t      *value, **part;

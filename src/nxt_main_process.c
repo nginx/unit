@@ -24,8 +24,8 @@
 typedef struct {
     nxt_socket_t        socket;
     nxt_socket_error_t  error;
-    u_char              *start;
-    u_char              *end;
+    char              *start;
+    char              *end;
 } nxt_listening_socket_t;
 
 
@@ -63,7 +63,7 @@ static void nxt_main_process_whoami_handler(nxt_task_t *task,
 static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static nxt_int_t nxt_main_file_store(nxt_task_t *task, const char *tmp_name,
-    const char *name, u_char *buf, size_t size);
+    const char *name, char *buf, size_t size);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
@@ -440,7 +440,7 @@ nxt_main_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 static void
 nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char                 *start, *p, ch;
+    char                 *start, *p, ch;
     size_t                 type_len;
     nxt_int_t              ret;
     nxt_buf_t              *b;
@@ -514,7 +514,7 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto failed;
     }
 
-    p = (u_char *) process->name;
+    p = (char *) process->name;
     *p++ = '"';
     p = nxt_cpymem(p, init->name, app_conf->name.length);
     p = nxt_cpymem(p, "\" prototype", 11);
@@ -534,7 +534,7 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    app_conf->user.start  = (u_char*)rt->user_cred.user;
+    app_conf->user.start  = (char *)rt->user_cred.user;
     app_conf->user.length = nxt_strlen(rt->user_cred.user);
 
     ret = nxt_conf_map_object(process->mem_pool, conf, nxt_common_app_conf,
@@ -809,9 +809,9 @@ nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
 static void
 nxt_main_process_title(nxt_task_t *task)
 {
-    u_char      *p, *end;
+    char      *p, *end;
     nxt_uint_t  i;
-    u_char      title[2048];
+    char      title[2048];
 
     end = title + sizeof(title) - 1;
 
@@ -1116,7 +1116,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_sockaddr_t          *sa;
     nxt_port_msg_type_t     type;
     nxt_listening_socket_t  ls;
-    u_char                  message[2048];
+    char                  message[2048];
 
     port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
@@ -1592,7 +1592,7 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_int_t      ret;
     nxt_port_t     *ctl_port;
     nxt_runtime_t  *rt;
-    u_char         ver[NXT_INT_T_LEN];
+    char         ver[NXT_INT_T_LEN];
 
     rt = task->thread->runtime;
 
@@ -1671,7 +1671,7 @@ cleanup:
 
 static nxt_int_t
 nxt_main_file_store(nxt_task_t *task, const char *tmp_name, const char *name,
-    u_char *buf, size_t size)
+    char *buf, size_t size)
 {
     ssize_t     n;
     nxt_int_t   ret;
@@ -1703,7 +1703,7 @@ nxt_main_file_store(nxt_task_t *task, const char *tmp_name, const char *name,
 static void
 nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char               *path;
+    char               *path;
     nxt_int_t            ret;
     nxt_file_t           file;
     nxt_port_t           *port;

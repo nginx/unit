@@ -99,7 +99,7 @@ nxt_file_close(nxt_task_t *task, nxt_file_t *file)
 
 
 ssize_t
-nxt_file_write(nxt_file_t *file, const u_char *buf, size_t size,
+nxt_file_write(nxt_file_t *file, const char *buf, size_t size,
     nxt_off_t offset)
 {
     ssize_t  n;
@@ -128,7 +128,7 @@ nxt_file_write(nxt_file_t *file, const u_char *buf, size_t size,
 
 
 ssize_t
-nxt_file_read(nxt_file_t *file, u_char *buf, size_t size, nxt_off_t offset)
+nxt_file_read(nxt_file_t *file, char *buf, size_t size, nxt_off_t offset)
 {
     ssize_t  n;
 
@@ -163,7 +163,7 @@ void
 nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset, size_t size)
 {
     int     ret;
-    u_char  buf;
+    char  buf;
 
     ret = fcntl(file->fd, F_READAHEAD, (int) size);
 
@@ -225,7 +225,7 @@ void
 nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset, size_t size)
 {
     int     ret;
-    u_char  buf;
+    char  buf;
 
     ret = fcntl(file->fd, F_RDAHEAD, 1);
 
@@ -245,7 +245,7 @@ nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset, size_t size)
 void
 nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset, size_t size)
 {
-    u_char  buf;
+    char  buf;
 
     (void) nxt_file_read(file, &buf, 1, offset);
 }
@@ -527,7 +527,7 @@ nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd)
 
 
 ssize_t
-nxt_fd_write(nxt_fd_t fd, u_char *buf, size_t size)
+nxt_fd_write(nxt_fd_t fd, char *buf, size_t size)
 {
     ssize_t    n;
     nxt_err_t  err;
@@ -547,7 +547,7 @@ nxt_fd_write(nxt_fd_t fd, u_char *buf, size_t size)
 
 
 ssize_t
-nxt_fd_read(nxt_fd_t fd, u_char *buf, size_t size)
+nxt_fd_read(nxt_fd_t fd, char *buf, size_t size)
 {
     ssize_t    n;
     nxt_err_t  err;

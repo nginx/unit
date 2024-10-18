@@ -164,7 +164,7 @@ static njs_int_t
 nxt_http_js_ext_get_args(njs_vm_t *vm, njs_object_prop_t *prop,
     njs_value_t *value, njs_value_t *setval, njs_value_t *retval)
 {
-    u_char              *start;
+    char              *start;
     njs_int_t           ret;
     njs_value_t         *args;
     njs_opaque_value_t  val;
@@ -178,7 +178,7 @@ nxt_http_js_ext_get_args(njs_vm_t *vm, njs_object_prop_t *prop,
 
     args = njs_value_arg(&val);
 
-    start = (r->args->start != NULL) ? r->args->start : (u_char *) "";
+    start = (r->args->start != NULL) ? r->args->start : (char *) "";
     ret = njs_vm_query_string_parse(vm, start, start + r->args->length, args);
 
     if (ret == NJS_ERROR) {

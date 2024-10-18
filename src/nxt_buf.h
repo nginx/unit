@@ -57,10 +57,10 @@
  */
 
 typedef struct {
-    u_char                  *pos;
-    u_char                  *free;
-    u_char                  *start;
-    u_char                  *end;
+    char                  *pos;
+    char                  *free;
+    char                  *start;
+    char                  *end;
 } nxt_buf_mem_t;
 
 

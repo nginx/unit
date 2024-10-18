@@ -46,8 +46,8 @@ typedef struct {
 nxt_tstr_state_t *nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test);
 nxt_tstr_t *nxt_tstr_compile(nxt_tstr_state_t *state, const nxt_str_t *str,
     nxt_tstr_flags_t flags);
-nxt_int_t nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error);
-nxt_int_t nxt_tstr_state_done(nxt_tstr_state_t *state, u_char *error);
+nxt_int_t nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, char *error);
+nxt_int_t nxt_tstr_state_done(nxt_tstr_state_t *state, char *error);
 void nxt_tstr_state_release(nxt_tstr_state_t *state);
 nxt_int_t nxt_tstr_cond_compile(nxt_tstr_state_t *state, nxt_str_t *str,
     nxt_tstr_cond_t *cond);
@@ -66,7 +66,7 @@ void nxt_tstr_query_release(nxt_tstr_query_t *query);
 nxt_inline nxt_bool_t
 nxt_is_tstr(nxt_str_t *str)
 {
-    u_char  *p;
+    char  *p;
 
     p = memchr(str->start, '`', str->length);
     if (p != NULL) {

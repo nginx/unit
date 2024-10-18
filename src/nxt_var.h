@@ -54,7 +54,7 @@ nxt_var_field_t *nxt_var_field_new(nxt_mp_t *mp, nxt_str_t *name,
     uint32_t hash);
 
 nxt_var_t *nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str);
-nxt_int_t nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error);
+nxt_int_t nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, char *error);
 
 nxt_int_t nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     nxt_var_cache_t *cache, nxt_var_t *var, nxt_str_t *str, void *ctx,

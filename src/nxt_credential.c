@@ -66,9 +66,9 @@ nxt_credential_get(nxt_task_t *task, nxt_mp_t *mp, nxt_credential_t *uc,
 
 #if (NXT_DEBUG)
     {
-        u_char      *p, *end;
+        char      *p, *end;
         nxt_uint_t  i;
-        u_char      msg[NXT_MAX_ERROR_STR];
+        char      msg[NXT_MAX_ERROR_STR];
 
         p = msg;
         end = msg + NXT_MAX_ERROR_STR;

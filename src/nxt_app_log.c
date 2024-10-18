@@ -9,24 +9,24 @@
 
 
 static nxt_time_string_t  nxt_log_error_time_cache;
-static u_char *nxt_log_error_time(u_char *buf, nxt_realtime_t *now,
+static char *nxt_log_error_time(char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 static nxt_time_string_t  nxt_log_debug_time_cache;
-static u_char *nxt_log_debug_time(u_char *buf, nxt_realtime_t *now,
+static char *nxt_log_debug_time(char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 
 
 void nxt_cdecl
 nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
-    u_char             *p, *end;
+    char             *p, *end;
 #if 0
-    u_char             *syslogmsg;
+    char             *syslogmsg;
 #endif
     va_list            args;
     nxt_thread_t       *thr;
     nxt_time_string_t  *time_cache;
-    u_char             msg[NXT_MAX_ERROR_STR];
+    char             msg[NXT_MAX_ERROR_STR];
 
     thr = nxt_thread();
 
@@ -108,8 +108,8 @@ static nxt_time_string_t  nxt_log_error_time_cache = {
 };
 
 
-static u_char *
-nxt_log_error_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
+static char *
+nxt_log_error_time(char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
     const char *format)
 {
     return nxt_sprintf(buf, buf + size, format,
@@ -128,8 +128,8 @@ static nxt_time_string_t  nxt_log_debug_time_cache = {
 };
 
 
-static u_char *
-nxt_log_debug_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
+static char *
+nxt_log_debug_time(char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
     const char *format)
 {
     return nxt_sprintf(buf, buf + size, format,

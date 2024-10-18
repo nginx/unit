@@ -30,8 +30,8 @@
 #endif
 
 
-u_char *
-nxt_utf8_encode(u_char *p, uint32_t u)
+char *
+nxt_utf8_encode(char *p, uint32_t u)
 {
     if (u < 0x80) {
         *p++ = (u_char) (u & 0xFF);
@@ -70,7 +70,7 @@ nxt_utf8_encode(u_char *p, uint32_t u)
  */
 
 uint32_t
-nxt_utf8_decode(const u_char **start, const u_char *end)
+nxt_utf8_decode(const char **start, const char *end)
 {
     uint32_t  u;
 
@@ -92,12 +92,12 @@ nxt_utf8_decode(const u_char **start, const u_char *end)
  */
 
 uint32_t
-nxt_utf8_decode2(const u_char **start, const u_char *end)
+nxt_utf8_decode2(const char **start, const char *end)
 {
-    u_char        c;
+    char        c;
     size_t        n;
     uint32_t      u, overlong;
-    const u_char  *p;
+    const char  *p;
 
     p = *start;
     u = (uint32_t) *p;
@@ -175,12 +175,12 @@ nxt_utf8_decode2(const u_char **start, const u_char *end)
  */
 
 nxt_int_t
-nxt_utf8_casecmp(const u_char *start1, const u_char *start2, size_t len1,
+nxt_utf8_casecmp(const char *start1, const char *start2, size_t len1,
     size_t len2)
 {
     int32_t       n;
     uint32_t      u1, u2;
-    const u_char  *end1, *end2;
+    const char  *end1, *end2;
 
     end1 = start1 + len1;
     end2 = start2 + len2;
@@ -207,7 +207,7 @@ nxt_utf8_casecmp(const u_char *start1, const u_char *start2, size_t len1,
 
 
 uint32_t
-nxt_utf8_lowcase(const u_char **start, const u_char *end)
+nxt_utf8_lowcase(const char **start, const char *end)
 {
     uint32_t        u;
     const uint32_t  *block;
@@ -235,10 +235,10 @@ nxt_utf8_lowcase(const u_char **start, const u_char *end)
 
 
 ssize_t
-nxt_utf8_length(const u_char *p, size_t len)
+nxt_utf8_length(const char *p, size_t len)
 {
     ssize_t       length;
-    const u_char  *end;
+    const char  *end;
 
     length = 0;
 
@@ -257,9 +257,9 @@ nxt_utf8_length(const u_char *p, size_t len)
 
 
 nxt_bool_t
-nxt_utf8_is_valid(const u_char *p, size_t len)
+nxt_utf8_is_valid(const char *p, size_t len)
 {
-    const u_char  *end;
+    const char  *end;
 
     end = p + len;
 

@@ -106,7 +106,7 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
         }
 
     } else {
-        if (!nxt_str_eq(&app_conf->user, (u_char *) rt->user_cred.user,
+        if (!nxt_str_eq(&app_conf->user, (char *) rt->user_cred.user,
                         nxt_strlen(rt->user_cred.user)))
         {
             nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
@@ -116,7 +116,7 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
         }
 
         if (app_conf->group.length > 0
-            && !nxt_str_eq(&app_conf->group, (u_char *) rt->group,
+            && !nxt_str_eq(&app_conf->group, (char *) rt->group,
                            nxt_strlen(rt->group)))
         {
             nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
@@ -609,11 +609,11 @@ static nxt_int_t
 nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     nxt_array_t *lang_mounts)
 {
-    u_char          *p;
+    char          *p;
     size_t          i, n, rootfs_len, len;
     nxt_mp_t        *mp;
     nxt_array_t     *mounts;
-    const u_char    *rootfs;
+    const char    *rootfs;
     nxt_fs_mount_t  *mnt, *lang_mnt;
 
     mp = process->mem_pool;
@@ -650,13 +650,13 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
             return NXT_ERROR;
         }
 
-        mnt->src = (u_char *) "tmpfs";
-        mnt->name = (u_char *) "tmpfs";
+        mnt->src = (char *) "tmpfs";
+        mnt->name = (char *) "tmpfs";
         mnt->type = NXT_FS_TMP;
         mnt->flags = (NXT_FS_FLAGS_NOSUID
                       | NXT_FS_FLAGS_NODEV
                       | NXT_FS_FLAGS_NOEXEC);
-        mnt->data = (u_char *) "size=1m,mode=1777";
+        mnt->data = (char *) "size=1m,mode=1777";
         mnt->builtin = 1;
         mnt->deps = 0;
 
@@ -676,9 +676,9 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
             return NXT_ERROR;
         }
 
-        mnt->name = (u_char *) "proc";
+        mnt->name = (char *) "proc";
         mnt->type = NXT_FS_PROC;
-        mnt->src = (u_char *) "none";
+        mnt->src = (char *) "none";
         mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/proc") + 1);
         if (nxt_slow_path(mnt->dst == NULL)) {
             return NXT_ERROR;
@@ -688,7 +688,7 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
         p = nxt_cpymem(p, "/proc", 5);
         *p = '\0';
 
-        mnt->data = (u_char *) "";
+        mnt->data = (char *) "";
         mnt->flags = NXT_FS_FLAGS_NOEXEC | NXT_FS_FLAGS_NOSUID;
         mnt->builtin = 1;
         mnt->deps = 0;
@@ -756,7 +756,7 @@ nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
     nxt_int_t                ret;
     struct stat              st;
     nxt_array_t              *mounts;
-    const u_char             *dst;
+    const char             *dst;
     nxt_fs_mount_t           *mnt;
     nxt_process_automount_t  *automount;
 
@@ -897,7 +897,7 @@ nxt_isolation_make_private_mount(nxt_task_t *task, const char *rootfs)
 {
     char           *parent_mnt;
     FILE           *procfile;
-    u_char         **mounts;
+    char         **mounts;
     size_t         len;
     uint8_t        *shared;
     nxt_int_t      ret, index, nmounts;
@@ -941,7 +941,7 @@ again:
             break;
         }
 
-        mounts[index] = (u_char *) strdup(ent->mnt_dir);
+        mounts[index] = (char *) strdup(ent->mnt_dir);
         shared[index] = hasmntopt(ent, "shared") != NULL;
     }
 

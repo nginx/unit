@@ -48,7 +48,7 @@ nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
     pattern[source->length] = '\0';
 
     re->pattern.length = source->length;
-    re->pattern.start = (u_char *) pattern;
+    re->pattern.start = (char *) pattern;
 
     saved_malloc = pcre_malloc;
     saved_free = pcre_free;
@@ -116,7 +116,7 @@ nxt_regex_match_create(nxt_mp_t *mp, size_t size)
 
 
 nxt_int_t
-nxt_regex_match(nxt_regex_t *re, u_char *subject, size_t length,
+nxt_regex_match(nxt_regex_t *re, char *subject, size_t length,
     nxt_regex_match_t *match)
 {
     int  ret;

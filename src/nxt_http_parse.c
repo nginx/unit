@@ -8,16 +8,16 @@
 
 
 static nxt_int_t nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp,
-    u_char **pos, const u_char *end);
+    char **pos, const char *end);
 static nxt_int_t nxt_http_parse_request_line(nxt_http_request_parse_t *rp,
-    u_char **pos, const u_char *end);
+    char **pos, const char *end);
 static nxt_int_t nxt_http_parse_field_name(nxt_http_request_parse_t *rp,
-    u_char **pos, const u_char *end);
+    char **pos, const char *end);
 static nxt_int_t nxt_http_parse_field_value(nxt_http_request_parse_t *rp,
-    u_char **pos, const u_char *end);
-static u_char *nxt_http_lookup_field_end(u_char *p, const u_char *end);
+    char **pos, const char *end);
+static char *nxt_http_lookup_field_end(char *p, const char *end);
 static nxt_int_t nxt_http_parse_field_end(nxt_http_request_parse_t *rp,
-    u_char **pos, const u_char *end);
+    char **pos, const char *end);
 
 static nxt_int_t nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
 
@@ -60,9 +60,9 @@ static const uint8_t  nxt_http_target_chars[256] nxt_aligned(64) = {
 
 
 nxt_inline nxt_http_target_traps_e
-nxt_http_parse_target(u_char **pos, const u_char *end)
+nxt_http_parse_target(char **pos, const char *end)
 {
-    u_char      *p;
+    char      *p;
     nxt_uint_t  trap;
 
     p = *pos;
@@ -155,10 +155,10 @@ nxt_http_parse_fields(nxt_http_request_parse_t *rp, nxt_buf_mem_t *b)
 
 
 static nxt_int_t
-nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
-    const u_char *end)
+nxt_http_parse_request_line(nxt_http_request_parse_t *rp, char **pos,
+    const char *end)
 {
-    u_char                   *p, ch, *after_slash, *args;
+    char                   *p, ch, *after_slash, *args;
     nxt_int_t                rc;
     nxt_bool_t               rest;
     nxt_http_ver_t           ver;
@@ -471,10 +471,10 @@ space_after_target:
 
 
 static nxt_int_t
-nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, u_char **pos,
-    const u_char *end)
+nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, char **pos,
+    const char *end)
 {
-    u_char  *p, ch;
+    char  *p, ch;
 
     p = *pos;
 
@@ -509,14 +509,14 @@ nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, u_char **pos,
 
 
 static nxt_int_t
-nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
-    const u_char *end)
+nxt_http_parse_field_name(nxt_http_request_parse_t *rp, char **pos,
+    const char *end)
 {
-    u_char    *p, c;
+    char    *p, c;
     size_t    len;
     uint32_t  hash;
 
-    static const u_char  normal[256]  nxt_aligned(64) =
+    static const char  normal[256]  nxt_aligned(64) =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     /*   \s ! " # $ % & ' ( ) * + ,        . /                 : ; < = > ?   */
         "\0\1\0\1\1\1\1\1\0\0\1\1\0" "-" "\1\0" "0123456789" "\0\0\0\0\0\0"
@@ -616,10 +616,10 @@ name_end:
 
 
 static nxt_int_t
-nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
-    const u_char *end)
+nxt_http_parse_field_value(nxt_http_request_parse_t *rp, char **pos,
+    const char *end)
 {
-    u_char  *p, *start, ch;
+    char  *p, *start, ch;
     size_t  len;
 
     p = *pos;
@@ -696,8 +696,8 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
 }
 
 
-static u_char *
-nxt_http_lookup_field_end(u_char *p, const u_char *end)
+static char *
+nxt_http_lookup_field_end(char *p, const char *end)
 {
     while (nxt_fast_path(end - p >= 16)) {
 
@@ -763,10 +763,10 @@ nxt_http_lookup_field_end(u_char *p, const u_char *end)
 
 
 static nxt_int_t
-nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
-    const u_char *end)
+nxt_http_parse_field_end(nxt_http_request_parse_t *rp, char **pos,
+    const char *end)
 {
-    u_char            *p;
+    char            *p;
     nxt_http_field_t  *field;
 
     p = *pos;
@@ -848,7 +848,7 @@ static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
 nxt_int_t
 nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 {
-    u_char  *p, *u, c, ch, high, *args;
+    char  *p, *u, c, ch, high, *args;
 
     enum {
         sw_normal = 0,
@@ -1173,7 +1173,7 @@ nxt_int_t
 nxt_http_fields_hash(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count)
 {
-    u_char              ch;
+    char              ch;
     uint32_t            key;
     nxt_str_t           *name;
     nxt_int_t           ret;
@@ -1212,7 +1212,7 @@ nxt_uint_t
 nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count, nxt_bool_t level)
 {
-    u_char              ch;
+    char              ch;
     uint32_t            key, mask;
     nxt_str_t           *name;
     nxt_uint_t          colls, i, j;

@@ -15,7 +15,7 @@ static nxt_int_t nxt_http_request_forward(nxt_task_t *task,
 static void nxt_http_request_forward_client_ip(nxt_http_request_t *r,
     nxt_http_forward_t *forward, nxt_array_t *fields);
 static nxt_sockaddr_t *nxt_http_request_client_ip_sockaddr(
-    nxt_http_request_t *r, u_char *start, size_t len);
+    nxt_http_request_t *r, char *start, size_t len);
 static void nxt_http_request_forward_protocol(nxt_http_request_t *r,
     nxt_http_field_t *field);
 static void nxt_http_request_ready(nxt_task_t *task, void *obj, void *data);
@@ -25,16 +25,16 @@ static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 
-static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
+static char *nxt_http_date_cache_handler(char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 
 static nxt_http_name_value_t *nxt_http_argument(nxt_array_t *array,
-    u_char *name, size_t name_length, uint32_t hash, u_char *start,
-    const u_char *end);
-static nxt_int_t nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start,
-    const u_char *end);
-static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array, u_char *name,
-    size_t name_length, u_char *start, const u_char *end);
+    char *name, size_t name_length, uint32_t hash, char *start,
+    const char *end);
+static nxt_int_t nxt_http_cookie_parse(nxt_array_t *cookies, char *start,
+    const char *end);
+static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array, char *name,
+    size_t name_length, char *start, const char *end);
 
 
 #define NXT_HTTP_COOKIE_HASH                                                  \
@@ -106,7 +106,7 @@ nxt_http_request_host(void *ctx, nxt_http_field_t *field, uintptr_t data)
 static nxt_int_t
 nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp)
 {
-    u_char      *h, ch;
+    char      *h, ch;
     size_t      i, dot_pos, host_length;
     nxt_bool_t  lowcase;
 
@@ -412,7 +412,7 @@ static void
 nxt_http_request_forward_client_ip(nxt_http_request_t *r,
     nxt_http_forward_t *forward, nxt_array_t *fields)
 {
-    u_char            *start, *p;
+    char            *start, *p;
     nxt_int_t         ret, i, len;
     nxt_sockaddr_t    *sa, *prev_sa;
     nxt_http_field_t  **f;
@@ -469,7 +469,7 @@ nxt_http_request_forward_client_ip(nxt_http_request_t *r,
 
 
 static nxt_sockaddr_t *
-nxt_http_request_client_ip_sockaddr(nxt_http_request_t *r, u_char *start,
+nxt_http_request_client_ip_sockaddr(nxt_http_request_t *r, char *start,
     size_t len)
 {
     nxt_str_t       addr;
@@ -542,7 +542,7 @@ static nxt_int_t
 nxt_http_request_chunked_transform(nxt_http_request_t *r)
 {
     size_t            size;
-    u_char            *p, *end;
+    char            *p, *end;
     nxt_http_field_t  *f;
 
     r->chunked_field->skip = 1;
@@ -672,7 +672,7 @@ void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t body_handler, void *data)
 {
-    u_char             *p, *end, *server_string;
+    char             *p, *end, *server_string;
     nxt_int_t          ret;
     nxt_http_field_t   *server, *date, *content_length;
     nxt_socket_conf_t  *skcf;
@@ -693,7 +693,7 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     skcf = r->conf->socket_conf;
-    server_string = (u_char *) (skcf->server_version ? NXT_SERVER : NXT_NAME);
+    server_string = (char *) (skcf->server_version ? NXT_SERVER : NXT_NAME);
 
     nxt_http_field_name_set(server, "Server");
     server->value = server_string;
@@ -911,8 +911,8 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static u_char *
-nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+static char *
+nxt_http_date_cache_handler(char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
     return nxt_http_date(buf, tm);
@@ -923,7 +923,7 @@ nxt_array_t *
 nxt_http_arguments_parse(nxt_http_request_t *r)
 {
     size_t                 name_length;
-    u_char                 *p, *dst, *dst_start, *start, *end, *name;
+    char                 *p, *dst, *dst_start, *start, *end, *name;
     uint8_t                d0, d1;
     uint32_t               hash;
     nxt_array_t            *args;
@@ -1031,8 +1031,8 @@ end:
 
 
 static nxt_http_name_value_t *
-nxt_http_argument(nxt_array_t *array, u_char *name, size_t name_length,
-    uint32_t hash, u_char *start, const u_char *end)
+nxt_http_argument(nxt_array_t *array, char *name, size_t name_length,
+    uint32_t hash, char *start, const char *end)
 {
     size_t                 length;
     nxt_http_name_value_t  *nv;
@@ -1081,7 +1081,7 @@ nxt_http_cookies_parse(nxt_http_request_t *r)
 
         if (f->hash != NXT_HTTP_COOKIE_HASH
             || f->name_length != 6
-            || nxt_strncasecmp(f->name, (u_char *) "Cookie", 6) != 0)
+            || nxt_strncasecmp(f->name, (char *) "Cookie", 6) != 0)
         {
             continue;
         }
@@ -1101,10 +1101,10 @@ nxt_http_cookies_parse(nxt_http_request_t *r)
 
 
 static nxt_int_t
-nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
+nxt_http_cookie_parse(nxt_array_t *cookies, char *start, const char *end)
 {
     size_t                 name_length;
-    u_char                 c, *p, *name;
+    char                 c, *p, *name;
     nxt_http_name_value_t  *nv;
 
     name = NULL;
@@ -1146,10 +1146,10 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
 
 
 static nxt_http_name_value_t *
-nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
-    u_char *start, const u_char *end)
+nxt_http_cookie(nxt_array_t *array, char *name, size_t name_length,
+    char *start, const char *end)
 {
-    u_char                 c, *p;
+    char                 c, *p;
     uint32_t               hash;
     nxt_http_name_value_t  *nv;
 
@@ -1183,7 +1183,7 @@ int64_t
 nxt_http_field_hash(nxt_mp_t *mp, nxt_str_t *name, nxt_bool_t case_sensitive,
     uint8_t encoding)
 {
-    u_char      c, *p, *src, *start, *end, plus;
+    char      c, *p, *src, *start, *end, plus;
     uint8_t     d0, d1;
     uint32_t    hash;
     nxt_str_t   str;
@@ -1272,7 +1272,7 @@ nxt_http_argument_hash(nxt_mp_t *mp, nxt_str_t *name)
 int64_t
 nxt_http_header_hash(nxt_mp_t *mp, nxt_str_t *name)
 {
-    u_char     c, *p;
+    char     c, *p;
     uint32_t   i, hash;
     nxt_str_t  str;
 
