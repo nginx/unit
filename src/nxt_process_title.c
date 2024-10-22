@@ -38,14 +38,14 @@ char  ***nxt_process_environ;
  */
 
 
-static u_char  *nxt_process_title_start;
-static u_char  *nxt_process_title_end;
+static char  *nxt_process_title_start;
+static char  *nxt_process_title_end;
 
 
 void
 nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 {
-    u_char      *p, *end, *argv_end, **argv, **env;
+    char      *p, *end, *argv_end, **argv, **env;
     size_t      size, argv_size, environ_size, strings_size;
     nxt_uint_t  i;
 
@@ -60,7 +60,7 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
      * Set a conservative title space for a case if program argument
      * strings and environment strings are not contiguous.
      */
-    argv = (u_char **) orig_argv;
+    argv = (char **) orig_argv;
     nxt_process_title_start = argv[0];
     nxt_process_title_end = argv[0] + nxt_strlen(argv[0]);
 
@@ -102,7 +102,7 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
     nxt_process_argv = (char **) argv;
 
     argv_end = end;
-    env = (u_char **) *orig_envp;
+    env = (char **) *orig_envp;
     environ_size = sizeof(void *);
 
     for (i = 0; env[i] != NULL; i++) {
@@ -189,7 +189,7 @@ done:
 void
 nxt_process_title(nxt_task_t *task, const char *fmt, ...)
 {
-    u_char   *p, *start, *end;
+    char   *p, *start, *end;
     va_list  args;
 
     start = nxt_process_title_start;

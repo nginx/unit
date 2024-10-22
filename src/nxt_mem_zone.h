@@ -11,7 +11,7 @@
 typedef struct nxt_mem_zone_s  nxt_mem_zone_t;
 
 
-NXT_EXPORT nxt_mem_zone_t *nxt_mem_zone_init(u_char *start, size_t zone_size,
+NXT_EXPORT nxt_mem_zone_t *nxt_mem_zone_init(char *start, size_t zone_size,
     nxt_uint_t page_size);
 
 #define nxt_mem_zone_alloc(zone, size)                                        \

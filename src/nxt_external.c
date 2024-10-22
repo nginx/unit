@@ -60,8 +60,8 @@ static nxt_int_t
 nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     char                     **argv;
-    u_char                   buf[256];
-    u_char                   *p, *end;
+    char                   buf[256];
+    char                   *p, *end;
     uint32_t                 index;
     size_t                   size;
     nxt_str_t                str;
@@ -179,7 +179,7 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
     i = 1;
 
     if (c->arguments != NULL) {
-        p = (u_char *) &argv[argc];
+        p = (char *) &argv[argc];
 
         for (index = 0; /* void */ ; index++) {
             value = nxt_conf_get_array_element(c->arguments, index);

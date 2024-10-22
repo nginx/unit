@@ -6,11 +6,11 @@
 #include <nxt_main.h>
 
 
-static nxt_int_t nxt_fs_mkdir(const u_char *dir, mode_t mode);
+static nxt_int_t nxt_fs_mkdir(const char *dir, mode_t mode);
 
 
 nxt_int_t
-nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
+nxt_fs_mkdir_p(const char *dir, mode_t mode)
 {
     char       *start, *end, *dst;
     size_t     dirlen;
@@ -33,7 +33,7 @@ nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
         dst = nxt_cpymem(dst, start, end - start);
         *dst = '\0';
 
-        ret = nxt_fs_mkdir((u_char *) path, mode);
+        ret = nxt_fs_mkdir((char *) path, mode);
         if (nxt_slow_path(ret != NXT_OK && nxt_errno != EEXIST)) {
             return NXT_ERROR;
         }
@@ -46,7 +46,7 @@ nxt_fs_mkdir_p(const u_char *dir, mode_t mode)
 
 
 nxt_int_t
-nxt_fs_mkdir_p_dirname(const u_char *path, mode_t mode)
+nxt_fs_mkdir_p_dirname(const char *path, mode_t mode)
 {
     char       *ptr, *dir;
     nxt_int_t  ret;
@@ -64,7 +64,7 @@ nxt_fs_mkdir_p_dirname(const u_char *path, mode_t mode)
     }
 
     *ptr = '\0';
-    ret = nxt_fs_mkdir_p((const u_char *) dir, mode);
+    ret = nxt_fs_mkdir_p((const char *) dir, mode);
 
 out_free:
     nxt_free(dir);
@@ -74,7 +74,7 @@ out_free:
 
 
 static nxt_int_t
-nxt_fs_mkdir(const u_char *dir, mode_t mode)
+nxt_fs_mkdir(const char *dir, mode_t mode)
 {
     if (nxt_fast_path(mkdir((const char *) dir, mode) == 0)) {
         return NXT_OK;

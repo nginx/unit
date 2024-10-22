@@ -266,7 +266,7 @@ nxt_event_engine_post(nxt_event_engine_t *engine, nxt_work_t *work)
 void
 nxt_event_engine_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
 {
-    u_char  buf;
+    char  buf;
 
     nxt_debug(&engine->task, "event engine signal:%ui", signo);
 
@@ -289,10 +289,10 @@ static void
 nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj, void *data)
 {
     int             i, n;
-    u_char          signo;
+    char          signo;
     nxt_bool_t      post;
     nxt_fd_event_t  *ev;
-    u_char          buf[128];
+    char          buf[128];
 
     ev = obj;
 

@@ -578,12 +578,12 @@ static void
 hxt_h1p_send_ws_error(nxt_task_t *task, nxt_http_request_t *r,
     const nxt_ws_error_t *err, ...)
 {
-    u_char                  *p;
+    char                  *p;
     va_list                 args;
     nxt_buf_t               *out;
     nxt_str_t               desc;
     nxt_websocket_header_t  *wsh;
-    u_char                  buf[125];
+    char                  buf[125];
 
     if (nxt_slow_path(err->args)) {
         va_start(args, err);

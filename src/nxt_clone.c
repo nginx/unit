@@ -17,7 +17,7 @@ nxt_int_t nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile,
     pid_t pid, nxt_int_t default_container, nxt_int_t default_host,
     nxt_clone_credential_map_t *map);
 nxt_int_t nxt_clone_credential_map_write(nxt_task_t *task, const char *mapfile,
-    pid_t pid, u_char *mapinfo);
+    pid_t pid, char *mapinfo);
 
 
 nxt_int_t
@@ -25,8 +25,8 @@ nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
     const char *str)
 {
     int     fd, n;
-    u_char  *p, *end;
-    u_char  path[PATH_MAX];
+    char  *p, *end;
+    char  path[PATH_MAX];
 
     end = path + PATH_MAX;
     p = nxt_sprintf(path, end, "/proc/%d/setgroups", child_pid);
@@ -68,12 +68,12 @@ nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
 
 nxt_int_t
 nxt_clone_credential_map_write(nxt_task_t *task, const char *mapfile,
-    pid_t pid, u_char *mapinfo)
+    pid_t pid, char *mapinfo)
 {
     int      len, mapfd;
-    u_char   *p, *end;
+    char   *p, *end;
     ssize_t  n;
-    u_char   buf[256];
+    char   buf[256];
 
     end = buf + sizeof(buf);
 
@@ -121,7 +121,7 @@ nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile, pid_t pid,
     nxt_int_t default_container, nxt_int_t default_host,
     nxt_clone_credential_map_t *map)
 {
-    u_char      *p, *end, *mapinfo;
+    char      *p, *end, *mapinfo;
     nxt_int_t   ret, len;
     nxt_uint_t  i;
 

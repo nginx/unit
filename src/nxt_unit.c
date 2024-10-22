@@ -1922,7 +1922,7 @@ nxt_unit_websocket_frame_free(nxt_unit_ctx_t *ctx,
 uint16_t
 nxt_unit_field_hash(const char *name, size_t name_length)
 {
-    u_char      ch;
+    char      ch;
     uint32_t    hash;
     const char  *p, *end;
 
@@ -2635,7 +2635,7 @@ nxt_unit_mmap_buf_send(nxt_unit_request_info_t *req,
     } m;
 
     int                           rc;
-    u_char                        *last_used, *first_free;
+    char                        *last_used, *first_free;
     ssize_t                       res;
     nxt_chunk_id_t                first_free_chunk;
     nxt_unit_buf_t                *buf;
@@ -2665,7 +2665,7 @@ nxt_unit_mmap_buf_send(nxt_unit_request_info_t *req,
     if (m.msg.mmap) {
         m.mmap_msg.mmap_id = hdr->id;
         m.mmap_msg.chunk_id = nxt_port_mmap_chunk_id(hdr,
-                                                     (u_char *) buf->start);
+                                                     (char *) buf->start);
 
         nxt_unit_debug(req->ctx, "#%"PRIu32": send mmap: (%d,%d,%d)",
                        req_impl->stream,
@@ -2679,7 +2679,7 @@ nxt_unit_mmap_buf_send(nxt_unit_request_info_t *req,
             goto free_buf;
         }
 
-        last_used = (u_char *) buf->free - 1;
+        last_used = (char *) buf->free - 1;
         first_free_chunk = nxt_port_mmap_chunk_id(hdr, last_used) + 1;
 
         if (buf->end - buf->free >= PORT_MMAP_CHUNK_SIZE) {
@@ -3212,7 +3212,7 @@ nxt_unit_request_preread(nxt_unit_request_info_t *req, size_t size)
 static ssize_t
 nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
 {
-    u_char          *p;
+    char          *p;
     size_t          rest, copy, read;
     nxt_unit_buf_t  *buf, *last_buf;
 
@@ -4351,7 +4351,7 @@ nxt_unit_mmap_release(nxt_unit_ctx_t *ctx, nxt_port_mmap_header_t *hdr,
     void *start, uint32_t size)
 {
     int              freed_chunks;
-    u_char           *p, *end;
+    char           *p, *end;
     nxt_chunk_id_t   c;
     nxt_unit_impl_t  *lib;
 
@@ -4445,7 +4445,7 @@ nxt_unit_process_lhq_pid(nxt_lvlhsh_query_t *lhq, pid_t *pid)
 {
     lhq->key_hash = nxt_murmur_hash2(pid, sizeof(*pid));
     lhq->key.length = sizeof(*pid);
-    lhq->key.start = (u_char *) pid;
+    lhq->key.start = (char *) pid;
     lhq->proto = &lvlhsh_processes_proto;
 }
 
@@ -6416,7 +6416,7 @@ nxt_unit_port_hash_lhq(nxt_lvlhsh_query_t *lhq,
     }
 
     lhq->key.length = sizeof(nxt_unit_port_hash_id_t);
-    lhq->key.start = (u_char *) port_hash_id;
+    lhq->key.start = (char *) port_hash_id;
     lhq->proto = &lvlhsh_ports_proto;
     lhq->pool = NULL;
 }
@@ -6512,7 +6512,7 @@ nxt_unit_request_hash_add(nxt_unit_ctx_t *ctx,
 
     lhq.key_hash = nxt_murmur_hash2(stream, sizeof(*stream));
     lhq.key.length = sizeof(*stream);
-    lhq.key.start = (u_char *) stream;
+    lhq.key.start = (char *) stream;
     lhq.proto = &lvlhsh_requests_proto;
     lhq.pool = NULL;
     lhq.replace = 0;
@@ -6548,7 +6548,7 @@ nxt_unit_request_hash_find(nxt_unit_ctx_t *ctx, uint32_t stream, int remove)
 
     lhq.key_hash = nxt_murmur_hash2(&stream, sizeof(stream));
     lhq.key.length = sizeof(stream);
-    lhq.key.start = (u_char *) &stream;
+    lhq.key.start = (char *) &stream;
     lhq.proto = &lvlhsh_requests_proto;
     lhq.pool = NULL;
 
@@ -6783,9 +6783,9 @@ nxt_unit_free(nxt_unit_ctx_t *ctx, void *p)
 static int
 nxt_unit_memcasecmp(const void *p1, const void *p2, size_t length)
 {
-    u_char        c1, c2;
+    char        c1, c2;
     nxt_int_t     n;
-    const u_char  *s1, *s2;
+    const char  *s1, *s2;
 
     s1 = p1;
     s2 = p2;

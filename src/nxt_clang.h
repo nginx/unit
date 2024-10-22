@@ -199,7 +199,7 @@ nxt_popcount(unsigned int x)
 
 
 #define nxt_container_of(p, type, field)                                      \
-    (type *) ((u_char *) (p) - offsetof(type, field))
+    (type *) ((char *) (p) - offsetof(type, field))
 
 
 #define nxt_pointer_to(p, offset)                                             \
@@ -207,7 +207,7 @@ nxt_popcount(unsigned int x)
 
 
 #define nxt_value_at(type, p, offset)                                         \
-    *(type *) ((u_char *) p + offset)
+    *(type *) ((char *) p + offset)
 
 
 #define nxt_nitems(x)                                                         \
@@ -244,11 +244,11 @@ nxt_popcount(unsigned int x)
 
 
 #define nxt_align_ptr(p, a)                                                   \
-    (u_char *) (((uintptr_t) (p) + ((uintptr_t) (a) - 1))                     \
+    (char *) (((uintptr_t) (p) + ((uintptr_t) (a) - 1))                     \
                   & ~((uintptr_t) (a) - 1))
 
 #define nxt_trunc_ptr(p, a)                                                   \
-    (u_char *) ((uintptr_t) (p) & ~((uintptr_t) (a) - 1))
+    (char *) ((uintptr_t) (p) & ~((uintptr_t) (a) - 1))
 
 
 #define nxt_length(s)                                                         \

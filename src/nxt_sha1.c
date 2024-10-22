@@ -11,7 +11,7 @@
 #include <nxt_sha1.h>
 
 
-static const u_char *nxt_sha1_body(nxt_sha1_t *ctx, const u_char *data,
+static const char *nxt_sha1_body(nxt_sha1_t *ctx, const char *data,
     size_t size);
 
 
@@ -45,7 +45,7 @@ nxt_sha1_update(nxt_sha1_t *ctx, const void *data, size_t size)
         }
 
         memcpy(&ctx->buffer[used], data, free);
-        data = (u_char *) data + free;
+        data = (char *) data + free;
         size -= free;
         (void) nxt_sha1_body(ctx, ctx->buffer, 64);
     }
@@ -60,7 +60,7 @@ nxt_sha1_update(nxt_sha1_t *ctx, const void *data, size_t size)
 
 
 void
-nxt_sha1_final(u_char result[20], nxt_sha1_t *ctx)
+nxt_sha1_final(char result[20], nxt_sha1_t *ctx)
 {
     size_t  used, free;
 
@@ -152,14 +152,14 @@ nxt_sha1_final(u_char result[20], nxt_sha1_t *ctx)
  * the bit counters.  There are no alignment requirements.
  */
 
-static const u_char *
-nxt_sha1_body(nxt_sha1_t *ctx, const u_char *data, size_t size)
+static const char *
+nxt_sha1_body(nxt_sha1_t *ctx, const char *data, size_t size)
 {
     uint32_t       a, b, c, d, e, temp;
     uint32_t       saved_a, saved_b, saved_c, saved_d, saved_e;
     uint32_t       words[80];
     nxt_uint_t     i;
-    const u_char  *p;
+    const char  *p;
 
     p = data;
 

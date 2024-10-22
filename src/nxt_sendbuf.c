@@ -17,7 +17,7 @@ nxt_uint_t
 nxt_sendbuf_mem_coalesce0(nxt_task_t *task, nxt_sendbuf_t *sb,
     struct iovec *iov, nxt_uint_t niov_max)
 {
-    u_char      *last;
+    char      *last;
     size_t      size, total;
     nxt_buf_t   *b;
     nxt_uint_t  n;
@@ -87,7 +87,7 @@ done:
 nxt_uint_t
 nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
 {
-    u_char      *last;
+    char      *last;
     size_t      size, total;
     nxt_buf_t   *b;
     nxt_uint_t  n;

@@ -38,10 +38,10 @@ static nxt_lvlhsh_t  nxt_script_info;
 
 
 nxt_script_t *
-nxt_script_new(nxt_task_t *task, nxt_str_t *name, u_char *data, size_t size,
-    u_char *error)
+nxt_script_new(nxt_task_t *task, nxt_str_t *name, char *data, size_t size,
+    char *error)
 {
-    u_char        *start;
+    char        *start;
     njs_vm_t      *vm;
     njs_str_t     mod_name;
     njs_mod_t     *mod;
@@ -52,7 +52,7 @@ nxt_script_new(nxt_task_t *task, nxt_str_t *name, u_char *data, size_t size,
 
     opts.backtrace = 1;
 
-    opts.file.start = (u_char *) "default";
+    opts.file.start = (char *) "default";
     opts.file.length = 7;
 
     vm = njs_vm_create(&opts);
@@ -80,7 +80,7 @@ nxt_script_new(nxt_task_t *task, nxt_str_t *name, u_char *data, size_t size,
     }
 
     script->text.length = size;
-    script->text.start = (u_char *) script + sizeof(nxt_script_t);
+    script->text.start = (char *) script + sizeof(nxt_script_t);
 
     nxt_memcpy(script->text.start, data, size);
 
@@ -102,7 +102,7 @@ nxt_script_get(nxt_task_t *task, nxt_str_t *name, nxt_fd_t fd)
     nxt_int_t     ret;
     nxt_str_t     text;
     nxt_script_t  *script;
-    u_char        error[NXT_MAX_ERROR_STR];
+    char        error[NXT_MAX_ERROR_STR];
 
     ret = nxt_script_file_read(fd, &text);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -335,7 +335,7 @@ nxt_script_store_load(nxt_task_t *task, nxt_mp_t *mp)
 {
     DIR                *dir;
     size_t             size, alloc;
-    u_char             *buf, *p;
+    char             *buf, *p;
     nxt_str_t          name;
     nxt_int_t          ret;
     nxt_file_t         file;
@@ -376,7 +376,7 @@ nxt_script_store_load(nxt_task_t *task, nxt_mp_t *mp)
                   rt->scripts.start, de->d_name);
 
         name.length = nxt_strlen(de->d_name);
-        name.start = (u_char *) de->d_name;
+        name.start = (char *) de->d_name;
 
         if (nxt_str_eq(&name, ".", 1) || nxt_str_eq(&name, "..", 2)) {
             continue;
@@ -530,7 +530,7 @@ nxt_script_buf_completion(nxt_task_t *task, void *obj, void *data)
 void
 nxt_script_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char               *p;
+    char               *p;
     nxt_int_t            ret;
     nxt_str_t            name;
     nxt_file_t           file;
@@ -619,7 +619,7 @@ nxt_script_store_delete(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp)
 void
 nxt_script_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char           *p;
+    char           *p;
     nxt_str_t        name;
     nxt_port_t       *ctl_port;
     nxt_runtime_t    *rt;

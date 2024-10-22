@@ -21,7 +21,7 @@
 
 typedef void nxt_cdecl (*nxt_log_handler_t)(nxt_uint_t level, nxt_log_t *log,
     const char *fmt, ...);
-typedef u_char *(*nxt_log_ctx_handler_t)(void *ctx, u_char *pos, u_char *end);
+typedef char *(*nxt_log_ctx_handler_t)(void *ctx, char *pos, char *end);
 
 
 struct nxt_log_s {

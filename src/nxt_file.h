@@ -18,7 +18,7 @@ typedef struct stat                 nxt_file_info_t;
 
 #define NXT_FILE_SYSTEM_NAME_UTF8   1
 
-typedef u_char                      nxt_file_name_t;
+typedef char                      nxt_file_name_t;
 
 
 typedef struct {
@@ -152,9 +152,9 @@ NXT_EXPORT nxt_int_t nxt_file_openat2(nxt_task_t *task, nxt_file_t *file,
 
 
 NXT_EXPORT void nxt_file_close(nxt_task_t *task, nxt_file_t *file);
-NXT_EXPORT ssize_t nxt_file_write(nxt_file_t *file, const u_char *buf,
+NXT_EXPORT ssize_t nxt_file_write(nxt_file_t *file, const char *buf,
     size_t size, nxt_off_t offset);
-NXT_EXPORT ssize_t nxt_file_read(nxt_file_t *file, u_char *buf, size_t size,
+NXT_EXPORT ssize_t nxt_file_read(nxt_file_t *file, char *buf, size_t size,
     nxt_off_t offset);
 NXT_EXPORT void nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset,
     size_t size);
@@ -184,8 +184,8 @@ NXT_EXPORT nxt_int_t nxt_file_rename(nxt_file_name_t *old_name,
 
 NXT_EXPORT nxt_int_t nxt_fd_nonblocking(nxt_task_t *task, nxt_fd_t fd);
 NXT_EXPORT nxt_int_t nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd);
-NXT_EXPORT ssize_t nxt_fd_write(nxt_fd_t fd, u_char *buf, size_t size);
-NXT_EXPORT ssize_t nxt_fd_read(nxt_fd_t fd, u_char *buf, size_t size);
+NXT_EXPORT ssize_t nxt_fd_write(nxt_fd_t fd, char *buf, size_t size);
+NXT_EXPORT ssize_t nxt_fd_read(nxt_fd_t fd, char *buf, size_t size);
 NXT_EXPORT void nxt_fd_close(nxt_fd_t fd);
 
 NXT_EXPORT FILE *nxt_file_fopen(nxt_task_t *task, const char *pathname,

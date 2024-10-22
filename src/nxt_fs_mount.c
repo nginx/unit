@@ -81,7 +81,7 @@ nxt_int_t
 nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 {
     int           flags;
-    u_char        *data, *p, *end;
+    char        *data, *p, *end;
     size_t        iovlen;
     nxt_int_t     ret;
     const char    *fsname;
@@ -153,7 +153,7 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
     data = NULL;
 
     if (mnt->data != NULL) {
-        data = (u_char *) nxt_strdup(mnt->data);
+        data = (char *) nxt_strdup(mnt->data);
         if (nxt_slow_path(data == NULL)) {
             return NXT_ERROR;
         }
@@ -209,7 +209,7 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 #if (NXT_HAVE_LINUX_UMOUNT2)
 
 void
-nxt_fs_unmount(const u_char *path)
+nxt_fs_unmount(const char *path)
 {
     if (nxt_slow_path(umount2((const char *) path, MNT_DETACH) < 0)) {
         nxt_thread_log_error(NXT_LOG_WARN, "umount2(%s, MNT_DETACH) %E",
@@ -220,7 +220,7 @@ nxt_fs_unmount(const u_char *path)
 #elif (NXT_HAVE_UNMOUNT)
 
 void
-nxt_fs_unmount(const u_char *path)
+nxt_fs_unmount(const char *path)
 {
     if (nxt_slow_path(unmount((const char *) path, MNT_FORCE) < 0)) {
         nxt_thread_log_error(NXT_LOG_WARN, "unmount(%s) %E", path, nxt_errno);

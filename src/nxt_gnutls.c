@@ -379,7 +379,7 @@ nxt_gnutls_push(gnutls_transport_ptr_t data, const void *buf, size_t size)
     c = data;
     thr = nxt_thread();
 
-    n = thr->engine->event->io->send(c, (u_char *) buf, size);
+    n = thr->engine->event->io->send(c, (char *) buf, size);
 
     if (n == NXT_AGAIN) {
         nxt_set_errno(NXT_EAGAIN);
@@ -683,7 +683,7 @@ nxt_gnutls_conn_log_error(nxt_event_conn_t *c, ssize_t err,
 {
     va_list      args;
     nxt_uint_t   level;
-    u_char       *p, msg[NXT_MAX_ERROR_STR];
+    char       *p, msg[NXT_MAX_ERROR_STR];
 
     level = nxt_gnutls_log_error_level(c, err);
 
@@ -731,7 +731,7 @@ nxt_gnutls_log_error(nxt_uint_t level, nxt_log_t *log, int err,
     const char *fmt, ...)
 {
     va_list  args;
-    u_char   *p, msg[NXT_MAX_ERROR_STR];
+    char   *p, msg[NXT_MAX_ERROR_STR];
 
     va_start(args, fmt);
     p = nxt_vsprintf(msg, msg + sizeof(msg), fmt, args);

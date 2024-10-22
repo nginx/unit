@@ -30,14 +30,14 @@ nxt_str_t  nxt_log_levels[6] = {
 };
 
 
-static const u_char  *nxt_log_prefix;
+static const char  *nxt_log_prefix;
 
 
 void
 nxt_log_start(const char *prefix)
 {
     if (prefix != NULL && *prefix != '\0') {
-        nxt_log_prefix = (u_char *) prefix;
+        nxt_log_prefix = (char *) prefix;
     }
 }
 
@@ -66,12 +66,12 @@ nxt_log_set_ctx(nxt_log_t *log, nxt_log_ctx_handler_t handler, void *ctx)
 void nxt_cdecl
 nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
-    u_char   *p, *end;
+    char   *p, *end;
 #if 0
-    u_char   *syslogmsg;
+    char   *syslogmsg;
 #endif
     va_list  args;
-    u_char   msg[NXT_MAX_ERROR_STR];
+    char   msg[NXT_MAX_ERROR_STR];
 
     p = msg;
     end = msg + NXT_MAX_ERROR_STR;

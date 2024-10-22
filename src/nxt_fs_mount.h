@@ -30,19 +30,19 @@ enum nxt_fs_flags_s {
 
 
 struct nxt_fs_mount_s {
-    u_char          *src;
-    u_char          *dst;
+    char          *src;
+    char          *dst;
     nxt_fs_type_t   type;
-    u_char          *name;
+    char          *name;
     nxt_fs_flags_t  flags;
-    u_char          *data;
+    char          *data;
     nxt_uint_t      builtin;  /* 1-bit */
     nxt_uint_t      deps;     /* 1-bit */
 };
 
 
 nxt_int_t nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt);
-void nxt_fs_unmount(const u_char *path);
+void nxt_fs_unmount(const char *path);
 
 
 #endif  /* _NXT_FS_MOUNT_H_INCLUDED_ */

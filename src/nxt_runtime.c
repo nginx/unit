@@ -80,7 +80,7 @@ nxt_runtime_create(nxt_task_t *task)
     /* Should not fail. */
     lang = nxt_array_add(rt->languages);
     lang->type = NXT_APP_EXTERNAL;
-    lang->version = (u_char *) "";
+    lang->version = (char *) "";
     lang->file = NULL;
     lang->module = &nxt_external_module;
 
@@ -151,13 +151,13 @@ fail:
 static nxt_int_t
 nxt_runtime_inherited_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    u_char               *v, *p;
+    char               *v, *p;
     nxt_int_t            type;
     nxt_array_t          *inherited_sockets;
     nxt_socket_t         s;
     nxt_listen_socket_t  *ls;
 
-    v = (u_char *) getenv("NGINX");
+    v = (char *) getenv("NGINX");
 
     if (v == NULL) {
         return nxt_runtime_systemd_listen_sockets(task, rt);
@@ -215,7 +215,7 @@ nxt_runtime_inherited_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
 static nxt_int_t
 nxt_runtime_systemd_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    u_char               *nfd, *pid;
+    char               *nfd, *pid;
     nxt_int_t            n;
     nxt_array_t          *inherited_sockets;
     nxt_socket_t         s;
@@ -225,13 +225,13 @@ nxt_runtime_systemd_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
      * Number of listening sockets passed.  The socket
      * descriptors start from number 3 and are sequential.
      */
-    nfd = (u_char *) getenv("LISTEN_FDS");
+    nfd = (char *) getenv("LISTEN_FDS");
     if (nfd == NULL) {
         return NXT_OK;
     }
 
     /* The pid of the service process. */
-    pid = (u_char *) getenv("LISTEN_PID");
+    pid = (char *) getenv("LISTEN_PID");
     if (pid == NULL) {
         return NXT_OK;
     }
@@ -922,7 +922,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     control.length = nxt_strlen(rt->control);
-    control.start = (u_char *) rt->control;
+    control.start = (char *) rt->control;
 
     sa = nxt_sockaddr_parse(rt->mem_pool, &control);
     if (nxt_slow_path(sa == NULL)) {
@@ -945,8 +945,8 @@ static nxt_int_t
 nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 {
     char    *p, **argv;
-    u_char  *end;
-    u_char  buf[1024];
+    char  *end;
+    char  buf[1024];
 
     static const char  version[] =
         "unit version: " NXT_VERSION "\n"
@@ -1289,7 +1289,7 @@ nxt_runtime_hostname(nxt_task_t *task, nxt_runtime_t *rt)
     rt->hostname.start = nxt_mp_nget(rt->mem_pool, length);
 
     if (rt->hostname.start != NULL) {
-        nxt_memcpy_lowcase(rt->hostname.start, (u_char *) hostname, length);
+        nxt_memcpy_lowcase(rt->hostname.start, (char *) hostname, length);
         return NXT_OK;
     }
 
@@ -1455,7 +1455,7 @@ nxt_str_t *
 nxt_current_directory(nxt_mp_t *mp)
 {
     size_t     length;
-    u_char     *p;
+    char     *p;
     nxt_str_t  *name;
     char       buf[NXT_MAX_PATH_LEN];
 
@@ -1482,7 +1482,7 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
     ssize_t     length;
     nxt_int_t   n;
     nxt_file_t  file;
-    u_char      pid[NXT_INT64_T_LEN + nxt_length("\n")];
+    char      pid[NXT_INT64_T_LEN + nxt_length("\n")];
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -1573,7 +1573,7 @@ nxt_runtime_process_lhq_pid(nxt_lvlhsh_query_t *lhq, nxt_pid_t *pid)
 {
     lhq->key_hash = nxt_murmur_hash2(pid, sizeof(*pid));
     lhq->key.length = sizeof(*pid);
-    lhq->key.start = (u_char *) pid;
+    lhq->key.start = (char *) pid;
     lhq->proto = &lvlhsh_processes_proto;
 }
 

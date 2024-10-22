@@ -91,7 +91,7 @@ typedef union {
 #define nxt_http_field_name_set(_field, _name)                                \
     do {                                                                      \
         (_field)->name_length = nxt_length(_name);                            \
-        (_field)->name = (u_char *) _name;                                    \
+        (_field)->name = (char *) _name;                                    \
     } while (0)
 
 
@@ -99,8 +99,8 @@ typedef union {
     do {                                                                      \
         (_field)->name_length = nxt_length(_name);                            \
         (_field)->value_length = nxt_length(_value);                          \
-        (_field)->name = (u_char *) _name;                                    \
-        (_field)->value = (u_char *) _value;                                  \
+        (_field)->name = (char *) _name;                                    \
+        (_field)->value = (char *) _value;                                  \
     } while (0)
 
 
@@ -213,8 +213,8 @@ typedef struct {
     uint16_t                        hash;
     uint16_t                        name_length;
     uint32_t                        value_length;
-    u_char                          *name;
-    u_char                          *value;
+    char                          *name;
+    char                          *value;
 } nxt_http_name_value_t;
 
 
@@ -304,8 +304,8 @@ struct nxt_http_forward_s {
 
 #define NXT_HTTP_DATE_LEN  nxt_length("Wed, 31 Dec 1986 16:40:00 GMT")
 
-nxt_inline u_char *
-nxt_http_date(u_char *buf, struct tm *tm)
+nxt_inline char *
+nxt_http_date(char *buf, struct tm *tm)
 {
     static const char * const  week[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
                                           "Fri", "Sat" };
@@ -376,7 +376,7 @@ nxt_int_t nxt_http_route_addr_rule(nxt_http_request_t *r,
 nxt_http_route_rule_t *nxt_http_route_types_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *types);
 nxt_int_t nxt_http_route_test_rule(nxt_http_request_t *r,
-    nxt_http_route_rule_t *rule, u_char *start, size_t length);
+    nxt_http_route_rule_t *rule, char *start, size_t length);
 
 nxt_int_t nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *cv, nxt_http_action_t *action);

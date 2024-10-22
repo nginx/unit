@@ -181,7 +181,7 @@ void *
 nxt_memalign(size_t alignment, size_t size)
 {
     size_t     aligned_size;
-    u_char     *p;
+    char     *p;
     nxt_err_t  err;
 
     if (nxt_slow_path((alignment - 1) & alignment) != 0) {
