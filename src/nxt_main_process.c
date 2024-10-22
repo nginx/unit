@@ -1421,8 +1421,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_conf_value_t       *conf, *root, *value, *mounts;
     nxt_app_lang_module_t  *lang;
 
-    static nxt_str_t root_path = nxt_string("/");
-    static nxt_str_t mounts_name = nxt_string("mounts");
+    static const nxt_str_t root_path = nxt_string("/");
+    static const nxt_str_t mounts_name = nxt_string("mounts");
 
     rt = task->thread->runtime;
 

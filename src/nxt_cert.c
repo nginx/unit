@@ -502,13 +502,13 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
     nxt_conf_value_t  *object, *chain, *element, *value;
     u_char            buf[256];
 
-    static nxt_str_t key_str = nxt_string("key");
-    static nxt_str_t chain_str = nxt_string("chain");
-    static nxt_str_t since_str = nxt_string("since");
-    static nxt_str_t until_str = nxt_string("until");
-    static nxt_str_t issuer_str = nxt_string("issuer");
-    static nxt_str_t subject_str = nxt_string("subject");
-    static nxt_str_t validity_str = nxt_string("validity");
+    static const nxt_str_t key_str = nxt_string("key");
+    static const nxt_str_t chain_str = nxt_string("chain");
+    static const nxt_str_t since_str = nxt_string("since");
+    static const nxt_str_t until_str = nxt_string("until");
+    static const nxt_str_t issuer_str = nxt_string("issuer");
+    static const nxt_str_t subject_str = nxt_string("subject");
+    static const nxt_str_t validity_str = nxt_string("validity");
 
     object = nxt_conf_create_object(mp, 2);
     if (nxt_slow_path(object == NULL)) {
@@ -660,7 +660,7 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
     STACK_OF(GENERAL_NAME)  *alt_names;
     u_char                  buf[256];
 
-    static nxt_cert_nid_t  nids[] = {
+    static const nxt_cert_nid_t  nids[] = {
         { NID_commonName, nxt_string("common_name") },
         { NID_countryName, nxt_string("country") },
         { NID_stateOrProvinceName, nxt_string("state_or_province") },
@@ -669,7 +669,7 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
         { NID_organizationalUnitName, nxt_string("department") },
     };
 
-    static nxt_str_t alt_names_str = nxt_string("alt_names");
+    static const nxt_str_t alt_names_str = nxt_string("alt_names");
 
     count = 0;
 
