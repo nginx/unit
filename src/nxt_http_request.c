@@ -322,6 +322,8 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
 
+    NXT_OTEL_TRACE();
+
     r->state = &nxt_http_request_body_state;
 
     skcf = r->conf->socket_conf;
@@ -592,6 +594,8 @@ nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+    NXT_OTEL_TRACE();
 
     if (r->chunked) {
         ret = nxt_http_request_chunked_transform(r);
