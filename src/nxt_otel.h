@@ -10,6 +10,13 @@
 
 
 #if (NXT_HAVE_OTEL)
+#define NXT_OTEL_TRACE()  nxt_otel_test_and_call_state(task, r)
+#else
+#define NXT_OTEL_TRACE()
+#endif
+
+
+#if (NXT_HAVE_OTEL)
 extern void nxt_otel_rs_send_trace(void *trace);
 extern void * nxt_otel_rs_get_or_create_trace(u_char *trace_id);
 extern void nxt_otel_rs_init(
