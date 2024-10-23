@@ -1,0 +1,880 @@
+---
+### Clang-format adapted to Unit
+#
+# git integration docs: https://clang.llvm.org/docs/ClangFormat.html#git-integration
+#
+# Used tags for certain rules:
+# - @NOTUSED for everything that's seemingly not used
+# - @DOUBLECHECK the correct value for the rule.
+# - @NEEDSTESTING needs to see what this rule actually does
+# - @DEPRECATED option is no longer used, kept for backwards comp
+# - @V20 option is only available in version 20 that's not released yet
+
+Language: Cpp
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#language
+# Per the documentation, this should be used for C and C++ languages.
+
+AccessModifierOffset: -2
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#accessmodifieroffset
+# No guidance, need to double check
+# @DOUBLECHECK
+
+AlignAfterOpenBracket: DontAlign
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignafteropenbracket
+# No guidance in confluence, existing code suggests don't align, use
+# continuationindent
+
+AlignArrayOfStructures: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignarrayofstructures
+# No guidance in confluence. Leaving it as is.
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+  AlignCompound: true
+  PadOperators: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutiveassignments
+# Has guidance in confluence under variables.
+
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivebitfields
+# Some guidance in confluence, mainly around variable alignment.
+
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+  AlignFunctionPointers: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivedeclarations
+# Guidance in confluence.
+
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivemacros
+# No guidance in confluence, current Unit codebase suggests the above
+# settings.
+
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+  AlignCaseArrows: true
+  AlignCaseColons: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutiveshortcasestatements
+# Not used in the codebase, so going with similar options as others.
+# @NOTUSED
+
+AlignConsecutiveTableGenBreakingDAGArgColons:
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionPointers: false
+  PadOperators:    false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivetablegenbreakingdagargcolons
+# No guidance, seems like it's not used, leaving as LLVM standard.
+# @NOTUSED
+
+AlignConsecutiveTableGenCondOperatorColons:
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionPointers: false
+  PadOperators:    false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivetablegencondoperatorcolons
+# No guidance, seems like it's not used, leaving as LLVM standard.
+# @NOTUSED
+
+AlignConsecutiveTableGenDefinitionColons:
+  Enabled:         false
+  AcrossEmptyLines: false
+  AcrossComments:  false
+  AlignCompound:   false
+  AlignFunctionPointers: false
+  PadOperators:    false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignconsecutivetablegendefinitioncolons
+# No guidance, seems like it's not used, leaving as LLVM standard.
+# @NOTUSED
+
+AlignEscapedNewlines: Right
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignescapednewlines
+# No guidance in confluence, but existing codebase suggests Right.
+
+AlignOperands:   Align
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignoperands
+# Guidance in confluence.
+# Related rules: BreakBeforeBinaryOperators
+#                AlignAfterOperator
+# Need to double check: @DOUBLECHECK
+
+AlignTrailingComments:
+  Kind:            Always
+  OverEmptyLines:  1
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#aligntrailingcomments
+# No guidance on trailing comment alignment besides "don't use this
+# style of comments, keep to the traditional c /* ... */ comments."
+#
+# Code doesn't use // type of trailing comments.
+# Code does use /*...*/ type of trailing comments.
+#
+# @NEEDSTESTING
+
+AllowAllArgumentsOnNextLine: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowallargumentsonnextline
+# No guidance. Code seems to not want to put all args onto newline.
+
+AllowAllParametersOfDeclarationOnNextLine: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowallparametersofdeclarationonnextline
+# No guidance. Code seems to not want to put all params onto newline.
+
+AllowBreakBeforeNoexceptSpecifier: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowbreakbeforenoexceptspecifier
+# No guidance. Code does not use `noexcept`.
+# @NOTUSED
+
+AllowShortBlocksOnASingleLine: Always
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortblocksonasingleline
+# No guidance. There are only two total appearances of these short
+# blocks in the entire codebase (find with regex `while.+\{.+\}`), and
+# they are in the same line.
+
+AllowShortCaseExpressionOnASingleLine: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortcaseexpressiononasingleline
+# No guidance. This doesn't seem to be used in the codebase, or every
+# use is multiline.
+
+AllowShortCaseLabelsOnASingleLine: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortcaselabelsonasingleline
+# No guidance, also either not used, or all uses are multiline.
+
+AllowShortCompoundRequirementOnASingleLine: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortcompoundrequirementonasingleline
+# No guidance, not used in code.
+# @NOTUSED
+
+AllowShortEnumsOnASingleLine: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortenumsonasingleline
+# No guidance. Every enum in the codebase is multiline.
+
+AllowShortFunctionsOnASingleLine: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortfunctionsonasingleline
+# No guidance, every function is multiline, so setting it to None.
+
+AllowShortIfStatementsOnASingleLine: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortifstatementsonasingleline
+# No guidance, existing code seems to suggest this is Never.
+
+AllowShortLambdasOnASingleLine: All
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortlambdasonasingleline
+# No guidance. Not used.
+# @NOTUSED
+
+AllowShortLoopsOnASingleLine: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortloopsonasingleline
+# No guidance. Setting this to false.
+
+AlwaysBreakAfterDefinitionReturnType: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alwaysbreakafterdefinitionreturntype
+# @DEPRECATED
+
+AlwaysBreakBeforeMultilineStrings: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alwaysbreakbeforemultilinestrings
+# No guidance, but I feel like this is a None.
+# @DOUBLECHECK
+
+AttributeMacros:
+  - __capability
+  - __unused
+  - __packed
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#attributemacros
+# No guidance. There aren't a lot of macros in the codebase, so I think
+# this list is enough.
+# @DOUBLECHECK
+
+BinPackArguments: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#binpackarguments
+# No guidance, existing code suggests it should be false.
+
+BinPackParameters: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#binpackparameters
+# Same as above, existing code suggests it should be false.
+
+BitFieldColonSpacing: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#bitfieldcolonspacing
+# No guidance on this. There's one for binary and ternary operators, but
+# this colon is not a binary op. Existing code suggests None.
+
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterExternBlock: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#bracewrapping
+# Related: BreakBeforeBraces.
+# Individual options that need context:
+#   AfterCaseLabel: all case blocks are non braced
+#   AfterClass: we don't have classes
+#   AfterExternBlock: we don't have extern blocks
+#   AfterNamespace: we don't have namespaces
+#   AfterObjCDeclaration: we don't have objective c declarations
+#   BeforeCatch: we don't have try-catch blocks
+#   IndentBraces: we don't seem to wrap braces, so this is unused.
+#   SplitEmptyFunction: needs AfterFunction to be true, unused.
+#   SplitEmptyRecord: needs AfterClass, and we don't have classes.
+#   SplitEmptyNamespace: needs AfterNamespace, and we don't have nss.
+
+BreakAdjacentStringLiterals: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakadjacentstringliterals
+# No guidance. There are a lot more instances of breaking than sinlge
+# line adjacent string literals. See the following regexes:
+# `".+"\s+".+"`   for single line literals and
+# `".+"\n\s+".+"` for multi line literals
+
+BreakAfterAttributes: Leave
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakafterattributes
+# This is a C++ 11 rule, not used.
+# @NOTUSED
+
+BreakAfterJavaFieldAnnotations: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakafterjavafieldannotations
+# Java rule, not used.
+# @NOTUSED
+
+BreakAfterReturnType: TopLevel
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakafterreturntype
+# No guidance. Looking at the code, TopLevel seems to be the correct
+# value here, but it needs testing.
+# @DOUBLECHECK
+
+BreakArrays: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakarrays
+# Only for JSON.
+# NOTUSED
+
+BreakBeforeBinaryOperators: All
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbeforebinaryoperators
+# No guidance on this one, only spacing. Code comments suggest this
+# should be All.
+
+BreakBeforeBraces: Custom
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbeforebraces
+# No guidance. This is Custom, so individually set options on the
+# BraceWrapping option get used.
+
+BreakBeforeConceptDeclarations: Always
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbeforeconceptdeclarations
+# No concept in our codebase.
+# @NOTUSED
+
+BreakBeforeInlineASMColon: OnlyMultiline
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbeforeinlineasmcolon
+# No guidance, not used, seems like inline assembly directives?
+# @NOTUSED
+
+BreakBeforeTernaryOperators: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbeforeternaryoperators
+# No guidance, only spacing. Similar option to
+# BreakBeforeBinaryOperators.
+
+# BreakBinaryOperations: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakbinaryoperations
+# No guidance, only spacing. Existing code suggests this is Never.
+# @V20
+
+BreakConstructorInitializers: BeforeColon
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakconstructorinitializers
+# No guidance. I don't think this is used, but need to double check.
+# @DOUBLECHECK
+
+BreakFunctionDefinitionParameters: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakfunctiondefinitionparameters
+# No guidance. Existing code looks like it's false.
+
+BreakInheritanceList: BeforeColon
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakinheritancelist
+# This is a class related setting, we don't use this.
+# @NOTUSED
+
+BreakStringLiterals: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breakstringliterals
+# No guidance. It seems like this is a true.
+
+BreakTemplateDeclarations: MultiLine
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#breaktemplatedeclarations
+# No guidance. We don't use templates.
+# @NOTUSED
+
+ColumnLimit: 80
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#columnlimit
+# No guidance, but previous conversations about line length suggests
+# this should be 72, but codebase looks like it's using 80.
+
+CommentPragmas:  '^ IWYU pragma:'
+# No guidance, and this is confusing, leaving it as default LLVM value,
+# but we do need to double check what this does.
+# @DOUBLECHECK
+
+ConstructorInitializerIndentWidth: 4
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#constructorinitializerindentwidth
+# Probably not used because we don't have constructors?
+# @DOUBLECHECK
+
+ContinuationIndentWidth: 4
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#continuationindentwidth
+# No guidance, existing code suggests this should be 4.
+
+Cpp11BracedListStyle: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#cpp11bracedliststyle
+# A C++ feature.
+# @NOTUSED
+
+DerivePointerAlignment: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#derivepointeralignment
+# No guidance. There are a few alignment rules already that might conflict:
+# - AlignCompound in the above rules
+# - PointerAlignment will be used as a fallback if this is true
+
+DisableFormat: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#disableformat
+# We want to format, this needs to be true.
+
+EmptyLineAfterAccessModifier: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#emptylineafteraccessmodifier
+# No guidance. Existing code suggests this should be Never.
+
+EmptyLineBeforeAccessModifier: LogicalBlock
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#emptylinebeforeaccessmodifier
+# No guidance. Existing code suggests this should be LogicalBlock.
+
+ExperimentalAutoDetectBinPacking: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#experimentalautodetectbinpacking
+# Experimental, do not use per docs.
+# @NOTUSED
+
+FixNamespaceComments: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#fixnamespacecomments
+# We don't have namespaces.
+# @NOTUSED
+
+ForEachMacros:
+  - foreach
+  - Q_FOREACH
+  - BOOST_FOREACH
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#foreachmacros
+# No guidance. We also don't have foreach loops.
+# @NOTUSED
+
+IfMacros:
+  - KJ_IF_MAYBE
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#ifmacros
+# Also not used in our codebase by the looks of it.
+# @NOTUSED
+
+IncludeBlocks: Preserve
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includeblocks
+# No guidance. Existing code suggests this is Preserve.
+# See src/nxt_java.c as an example
+
+IncludeCategories:
+  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
+    Priority:        2
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '^(<|"(gtest|gmock|isl|json)/)'
+    Priority:        3
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '.*'
+    Priority:        1
+    SortPriority:    0
+    CaseSensitive:   false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includecategories
+# This is applied if the IncludeBlocks value is Regroup.
+# @DOUBLECHECK
+
+IncludeIsMainRegex: '(Test)?$'
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includeismainregex
+# This is used in the IncludeCategories option to determine what counts
+# as the "main" include.
+# @DOUBLECHECK
+
+IncludeIsMainSourceRegex: ''
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includeismainsourceregex
+# Also has to do with includes block ordering.
+# @DOUBLECHECK
+
+IndentAccessModifiers: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentaccessmodifiers
+# No guidance. Existing code suggests this is false.
+
+IndentCaseBlocks: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentcaseblocks
+# Guidance here: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#goto-labels
+
+IndentCaseLabels: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentcaselabels
+# Guidance here: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#goto-labels
+
+IndentExternBlock: AfterExternBlock
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentexternblock
+# We don't use extern blocks.
+# @NOTUSED
+
+IndentGotoLabels: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentgotolabels
+# Guidance here: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#goto-labels
+
+IndentPPDirectives: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentppdirectives
+# No guidance, existing code says it's None.
+
+IndentRequiresClause: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentrequiresclause
+# We don't have templates or requires.
+# @NOTUSED
+
+IndentWidth: 4
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentwidth
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#Indentation
+
+IndentWrappedFunctionNames: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentwrappedfunctionnames
+# No guidance. We do have a rule where the return types will have a
+# break before the function name, so this isn't going to take effect.
+# Related rule: BreakAfterReturnType
+# @DOUBLECHECK
+
+InsertBraces: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#insertbraces
+# Applies to C++.
+# @NOTUSED
+
+InsertNewlineAtEOF: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#insertnewlineateof
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#Indentation
+# Is a newline at the end of file a trailing whitespace? Existing code
+# seems to have newlines at EOF, so setting this to true.
+
+InsertTrailingCommas: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#inserttrailingcommas
+# Code uses mixed (validators vs most other places), adding trailing
+# commas could counteract binpacking, we don't use that. Setting this to
+# None.
+
+IntegerLiteralSeparator:
+  Binary:          0
+  BinaryMinDigits: 0
+  Decimal:         0
+  DecimalMinDigits: 0
+  Hex:             0
+  HexMinDigits:    0
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#integerliteralseparator
+# Only applies to C++, C#, Java, and JavaScript.
+# @NOTUSED
+
+JavaScriptQuotes: Leave
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#javascriptquotes
+# Only used for JavaScript.
+# @NOTUSED
+
+JavaScriptWrapImports: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#javascriptwrapimports
+# Only used for JavaScript.
+# @NOTUSED
+
+KeepEmptyLines:
+  AtEndOfFile:     false
+  AtStartOfBlock:  false
+  AtStartOfFile:   false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#keepemptylines
+# No guidance. Existing code suggests these all should be false.
+
+LambdaBodyIndentation: Signature
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#lambdabodyindentation
+# No guidance, code suggests this should be Signature.
+
+LineEnding: DeriveLF
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#lineending
+# No guidance, the DeriveLF seems like a great choice here.
+
+MacroBlockBegin: ''
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#macroblockbegin
+# No guidance. I don't actually know what this should be.
+# @DOUBLECHECK
+
+MacroBlockEnd: ''
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#macroblockend
+# Same as above.
+# @DOUBLECHECK
+
+MainIncludeChar: Any
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#mainincludechar
+# No guidance. I think this should be Any, because I've seen both quotes
+# and angle brackets used.
+
+MaxEmptyLinesToKeep: 2
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#maxemptylinestokeep
+# No guidance, existing code suggests this should be 2.
+
+NamespaceIndentation: None
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#namespaceindentation
+# We don't use namespaces.
+# @NOTUSED
+
+ObjCBinPackProtocolList: Auto
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#objcbinpackprotocollist
+# We don't have Objective-C code.
+# @NOTUSED
+
+ObjCBlockIndentWidth: 2
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#objcblockindentwidth
+# We don't have Objective-C code.
+# @NOTUSED
+
+ObjCBreakBeforeNestedBlockParam: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#objcbreakbeforenestedblockparam
+# We don't have Objective-C code.
+# @NOTUSED
+
+ObjCSpaceAfterProperty: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#objcspaceafterproperty
+# We don't have Objective-C code.
+# @NOTUSED
+
+ObjCSpaceBeforeProtocolList: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#objcspacebeforeprotocollist
+# We don't have Objective-C code.
+# @NOTUSED
+
+PackConstructorInitializers: BinPack
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#packconstructorinitializers
+# We don't use constructors.
+# @NOTUSED
+
+PenaltyBreakAssignment: 2
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakassignment
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakBeforeFirstCallParameter: 19
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakbeforefirstcallparameter
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakComment: 300
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakcomment
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakFirstLessLess: 120
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakfirstlessless
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakOpenParenthesis: 0
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakopenparenthesis
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakScopeResolution: 500
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakscoperesolution
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakString: 1000
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreakstring
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyBreakTemplateDeclaration: 10
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltybreaktemplatedeclaration
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyExcessCharacter: 1000000
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltyexcesscharacter
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyIndentedWhitespace: 0
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltyindentedwhitespace
+# Not sure what this does.
+# @DOUBLECHECK
+
+PenaltyReturnTypeOnItsOwnLine: 60
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#penaltyreturntypeonitsownline
+# Not sure what this does.
+# @DOUBLECHECK
+
+PointerAlignment: Right
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#pointeralignment
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#Spaces
+
+PPIndentWidth: -1
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#ppindentwidth
+# There are only 2 places in the codebase, it suggests this is -1.
+
+QualifierAlignment: Leave
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#qualifieralignment
+# No guidance. Code suggests this shuold be Left, but the warning on the
+# rule says we should leave it at Leave.
+# @DOUBLECHECK
+
+ReferenceAlignment: Pointer
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#referencealignment
+# Same as the PointerAlignment ruleset.
+
+ReflowComments: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#reflowcomments
+# No guidance, though I think this should be either Always or Never.
+# @DOUBLECHECK
+
+RemoveBracesLLVM: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#removebracesllvm
+# No guidance. This should be false, setting this to true might break
+# existing functionality.
+
+RemoveParentheses: Leave
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#removeparentheses
+# No guidance. This should also stay as Leave.
+# @DOUBLECHECK
+
+RemoveSemicolon: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#removesemicolon
+# No guidance. This should remain false lest we break anything.
+
+RequiresClausePosition: OwnLine
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#requiresclauseposition
+# We don't use requires clauses.
+# @NOTUSED
+
+RequiresExpressionIndentation: OuterScope
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#requiresexpressionindentation
+# We don't use requires expression bodies.
+# @NOTUSED
+
+SeparateDefinitionBlocks: Always
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#separatedefinitionblocks
+# No guidance, but this should be Always.
+# @DOUBLECHECK
+
+ShortNamespaceLines: 1
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#shortnamespacelines
+# We do not use namespaces.
+# @NOTUSED
+
+SkipMacroDefinitionBody: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#skipmacrodefinitionbody
+# I don't know where we have macros in the code.
+# @DOUBLECHECK
+
+SortIncludes: CaseSensitive
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#sortincludes
+# No guidance. I think this should be CaseSensitive. There are related
+# options here. They are:
+# - IncludeBlocks
+# - IncludeCategories
+# - IncludeIsMainRegex
+# - IncludeIsMainSourceRegex
+
+SortJavaStaticImport: Before
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#sortjavastaticimport
+# This is not a Java codebase.
+# @NOTUSED
+
+SortUsingDeclarations: LexicographicNumeric
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#sortusingdeclarations
+# We're not using `using`.
+# @NOTUSED
+
+SpaceAfterCStyleCast: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spaceaftercstylecast
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#Spaces
+
+SpaceAfterLogicalNot: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spaceafterlogicalnot
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+
+SpaceAfterTemplateKeyword: true
+# We don't use templates.
+# @NOTUSED
+
+SpaceAroundPointerQualifiers: Default
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacearoundpointerqualifiers
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+# Leaving as default to use PointerAlignment.
+
+SpaceBeforeAssignmentOperators: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforeassignmentoperators
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+
+SpaceBeforeCaseColon: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforecasecolon
+# No guidance, existing code suggests this is false.
+
+SpaceBeforeCpp11BracedList: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforecpp11bracedlist
+# Not using C++11.
+# @NOTUSED
+
+SpaceBeforeCtorInitializerColon: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforectorinitializercolon
+# Not using constructors.
+# @NOTUSED
+
+SpaceBeforeInheritanceColon: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforeinheritancecolon
+# Not using classes.
+# @NOTUSED
+
+SpaceBeforeJsonColon: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforejsoncolon
+# clang-format is not used to format JavaScript.
+# @NOTUSED
+
+SpaceBeforeParens: Custom
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforeparens
+# This will be fine tuned in the SpaceBeforeParensOptions.
+
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterForeachMacros: true
+  AfterFunctionDefinitionName: false
+  AfterFunctionDeclarationName: false
+  AfterIfMacros: true
+  AfterOverloadedOperator: false
+  AfterPlacementOperator: true
+  AfterRequiresInClause: false
+  AfterRequiresInExpression: false
+  BeforeNonEmptyParentheses: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforeparensoptions
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+# - AfterForeachMacros: we're not using this
+# - AfterFunctionDefinitionName: no guidance, but code says false
+# - AfterFunctionDeclarationName: no guidance, but code says false
+# - AfterIfMacros: no guidance, we don't seem to use this
+# - AfterOverloadedOperator: no guidance, we don't seem to use this
+# - AfterPlacementOperator: no guidance, we don't seem to use this
+# - AfterRequiresInClause: no guidance, we don't use templates
+# - AfterRequiresInExpression: no guidance, we don't seem to use templates
+# - BeforeNonEmptyParentheses: no guidance, this should be false
+
+SpaceBeforeRangeBasedForLoopColon: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforerangebasedforloopcolon
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide#Spaces
+
+SpaceBeforeSquareBrackets: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacebeforesquarebrackets
+# No guidance, existing code says it should be false.
+
+SpaceInEmptyBlock: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spaceinemptyblock
+# No guidance, existing code suggests this to be true.
+# See regex ` \{ ?\}` to look at code.
+
+SpacesBeforeTrailingComments: 1
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesbeforetrailingcomments
+# This only affects // comments. We should be using /* */ comments.
+# @NOTUSED
+
+SpacesInAngles: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesinangles
+# Used in template argument lists, which we don't use.
+# @NOTUSED
+
+SpacesInContainerLiterals: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesincontainerliterals
+# I don't think we use this in C.
+
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: 1
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesinlinecommentprefix
+# It might only apply to // comments, not /* */ comments.
+# @DOUBLECHECK
+
+SpacesInParens: Custom
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesinparens
+# Setting this to Custom, so the longer SpacesInParensOptions will apply.
+
+SpacesInParensOptions:
+  ExceptDoubleParentheses: true
+  InConditionalStatements: false
+  InCStyleCasts: false
+  InEmptyParentheses: false
+  Other: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesinparensoptions
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+# - ExceptDoubleParentheses: no guidance, but existing code says true
+
+SpacesInSquareBrackets: false
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#spacesinsquarebrackets
+# No guidance, existing code says false.
+
+Standard: Latest
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#standard
+# Applies to C++ constructs.
+# @NOTUSED
+
+StatementAttributeLikeMacros:
+  - Q_EMIT
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#statementattributelikemacros
+# No guidance, I don't think we use this, but need to double check.
+# @DOUBLECHECK
+
+StatementMacros:
+  - Q_UNUSED
+  - QT_REQUIRE_VERSION
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#statementmacros
+# Not sure whether we use any of these, or there are others not here.
+# @DOUBLECHECK
+
+TabWidth: 4
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#tabwidth
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+
+TableGenBreakInsideDAGArg: DontBreak
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#tablegenbreakinsidedagarg
+# I don't think we're using this.
+# DOUBLECHECK
+
+UseTab: Never
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#usetab
+# Guidance: https://nginxsoftware.atlassian.net/wiki/spaces/UNIT/pages/2376368523/Unit+Core+-+Developers+Guide
+# This option could / should be AlignWithSpaces for accessibility purposes,
+# leaving at Never for the time being.
+
+VerilogBreakBetweenInstancePorts: true
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#verilogbreakbetweeninstanceports
+# We don't use verilog.
+# @NOTUSED
+
+WhitespaceSensitiveMacros:
+  - BOOST_PP_STRINGIZE
+  - CF_SWIFT_NAME
+  - NS_SWIFT_NAME
+  - PP_STRINGIZE
+  - STRINGIZE
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html#whitespacesensitivemacros
+...
