@@ -4,9 +4,7 @@
  * Copyright (C) NGINX, Inc.
  */
 
-
 #include <nxt_main.h>
-
 
 /*
  * Find the middle queue element if the queue has odd number of elements,
@@ -14,35 +12,38 @@
  */
 
 nxt_queue_link_t *
-nxt_queue_middle(nxt_queue_t *queue)
+nxt_queue_middle (nxt_queue_t *queue)
 {
-    nxt_queue_link_t  *middle, *next;
+  nxt_queue_link_t *middle, *next;
 
-    middle = nxt_queue_first(queue);
+  middle = nxt_queue_first (queue);
 
-    if (middle == nxt_queue_last(queue)) {
-        return middle;
+  if (middle == nxt_queue_last (queue))
+    {
+      return middle;
     }
 
-    next = middle;
+  next = middle;
 
-    for ( ;; ) {
-        middle = nxt_queue_next(middle);
+  for (;;)
+    {
+      middle = nxt_queue_next (middle);
 
-        next = nxt_queue_next(next);
+      next = nxt_queue_next (next);
 
-        if (next == nxt_queue_last(queue)) {
-            return middle;
+      if (next == nxt_queue_last (queue))
+        {
+          return middle;
         }
 
-        next = nxt_queue_next(next);
+      next = nxt_queue_next (next);
 
-        if (next == nxt_queue_last(queue)) {
-            return middle;
+      if (next == nxt_queue_last (queue))
+        {
+          return middle;
         }
     }
 }
-
 
 /*
  * nxt_queue_sort() provides a stable sort because it uses the insertion
@@ -50,36 +51,39 @@ nxt_queue_middle(nxt_queue_t *queue)
  */
 
 void
-nxt_queue_sort(nxt_queue_t *queue,
-    nxt_int_t (*cmp)(const void *data, const nxt_queue_link_t *,
-    const nxt_queue_link_t *), const void *data)
+nxt_queue_sort (nxt_queue_t *queue,
+                nxt_int_t (*cmp) (const void *data, const nxt_queue_link_t *,
+                                  const nxt_queue_link_t *),
+                const void *data)
 {
-    nxt_queue_link_t  *link, *prev, *next;
+  nxt_queue_link_t *link, *prev, *next;
 
-    link = nxt_queue_first(queue);
+  link = nxt_queue_first (queue);
 
-    if (link == nxt_queue_last(queue)) {
-        return;
+  if (link == nxt_queue_last (queue))
+    {
+      return;
     }
 
-    for (link = nxt_queue_next(link);
-         link != nxt_queue_tail(queue);
-         link = next)
+  for (link = nxt_queue_next (link); link != nxt_queue_tail (queue);
+       link = next)
     {
-        prev = nxt_queue_prev(link);
-        next = nxt_queue_next(link);
+      prev = nxt_queue_prev (link);
+      next = nxt_queue_next (link);
 
-        nxt_queue_remove(link);
+      nxt_queue_remove (link);
 
-        do {
-            if (cmp(data, prev, link) <= 0) {
-                break;
+      do
+        {
+          if (cmp (data, prev, link) <= 0)
+            {
+              break;
             }
 
-            prev = nxt_queue_prev(prev);
+          prev = nxt_queue_prev (prev);
+        }
+      while (prev != nxt_queue_head (queue));
 
-        } while (prev != nxt_queue_head(queue));
-
-        nxt_queue_insert_after(prev, link);
+      nxt_queue_insert_after (prev, link);
     }
 }
