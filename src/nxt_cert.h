@@ -7,8 +7,7 @@
 #ifndef _NXT_CERT_INCLUDED_
 #define _NXT_CERT_INCLUDED_
 
-
-typedef struct nxt_cert_s  nxt_cert_t;
+typedef struct nxt_cert_s nxt_cert_t;
 
 nxt_cert_t *nxt_cert_mem(nxt_task_t *task, nxt_buf_mem_t *mbuf);
 void nxt_cert_destroy(nxt_cert_t *cert);
@@ -23,7 +22,7 @@ nxt_array_t *nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mem_pool);
 void nxt_cert_store_release(nxt_array_t *certs);
 
 void nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,
-    nxt_port_rpc_handler_t handler, void *ctx);
+                        nxt_port_rpc_handler_t handler, void *ctx);
 void nxt_cert_store_delete(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp);
 
 void nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

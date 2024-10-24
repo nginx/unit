@@ -6,14 +6,12 @@
 
 #include <nxt_main.h>
 
-
-nxt_uint_t    nxt_ncpu = 1;
-nxt_uint_t    nxt_pagesize;
-nxt_task_t    nxt_main_task;
-nxt_atomic_t  nxt_task_ident;
+nxt_uint_t nxt_ncpu = 1;
+nxt_uint_t nxt_pagesize;
+nxt_task_t nxt_main_task;
+nxt_atomic_t nxt_task_ident;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
-
 
 #if (NXT_DEBUG && NXT_FREEBSD)
 /*
@@ -28,125 +26,119 @@ const char *malloc_conf = "junk:true";
 #endif
 #endif
 
+nxt_int_t nxt_lib_start(const char *app, char **argv, char ***envp) {
+  int n = 0;
+  nxt_int_t flags;
+  nxt_bool_t update;
+  nxt_thread_t *thread;
 
-nxt_int_t
-nxt_lib_start(const char *app, char **argv, char ***envp)
-{
-    int           n = 0;
-    nxt_int_t     flags;
-    nxt_bool_t    update;
-    nxt_thread_t  *thread;
+  flags = nxt_stderr_start();
 
-    flags = nxt_stderr_start();
+  nxt_log_start(app);
 
-    nxt_log_start(app);
-
-    nxt_pid = getpid();
-    nxt_ppid = getppid();
-    nxt_euid = geteuid();
-    nxt_egid = getegid();
+  nxt_pid = getpid();
+  nxt_ppid = getppid();
+  nxt_euid = geteuid();
+  nxt_egid = getegid();
 
 #if (NXT_DEBUG)
 
-    nxt_main_log.level = NXT_LOG_DEBUG;
+  nxt_main_log.level = NXT_LOG_DEBUG;
 
 #if (NXT_HAVE_MALLOPT)
-    /* Fill memory with 0xAA after malloc() and with 0x55 before free(). */
-    mallopt(M_PERTURB, 0x55);
+  /* Fill memory with 0xAA after malloc() and with 0x55 before free(). */
+  mallopt(M_PERTURB, 0x55);
 #endif
 
 #if (NXT_MACOSX)
-    /* Fill memory with 0xAA after malloc() and with 0x55 before free(). */
-    setenv("MallocScribble", "1", 0);
+  /* Fill memory with 0xAA after malloc() and with 0x55 before free(). */
+  setenv("MallocScribble", "1", 0);
 #endif
 
 #endif /* NXT_DEBUG */
 
-    /* Thread log is required for nxt_malloc() in nxt_strerror_start(). */
+  /* Thread log is required for nxt_malloc() in nxt_strerror_start(). */
 
-    nxt_thread_init_data(nxt_thread_context);
-    thread = nxt_thread();
-    thread->log = &nxt_main_log;
+  nxt_thread_init_data(nxt_thread_context);
+  thread = nxt_thread();
+  thread->log = &nxt_main_log;
 
-    thread->handle = nxt_thread_handle();
-    thread->time.signal = -1;
-    nxt_thread_time_update(thread);
+  thread->handle = nxt_thread_handle();
+  thread->time.signal = -1;
+  nxt_thread_time_update(thread);
 
-    nxt_main_task.thread = thread;
-    nxt_main_task.log = thread->log;
-    nxt_main_task.ident = nxt_task_next_ident();
+  nxt_main_task.thread = thread;
+  nxt_main_task.log = thread->log;
+  nxt_main_task.ident = nxt_task_next_ident();
 
-    if (nxt_strerror_start() != NXT_OK) {
-        return NXT_ERROR;
-    }
+  if (nxt_strerror_start() != NXT_OK) {
+    return NXT_ERROR;
+  }
 
-    if (flags != -1) {
-        nxt_debug(&nxt_main_task, "stderr flags: 0x%04Xd", flags);
-    }
+  if (flags != -1) {
+    nxt_debug(&nxt_main_task, "stderr flags: 0x%04Xd", flags);
+  }
 
 #ifdef _SC_NPROCESSORS_ONLN
-    /* Linux, FreeBSD, Solaris, MacOSX. */
-    n = sysconf(_SC_NPROCESSORS_ONLN);
+  /* Linux, FreeBSD, Solaris, MacOSX. */
+  n = sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
 #if (NXT_HAVE_LINUX_SCHED_GETAFFINITY)
-    if (n > 0) {
-        int        err;
-        size_t     size;
-        cpu_set_t  *set;
+  if (n > 0) {
+    int err;
+    size_t size;
+    cpu_set_t *set;
 
-        set = CPU_ALLOC(n);
-        if (set == NULL) {
-            return NXT_ERROR;
-        }
-
-        size = CPU_ALLOC_SIZE(n);
-
-        err = sched_getaffinity(0, size, set);
-        if (err == 0) {
-            n = CPU_COUNT_S(size, set);
-        }
-
-        CPU_FREE(set);
+    set = CPU_ALLOC(n);
+    if (set == NULL) {
+      return NXT_ERROR;
     }
 
+    size = CPU_ALLOC_SIZE(n);
+
+    err = sched_getaffinity(0, size, set);
+    if (err == 0) {
+      n = CPU_COUNT_S(size, set);
+    }
+
+    CPU_FREE(set);
+  }
+
 #elif (NXT_HPUX)
-    n = mpctl(MPC_GETNUMSPUS, NULL, NULL);
+  n = mpctl(MPC_GETNUMSPUS, NULL, NULL);
 
 #endif
 
-    nxt_debug(&nxt_main_task, "ncpu: %d", n);
+  nxt_debug(&nxt_main_task, "ncpu: %d", n);
 
-    if (n > 1) {
-        nxt_ncpu = n;
+  if (n > 1) {
+    nxt_ncpu = n;
+  }
+
+  nxt_thread_spin_init(nxt_ncpu, 0);
+
+  nxt_random_init(&thread->random);
+
+  nxt_pagesize = getpagesize();
+
+  nxt_debug(&nxt_main_task, "pagesize: %ui", nxt_pagesize);
+
+  if (argv != NULL) {
+    update = (argv[0] == app);
+
+    nxt_process_arguments(&nxt_main_task, argv, envp);
+
+    if (update) {
+      nxt_log_start(nxt_process_argv[0]);
     }
+  }
 
-    nxt_thread_spin_init(nxt_ncpu, 0);
-
-    nxt_random_init(&thread->random);
-
-    nxt_pagesize = getpagesize();
-
-    nxt_debug(&nxt_main_task, "pagesize: %ui", nxt_pagesize);
-
-    if (argv != NULL) {
-        update = (argv[0] == app);
-
-        nxt_process_arguments(&nxt_main_task, argv, envp);
-
-        if (update) {
-            nxt_log_start(nxt_process_argv[0]);
-        }
-    }
-
-    return NXT_OK;
+  return NXT_OK;
 }
 
-
-void
-nxt_lib_stop(void)
-{
-    /* TODO: stop engines */
+void nxt_lib_stop(void) {
+  /* TODO: stop engines */
 
 #if 0
 
@@ -169,8 +161,8 @@ nxt_lib_stop(void)
 
 #else
 
-    exit(0);
-    nxt_unreachable();
+  exit(0);
+  nxt_unreachable();
 
 #endif
 }

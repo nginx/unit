@@ -7,11 +7,9 @@
 #ifndef _NXT_SOCKET_H_INCLUDED_
 #define _NXT_SOCKET_H_INCLUDED_
 
+typedef int nxt_socket_t;
 
-typedef int  nxt_socket_t;
-
-#define NXT_NONBLOCK  1
-
+#define NXT_NONBLOCK 1
 
 /*
  * struct sockaddr and struct sockaddr_in are 16 bytes.
@@ -66,63 +64,59 @@ typedef int  nxt_socket_t;
  */
 
 #if (NXT_HAVE_UNIX_DOMAIN)
-#define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_un)
+#define NXT_SOCKADDR_LEN sizeof(struct sockaddr_un)
 
 #elif (NXT_HAVE_SOCKADDR_IN6)
-#define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_in6)
+#define NXT_SOCKADDR_LEN sizeof(struct sockaddr_in6)
 
 #else
-#define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_in)
+#define NXT_SOCKADDR_LEN sizeof(struct sockaddr_in)
 #endif
 
-
 typedef union {
-    struct sockaddr          buf;
-    uint64_t                 alignment;
-    char                     space[NXT_SOCKADDR_LEN];
+  struct sockaddr buf;
+  uint64_t alignment;
+  char space[NXT_SOCKADDR_LEN];
 } nxt_sockaddr_buf_t;
-
 
 /*
  * MAXHOSTNAMELEN is:
  *    64 on Linux;
  *   256 on FreeBSD, Solaris, MacOSX, NetBSD, OpenBSD.
  */
-#define NXT_MAXHOSTNAMELEN  MAXHOSTNAMELEN
-
+#define NXT_MAXHOSTNAMELEN MAXHOSTNAMELEN
 
 NXT_EXPORT nxt_socket_t nxt_socket_create(nxt_task_t *task, nxt_uint_t family,
-    nxt_uint_t type, nxt_uint_t protocol, nxt_uint_t flags);
+                                          nxt_uint_t type, nxt_uint_t protocol,
+                                          nxt_uint_t flags);
 NXT_EXPORT void nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s,
-    nxt_sockaddr_t *sa);
+                                        nxt_sockaddr_t *sa);
 NXT_EXPORT nxt_int_t nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s,
-    nxt_uint_t level, nxt_uint_t sockopt);
+                                           nxt_uint_t level,
+                                           nxt_uint_t sockopt);
 NXT_EXPORT nxt_int_t nxt_socket_setsockopt(nxt_task_t *task, nxt_socket_t s,
-    nxt_uint_t level, nxt_uint_t sockopt, int val);
+                                           nxt_uint_t level, nxt_uint_t sockopt,
+                                           int val);
 NXT_EXPORT nxt_int_t nxt_socket_bind(nxt_task_t *task, nxt_socket_t s,
-    nxt_sockaddr_t *sa);
+                                     nxt_sockaddr_t *sa);
 NXT_EXPORT nxt_int_t nxt_socket_connect(nxt_task_t *task, nxt_socket_t s,
-    nxt_sockaddr_t *sa);
+                                        nxt_sockaddr_t *sa);
 NXT_EXPORT void nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s,
-    nxt_uint_t how);
+                                    nxt_uint_t how);
 NXT_EXPORT void nxt_socket_close(nxt_task_t *task, nxt_socket_t s);
 nxt_err_t nxt_socket_error(nxt_socket_t s);
 nxt_uint_t nxt_socket_error_level(nxt_err_t err);
 
 NXT_EXPORT nxt_int_t nxt_socketpair_create(nxt_task_t *task,
-    nxt_socket_t *pair);
+                                           nxt_socket_t *pair);
 NXT_EXPORT void nxt_socketpair_close(nxt_task_t *task, nxt_socket_t *pair);
 NXT_EXPORT ssize_t nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t *fd,
-    nxt_iobuf_t *iob, nxt_uint_t niob);
-NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev,
-    nxt_iobuf_t *iob, nxt_uint_t niob, void *oob);
+                                       nxt_iobuf_t *iob, nxt_uint_t niob);
+NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_iobuf_t *iob,
+                                       nxt_uint_t niob, void *oob);
 
+#define nxt_socket_nonblocking(task, fd) nxt_fd_nonblocking(task, fd)
 
-#define nxt_socket_nonblocking(task, fd)                                      \
-    nxt_fd_nonblocking(task, fd)
-
-#define nxt_socket_blocking(task, fd)                                         \
-    nxt_fd_blocking(task, fd)
-
+#define nxt_socket_blocking(task, fd) nxt_fd_blocking(task, fd)
 
 #endif /* _NXT_SOCKET_H_INCLUDED_ */

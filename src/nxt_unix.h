@@ -4,10 +4,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-
 #ifndef _NXT_UNIX_H_INCLUDED_
 #define _NXT_UNIX_H_INCLUDED_
-
 
 #if (NXT_LINUX)
 
@@ -24,51 +22,49 @@
 #endif
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE                 /* pread(), pwrite(), gethostname(). */
+#define _GNU_SOURCE /* pread(), pwrite(), gethostname(). */
 #endif
 
-#define _FILE_OFFSET_BITS  64
+#define _FILE_OFFSET_BITS 64
 
-#include <malloc.h>                 /* malloc_usable_size(). */
-#include <sys/syscall.h>            /* syscall(SYS_gettid). */
+#include <malloc.h>      /* malloc_usable_size(). */
+#include <sys/syscall.h> /* syscall(SYS_gettid). */
 
 #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 4)
 /*
  * POSIX semaphores using NPTL atomic/futex operations
  * were introduced during glibc 2.3 development time.
  */
-#define NXT_HAVE_SEM_TRYWAIT_FAST  1
+#define NXT_HAVE_SEM_TRYWAIT_FAST 1
 #endif
 
 #endif /* NXT_LINUX */
 
-
 #if (NXT_FREEBSD)
 
 #if (NXT_HAVE_MALLOC_USABLE_SIZE)
-#include <malloc_np.h>              /* malloc_usable_size(). */
+#include <malloc_np.h> /* malloc_usable_size(). */
 #endif
 
 #if (__FreeBSD_version >= 900007)
 /* POSIX semaphores using atomic/umtx. */
-#define NXT_HAVE_SEM_TRYWAIT_FAST  1
+#define NXT_HAVE_SEM_TRYWAIT_FAST 1
 #endif
 
 #endif /* NXT_FREEBSD */
 
-
 #if (NXT_SOLARIS)
 
 #ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS  64       /* Must be before <sys/types.h>. */
+#define _FILE_OFFSET_BITS 64 /* Must be before <sys/types.h>. */
 #endif
 
-#ifndef _REENTRANT                  /* May be set by "-mt" options. */
-#define _REENTRANT                  /* Thread safe errno. */
+#ifndef _REENTRANT /* May be set by "-mt" options. */
+#define _REENTRANT /* Thread safe errno. */
 #endif
 
 #ifndef _POSIX_PTHREAD_SEMANTICS
-#define _POSIX_PTHREAD_SEMANTICS    /* 2 arguments in sigwait(). */
+#define _POSIX_PTHREAD_SEMANTICS /* 2 arguments in sigwait(). */
 #endif
 
 /*
@@ -82,7 +78,7 @@
 
 /* Enable X/Open sockets API. */
 #define _XOPEN_SOURCE
-#define _XOPEN_SOURCE_EXTENDED  1
+#define _XOPEN_SOURCE_EXTENDED 1
 /* Enable Solaris extensions disabled by _XOPEN_SOURCE. */
 #ifndef __EXTENSIONS__
 #define __EXTENSIONS__
@@ -90,29 +86,26 @@
 
 #endif /* NXT_SOLARIS */
 
-
 #if (NXT_MACOSX)
 
 #ifndef _DARWIN_C_SOURCE
-#define _DARWIN_C_SOURCE            /* pthread_threadid_np(), mach_port_t. */
+#define _DARWIN_C_SOURCE /* pthread_threadid_np(), mach_port_t. */
 #endif
 
-#include <mach/mach_time.h>         /* mach_absolute_time(). */
-#include <malloc/malloc.h>          /* malloc_size(). */
+#include <mach/mach_time.h> /* mach_absolute_time(). */
+#include <malloc/malloc.h>  /* malloc_size(). */
 
 #endif /* NXT_MACOSX */
 
-
 #if (NXT_AIX)
 
-#define _THREAD_SAFE                /* Must before any include. */
+#define _THREAD_SAFE /* Must before any include. */
 
 #endif /* NXT_AIX */
 
-
 #if (NXT_HPUX)
 
-#define _FILE_OFFSET_BITS  64
+#define _FILE_OFFSET_BITS 64
 
 /*
  * HP-UX provides three sockets API:
@@ -138,7 +131,6 @@
 
 #endif /* NXT_HPUX */
 
-
 #if (NXT_HAVE_ALLOCA_H)
 #include <alloca.h>
 #endif
@@ -152,24 +144,24 @@
 #include <netinet/tcp.h>
 #include <poll.h>
 #include <pwd.h>
+#include <sched.h>
 #include <semaphore.h>
 #include <setjmp.h>
-#include <sched.h>
 #include <signal.h>
 #include <spawn.h>
 #include <stdarg.h>
-#include <stddef.h>                 /* offsetof() */
-#include <stdio.h>
+#include <stddef.h> /* offsetof() */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #if (NXT_HAVE_SYS_FILIO_H)
-#include <sys/filio.h>              /* FIONBIO */
+#include <sys/filio.h> /* FIONBIO */
 #endif
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/param.h>              /* MAXPATHLEN */
+#include <sys/param.h> /* MAXPATHLEN */
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -179,10 +171,10 @@
 #if (NXT_HAVE_UNIX_DOMAIN)
 #include <sys/un.h>
 #endif
+#include <pthread.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #if (NXT_HAVE_EPOLL)
 #include <sys/epoll.h>
@@ -191,7 +183,7 @@
 /*
  * Epoll edge-tiggered mode is pretty much useless without EPOLLRDHUP support.
  */
-#define NXT_HAVE_EPOLL_EDGE  1
+#define NXT_HAVE_EPOLL_EDGE 1
 #endif
 
 #endif
@@ -229,11 +221,11 @@
 #endif
 
 #if (NXT_HAVE_GETRANDOM)
-#include <sys/random.h>             /* getrandom(). */
+#include <sys/random.h> /* getrandom(). */
 #elif (NXT_HAVE_LINUX_SYS_GETRANDOM)
-#include <linux/random.h>           /* SYS_getrandom. */
+#include <linux/random.h> /* SYS_getrandom. */
 #elif (NXT_HAVE_GETENTROPY_SYS_RANDOM)
-#include <sys/random.h>             /* getentropy(). */
+#include <sys/random.h> /* getentropy(). */
 #endif
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
@@ -247,7 +239,6 @@
 #if (NXT_TEST_BUILD)
 #include <nxt_test_build.h>
 #endif
-
 
 /*
  * On Linux IOV_MAX is 1024.  Linux uses kernel stack for 8 iovec's
@@ -268,25 +259,20 @@
  *
  * On AIX and HP-UX IOV_MAX is 16.
  */
-#define NXT_IOBUF_MAX  8
+#define NXT_IOBUF_MAX 8
 
+typedef struct iovec nxt_iobuf_t;
 
-typedef struct iovec   nxt_iobuf_t;
+#define nxt_iobuf_data(iob) (iob)->iov_base
 
-#define nxt_iobuf_data(iob)                                                   \
-    (iob)->iov_base
+#define nxt_iobuf_size(iob) (iob)->iov_len
 
-#define nxt_iobuf_size(iob)                                                   \
-    (iob)->iov_len
+#define nxt_iobuf_set(iob, p, size)                                            \
+  do {                                                                         \
+    (iob)->iov_base = (void *)p;                                               \
+    (iob)->iov_len = size;                                                     \
+  } while (0)
 
-#define nxt_iobuf_set(iob, p, size)                                           \
-    do {                                                                      \
-        (iob)->iov_base = (void *) p;                                         \
-        (iob)->iov_len = size;                                                \
-    } while (0)
-
-#define nxt_iobuf_add(iob, size)                                              \
-    (iob)->iov_len += size
-
+#define nxt_iobuf_add(iob, size) (iob)->iov_len += size
 
 #endif /* _NXT_UNIX_H_INCLUDED_ */

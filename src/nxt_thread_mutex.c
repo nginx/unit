@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * All modern pthread mutex implementations try to acquire a lock atomically
  * in userland before going to sleep in kernel.  Some spins on SMP systems
@@ -76,117 +75,103 @@
  *   MacOSX:   PTHREAD_MUTEX_NORMAL.
  */
 
+nxt_int_t nxt_thread_mutex_create(nxt_thread_mutex_t *mtx) {
+  nxt_err_t err;
+  pthread_mutexattr_t attr;
 
-nxt_int_t
-nxt_thread_mutex_create(nxt_thread_mutex_t *mtx)
-{
-    nxt_err_t            err;
-    pthread_mutexattr_t  attr;
+  err = pthread_mutexattr_init(&attr);
+  if (err != 0) {
+    nxt_thread_log_alert("pthread_mutexattr_init() failed %E", err);
+    return NXT_ERROR;
+  }
 
-    err = pthread_mutexattr_init(&attr);
-    if (err != 0) {
-        nxt_thread_log_alert("pthread_mutexattr_init() failed %E", err);
-        return NXT_ERROR;
-    }
+  err = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+  if (err != 0) {
+    nxt_thread_log_alert("pthread_mutexattr_settype"
+                         "(PTHREAD_MUTEX_ERRORCHECK) failed %E",
+                         err);
+    return NXT_ERROR;
+  }
 
-    err = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-    if (err != 0) {
-        nxt_thread_log_alert("pthread_mutexattr_settype"
-                             "(PTHREAD_MUTEX_ERRORCHECK) failed %E", err);
-        return NXT_ERROR;
-    }
+  err = pthread_mutex_init(mtx, &attr);
+  if (err != 0) {
+    nxt_thread_log_alert("pthread_mutex_init() failed %E", err);
+    return NXT_ERROR;
+  }
 
-    err = pthread_mutex_init(mtx, &attr);
-    if (err != 0) {
-        nxt_thread_log_alert("pthread_mutex_init() failed %E", err);
-        return NXT_ERROR;
-    }
+  err = pthread_mutexattr_destroy(&attr);
+  if (err != 0) {
+    nxt_thread_log_alert("pthread_mutexattr_destroy() failed %E", err);
+  }
 
-    err = pthread_mutexattr_destroy(&attr);
-    if (err != 0) {
-        nxt_thread_log_alert("pthread_mutexattr_destroy() failed %E", err);
-    }
+  nxt_thread_log_debug("pthread_mutex_init(%p)", mtx);
 
-    nxt_thread_log_debug("pthread_mutex_init(%p)", mtx);
+  return NXT_OK;
+}
 
+void nxt_thread_mutex_destroy(nxt_thread_mutex_t *mtx) {
+  nxt_err_t err;
+
+  err = pthread_mutex_destroy(mtx);
+  if (nxt_slow_path(err != 0)) {
+    nxt_thread_log_alert("pthread_mutex_destroy() failed %E", err);
+  }
+
+  nxt_thread_log_debug("pthread_mutex_destroy(%p)", mtx);
+}
+
+nxt_int_t nxt_thread_mutex_lock(nxt_thread_mutex_t *mtx) {
+  nxt_err_t err;
+
+  nxt_thread_log_debug("pthread_mutex_lock(%p) enter", mtx);
+
+  err = pthread_mutex_lock(mtx);
+  if (nxt_fast_path(err == 0)) {
     return NXT_OK;
+  }
+
+  nxt_thread_log_alert("pthread_mutex_lock() failed %E", err);
+
+  return NXT_ERROR;
 }
 
+nxt_bool_t nxt_thread_mutex_trylock(nxt_thread_mutex_t *mtx) {
+  nxt_err_t err;
 
-void
-nxt_thread_mutex_destroy(nxt_thread_mutex_t *mtx)
-{
-    nxt_err_t  err;
+  nxt_thread_debug(thr);
 
-    err = pthread_mutex_destroy(mtx);
-    if (nxt_slow_path(err != 0)) {
-        nxt_thread_log_alert("pthread_mutex_destroy() failed %E", err);
-    }
+  nxt_log_debug(thr->log, "pthread_mutex_trylock(%p) enter", mtx);
 
-    nxt_thread_log_debug("pthread_mutex_destroy(%p)", mtx);
+  err = pthread_mutex_trylock(mtx);
+  if (nxt_fast_path(err == 0)) {
+    return 1;
+  }
+
+  if (err == NXT_EBUSY) {
+    nxt_log_debug(thr->log, "pthread_mutex_trylock(%p) failed", mtx);
+
+  } else {
+    nxt_thread_log_alert("pthread_mutex_trylock() failed %E", err);
+  }
+
+  return 0;
 }
 
+nxt_int_t nxt_thread_mutex_unlock(nxt_thread_mutex_t *mtx) {
+  nxt_err_t err;
+  nxt_thread_t *thr;
 
-nxt_int_t
-nxt_thread_mutex_lock(nxt_thread_mutex_t *mtx)
-{
-    nxt_err_t  err;
+  err = pthread_mutex_unlock(mtx);
 
-    nxt_thread_log_debug("pthread_mutex_lock(%p) enter", mtx);
+  thr = nxt_thread();
+  nxt_thread_time_update(thr);
 
-    err = pthread_mutex_lock(mtx);
-    if (nxt_fast_path(err == 0)) {
-        return NXT_OK;
-    }
+  if (nxt_fast_path(err == 0)) {
+    nxt_log_debug(thr->log, "pthread_mutex_unlock(%p) exit", mtx);
+    return NXT_OK;
+  }
 
-    nxt_thread_log_alert("pthread_mutex_lock() failed %E", err);
+  nxt_log_alert(thr->log, "pthread_mutex_unlock() failed %E", err);
 
-    return NXT_ERROR;
-}
-
-
-nxt_bool_t
-nxt_thread_mutex_trylock(nxt_thread_mutex_t *mtx)
-{
-    nxt_err_t  err;
-
-    nxt_thread_debug(thr);
-
-    nxt_log_debug(thr->log, "pthread_mutex_trylock(%p) enter", mtx);
-
-    err = pthread_mutex_trylock(mtx);
-    if (nxt_fast_path(err == 0)) {
-        return 1;
-    }
-
-    if (err == NXT_EBUSY) {
-        nxt_log_debug(thr->log, "pthread_mutex_trylock(%p) failed", mtx);
-
-    } else {
-        nxt_thread_log_alert("pthread_mutex_trylock() failed %E", err);
-    }
-
-    return 0;
-}
-
-
-nxt_int_t
-nxt_thread_mutex_unlock(nxt_thread_mutex_t *mtx)
-{
-    nxt_err_t     err;
-    nxt_thread_t  *thr;
-
-    err = pthread_mutex_unlock(mtx);
-
-    thr = nxt_thread();
-    nxt_thread_time_update(thr);
-
-    if (nxt_fast_path(err == 0)) {
-        nxt_log_debug(thr->log, "pthread_mutex_unlock(%p) exit", mtx);
-        return NXT_OK;
-    }
-
-    nxt_log_alert(thr->log, "pthread_mutex_unlock() failed %E", err);
-
-    return NXT_ERROR;
+  return NXT_ERROR;
 }
