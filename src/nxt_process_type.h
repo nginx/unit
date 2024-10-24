@@ -7,8 +7,8 @@
 #ifndef _NXT_PROCESS_TYPE_H_INCLUDED_
 #define _NXT_PROCESS_TYPE_H_INCLUDED_
 
-
-typedef enum {
+typedef enum
+{
     NXT_PROCESS_MAIN = 0,
     NXT_PROCESS_DISCOVERY,
     NXT_PROCESS_CONTROLLER,
@@ -18,6 +18,5 @@ typedef enum {
 
     NXT_PROCESS_MAX,
 } nxt_process_type_t;
-
 
 #endif /* _NXT_PROCESS_TYPE_H_INCLUDED_ */

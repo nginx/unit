@@ -6,19 +6,16 @@
 
 #include <nxt_main.h>
 
-
 static void nxt_buf_completion(nxt_task_t *task, void *obj, void *data);
 static void nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data);
 
-
-typedef struct {
-    nxt_work_t          work;
-    nxt_event_engine_t  *engine;
+typedef struct
+{
+    nxt_work_t work;
+    nxt_event_engine_t *engine;
 } nxt_buf_ts_t;
 
-
-void
-nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size)
+void nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size)
 {
     b->mem.start = start;
     b->mem.pos = start;
@@ -26,14 +23,13 @@ nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size)
     b->mem.end = nxt_pointer_to(start, size);
 }
 
-
-nxt_buf_t *
-nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
+nxt_buf_t *nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
     b = nxt_mp_alloc(mp, NXT_BUF_MEM_SIZE + size);
-    if (nxt_slow_path(b == NULL)) {
+    if (nxt_slow_path(b == NULL))
+    {
         return NULL;
     }
 
@@ -42,7 +38,8 @@ nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
     b->data = mp;
     b->completion_handler = nxt_buf_completion;
 
-    if (size != 0) {
+    if (size != 0)
+    {
         b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
         b->mem.pos = b->mem.start;
         b->mem.free = b->mem.start;
@@ -52,15 +49,14 @@ nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
     return b;
 }
 
-
-nxt_buf_t *
-nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
+nxt_buf_t *nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
 {
-    nxt_buf_t     *b;
-    nxt_buf_ts_t  *ts;
+    nxt_buf_t *b;
+    nxt_buf_ts_t *ts;
 
     b = nxt_mp_alloc(mp, NXT_BUF_MEM_SIZE + sizeof(nxt_buf_ts_t) + size);
-    if (nxt_slow_path(b == NULL)) {
+    if (nxt_slow_path(b == NULL))
+    {
         return NULL;
     }
 
@@ -72,9 +68,9 @@ nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
     b->completion_handler = nxt_buf_ts_completion;
     b->is_ts = 1;
 
-    if (size != 0) {
-        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE
-                                         + sizeof(nxt_buf_ts_t));
+    if (size != 0)
+    {
+        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE + sizeof(nxt_buf_ts_t));
         b->mem.pos = b->mem.start;
         b->mem.free = b->mem.start;
         b->mem.end = b->mem.start + size;
@@ -91,14 +87,13 @@ nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
     return b;
 }
 
-
-nxt_buf_t *
-nxt_buf_file_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
+nxt_buf_t *nxt_buf_file_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
     b = nxt_mp_alloc(mp, NXT_BUF_FILE_SIZE + size);
-    if (nxt_slow_path(b == NULL)) {
+    if (nxt_slow_path(b == NULL))
+    {
         return NULL;
     }
 
@@ -108,7 +103,8 @@ nxt_buf_file_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
     b->completion_handler = nxt_buf_completion;
     nxt_buf_set_file(b);
 
-    if (size != 0) {
+    if (size != 0)
+    {
         b->mem.start = nxt_pointer_to(b, NXT_BUF_FILE_SIZE);
         b->mem.pos = b->mem.start;
         b->mem.free = b->mem.start;
@@ -118,15 +114,14 @@ nxt_buf_file_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
     return b;
 }
 
-
-nxt_buf_t *
-nxt_buf_mmap_alloc(nxt_mp_t *mp, size_t size)
+nxt_buf_t *nxt_buf_mmap_alloc(nxt_mp_t *mp, size_t size)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
     b = nxt_mp_zalloc(mp, NXT_BUF_MMAP_SIZE);
 
-    if (nxt_fast_path(b != NULL)) {
+    if (nxt_fast_path(b != NULL))
+    {
         b->data = mp;
         b->completion_handler = nxt_buf_completion;
 
@@ -138,15 +133,14 @@ nxt_buf_mmap_alloc(nxt_mp_t *mp, size_t size)
     return b;
 }
 
-
-nxt_buf_t *
-nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags)
+nxt_buf_t *nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
     b = nxt_mp_zalloc(mp, NXT_BUF_MEM_SIZE);
 
-    if (nxt_fast_path(b != NULL)) {
+    if (nxt_fast_path(b != NULL))
+    {
         b->data = mp;
         b->completion_handler = nxt_buf_completion;
 
@@ -159,31 +153,30 @@ nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags)
     return b;
 }
 
-
-void
-nxt_buf_chain_add(nxt_buf_t **head, nxt_buf_t *in)
+void nxt_buf_chain_add(nxt_buf_t **head, nxt_buf_t *in)
 {
-    nxt_buf_t  *b, **prev;
+    nxt_buf_t *b, **prev;
 
     prev = head;
 
-    for (b = *head; b != NULL; b = b->next) {
+    for (b = *head; b != NULL; b = b->next)
+    {
         prev = &b->next;
     }
 
     *prev = in;
 }
 
-
-size_t
-nxt_buf_chain_length(nxt_buf_t *b)
+size_t nxt_buf_chain_length(nxt_buf_t *b)
 {
-    size_t  length;
+    size_t length;
 
     length = 0;
 
-    while (b != NULL) {
-        if (!nxt_buf_is_sync(b)) {
+    while (b != NULL)
+    {
+        if (!nxt_buf_is_sync(b))
+        {
             length += b->mem.free - b->mem.pos;
         }
 
@@ -193,12 +186,10 @@ nxt_buf_chain_length(nxt_buf_t *b)
     return length;
 }
 
-
-static void
-nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
+static void nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b, *next, *parent;
+    nxt_mp_t *mp;
+    nxt_buf_t *b, *next, *parent;
 
     b = obj;
 
@@ -206,7 +197,8 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    do {
+    do
+    {
         next = b->next;
         parent = b->parent;
         mp = b->data;
@@ -219,16 +211,16 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
     } while (b != NULL);
 }
 
-
-void
-nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent)
+void nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent)
 {
-    if (parent != NULL) {
+    if (parent != NULL)
+    {
         nxt_debug(task, "parent retain:%uD", parent->retain);
 
         parent->retain--;
 
-        if (parent->retain == 0) {
+        if (parent->retain == 0)
+        {
             parent->mem.pos = parent->mem.free;
 
             parent->completion_handler(task, parent, parent->parent);
@@ -236,12 +228,10 @@ nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent)
     }
 }
 
-
-nxt_int_t
-nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data)
+nxt_int_t nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t     *b;
-    nxt_buf_ts_t  *ts;
+    nxt_buf_t *b;
+    nxt_buf_ts_t *ts;
 
     b = obj;
 
@@ -249,10 +239,10 @@ nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data)
 
     ts = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
 
-    if (ts->engine != task->thread->engine) {
+    if (ts->engine != task->thread->engine)
+    {
 
-        nxt_debug(task, "buf ts: %p current engine is %p, expected %p",
-                  b, task->thread->engine, ts->engine);
+        nxt_debug(task, "buf ts: %p current engine is %p, expected %p", b, task->thread->engine, ts->engine);
 
         ts->work.handler = b->completion_handler;
         ts->work.obj = obj;
@@ -266,16 +256,15 @@ nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data)
     return 0;
 }
 
-
-static void
-nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
+static void nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b, *next, *parent;
+    nxt_mp_t *mp;
+    nxt_buf_t *b, *next, *parent;
 
     b = obj;
 
-    if (nxt_buf_ts_handle(task, obj, data)) {
+    if (nxt_buf_ts_handle(task, obj, data))
+    {
         return;
     }
 
@@ -283,7 +272,8 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    do {
+    do
+    {
         next = b->next;
         parent = b->parent;
         mp = b->data;
@@ -297,27 +287,28 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
     } while (b != NULL);
 }
 
-
-nxt_buf_t *
-nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
+nxt_buf_t *nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
 {
-    nxt_buf_t  *b, *i;
+    nxt_buf_t *b, *i;
 
-    if (nxt_slow_path(size == 0)) {
-        for (i = src; i != NULL; i = i->next) {
+    if (nxt_slow_path(size == 0))
+    {
+        for (i = src; i != NULL; i = i->next)
+        {
             size += nxt_buf_used_size(i);
         }
     }
 
     b = nxt_buf_mem_alloc(mp, size, 0);
 
-    if (nxt_slow_path(b == NULL)) {
+    if (nxt_slow_path(b == NULL))
+    {
         return NULL;
     }
 
-    for (i = src; i != NULL; i = i->next) {
-        if (nxt_slow_path(nxt_buf_mem_free_size(&b->mem)
-                          < nxt_buf_used_size(i)))
+    for (i = src; i != NULL; i = i->next)
+    {
+        if (nxt_slow_path(nxt_buf_mem_free_size(&b->mem) < nxt_buf_used_size(i)))
         {
             break;
         }

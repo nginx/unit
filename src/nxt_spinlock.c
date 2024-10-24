@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * Linux supports pthread spinlocks since glibc 2.3.  Spinlock is an
  * atomic integer with zero initial value.  On i386/amd64 however the
@@ -26,15 +25,13 @@
  * with depressed (the lowest) priority.
  */
 
-
 /* It should be adjusted with the "spinlock_count" directive. */
-static nxt_uint_t  nxt_spinlock_count = 1000;
+static nxt_uint_t nxt_spinlock_count = 1000;
 
-
-void
-nxt_thread_spin_init(nxt_uint_t ncpu, nxt_uint_t count)
+void nxt_thread_spin_init(nxt_uint_t ncpu, nxt_uint_t count)
 {
-    switch (ncpu) {
+    switch (ncpu)
+    {
 
     case 0:
         /* Explicit spinlock count. */
@@ -58,27 +55,29 @@ nxt_thread_spin_init(nxt_uint_t ncpu, nxt_uint_t count)
     }
 }
 
-
-void
-nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
+void nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
 {
-    nxt_uint_t  n;
+    nxt_uint_t n;
 
     nxt_thread_log_debug("spin_lock(%p) enter", lock);
 
-    for ( ;; ) {
+    for (;;)
+    {
 
     again:
 
-        if (nxt_fast_path(nxt_atomic_try_lock(lock))) {
+        if (nxt_fast_path(nxt_atomic_try_lock(lock)))
+        {
             return;
         }
 
-        for (n = nxt_spinlock_count; n != 0; n--) {
+        for (n = nxt_spinlock_count; n != 0; n--)
+        {
 
             nxt_cpu_pause();
 
-            if (*lock == 0) {
+            if (*lock == 0)
+            {
                 goto again;
             }
         }
@@ -87,13 +86,12 @@ nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
     }
 }
 
-
-nxt_bool_t
-nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
+nxt_bool_t nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
 {
     nxt_thread_log_debug("spin_trylock(%p) enter", lock);
 
-    if (nxt_fast_path(nxt_atomic_try_lock(lock))) {
+    if (nxt_fast_path(nxt_atomic_try_lock(lock)))
+    {
         return 1;
     }
 
@@ -102,9 +100,7 @@ nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
     return 0;
 }
 
-
-void
-nxt_thread_spin_unlock(nxt_thread_spinlock_t *lock)
+void nxt_thread_spin_unlock(nxt_thread_spinlock_t *lock)
 {
     nxt_atomic_release(lock);
 

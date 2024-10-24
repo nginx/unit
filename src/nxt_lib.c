@@ -6,14 +6,12 @@
 
 #include <nxt_main.h>
 
-
-nxt_uint_t    nxt_ncpu = 1;
-nxt_uint_t    nxt_pagesize;
-nxt_task_t    nxt_main_task;
-nxt_atomic_t  nxt_task_ident;
+nxt_uint_t nxt_ncpu = 1;
+nxt_uint_t nxt_pagesize;
+nxt_task_t nxt_main_task;
+nxt_atomic_t nxt_task_ident;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
-
 
 #if (NXT_DEBUG && NXT_FREEBSD)
 /*
@@ -28,14 +26,12 @@ const char *malloc_conf = "junk:true";
 #endif
 #endif
 
-
-nxt_int_t
-nxt_lib_start(const char *app, char **argv, char ***envp)
+nxt_int_t nxt_lib_start(const char *app, char **argv, char ***envp)
 {
-    int           n = 0;
-    nxt_int_t     flags;
-    nxt_bool_t    update;
-    nxt_thread_t  *thread;
+    int n = 0;
+    nxt_int_t flags;
+    nxt_bool_t update;
+    nxt_thread_t *thread;
 
     flags = nxt_stderr_start();
 
@@ -76,11 +72,13 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     nxt_main_task.log = thread->log;
     nxt_main_task.ident = nxt_task_next_ident();
 
-    if (nxt_strerror_start() != NXT_OK) {
+    if (nxt_strerror_start() != NXT_OK)
+    {
         return NXT_ERROR;
     }
 
-    if (flags != -1) {
+    if (flags != -1)
+    {
         nxt_debug(&nxt_main_task, "stderr flags: 0x%04Xd", flags);
     }
 
@@ -90,20 +88,23 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 #endif
 
 #if (NXT_HAVE_LINUX_SCHED_GETAFFINITY)
-    if (n > 0) {
-        int        err;
-        size_t     size;
-        cpu_set_t  *set;
+    if (n > 0)
+    {
+        int err;
+        size_t size;
+        cpu_set_t *set;
 
         set = CPU_ALLOC(n);
-        if (set == NULL) {
+        if (set == NULL)
+        {
             return NXT_ERROR;
         }
 
         size = CPU_ALLOC_SIZE(n);
 
         err = sched_getaffinity(0, size, set);
-        if (err == 0) {
+        if (err == 0)
+        {
             n = CPU_COUNT_S(size, set);
         }
 
@@ -117,7 +118,8 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_debug(&nxt_main_task, "ncpu: %d", n);
 
-    if (n > 1) {
+    if (n > 1)
+    {
         nxt_ncpu = n;
     }
 
@@ -129,12 +131,14 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_debug(&nxt_main_task, "pagesize: %ui", nxt_pagesize);
 
-    if (argv != NULL) {
+    if (argv != NULL)
+    {
         update = (argv[0] == app);
 
         nxt_process_arguments(&nxt_main_task, argv, envp);
 
-        if (update) {
+        if (update)
+        {
             nxt_log_start(nxt_process_argv[0]);
         }
     }
@@ -142,9 +146,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     return NXT_OK;
 }
 
-
-void
-nxt_lib_stop(void)
+void nxt_lib_stop(void)
 {
     /* TODO: stop engines */
 

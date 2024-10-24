@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * The first epoll version has been introduced in Linux 2.5.44.  The
  * interface was changed several times since then and the final version
@@ -30,43 +29,28 @@
  * EPOLLEXCLUSIVE           Linux 4.5, glibc 2.24.
  */
 
-
 #if (NXT_HAVE_EPOLL_EDGE)
-static nxt_int_t nxt_epoll_edge_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents);
+static nxt_int_t nxt_epoll_edge_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents);
 #endif
-static nxt_int_t nxt_epoll_level_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents);
-static nxt_int_t nxt_epoll_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents, nxt_conn_io_t *io, uint32_t mode);
-static void nxt_epoll_test_accept4(nxt_event_engine_t *engine,
-    nxt_conn_io_t *io);
+static nxt_int_t nxt_epoll_level_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents);
+static nxt_int_t nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents,
+                                  nxt_conn_io_t *io, uint32_t mode);
+static void nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_conn_io_t *io);
 static void nxt_epoll_free(nxt_event_engine_t *engine);
 static void nxt_epoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
 static void nxt_epoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
 static void nxt_epoll_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
-static nxt_bool_t nxt_epoll_close(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_enable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_enable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_disable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_disable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_block_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_block_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_oneshot_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_oneshot_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_enable_accept(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
-    int op, uint32_t events);
+static nxt_bool_t nxt_epoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op, uint32_t events);
 static void nxt_epoll_commit_changes(nxt_event_engine_t *engine);
 static void nxt_epoll_error_handler(nxt_task_t *task, void *obj, void *data);
 #if (NXT_HAVE_SIGNALFD)
@@ -74,29 +58,23 @@ static nxt_int_t nxt_epoll_add_signal(nxt_event_engine_t *engine);
 static void nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data);
 #endif
 #if (NXT_HAVE_EVENTFD)
-static nxt_int_t nxt_epoll_enable_post(nxt_event_engine_t *engine,
-    nxt_work_handler_t handler);
+static nxt_int_t nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler);
 static void nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo);
 #endif
 static void nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
 
 #if (NXT_HAVE_ACCEPT4)
-static void nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj,
-    void *data);
+static void nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data);
 #endif
-
 
 #if (NXT_HAVE_EPOLL_EDGE)
 
-static void nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj,
-    void *data);
+static void nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data);
+static void nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj, void *data);
 static ssize_t nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
 
-
-static nxt_conn_io_t  nxt_epoll_edge_conn_io = {
+static nxt_conn_io_t nxt_epoll_edge_conn_io = {
     .connect = nxt_epoll_edge_conn_io_connect,
     .accept = nxt_conn_io_accept,
 
@@ -117,8 +95,7 @@ static nxt_conn_io_t  nxt_epoll_edge_conn_io = {
     .send = nxt_event_conn_io_send,
 };
 
-
-const nxt_event_interface_t  nxt_epoll_edge_engine = {
+const nxt_event_interface_t nxt_epoll_edge_engine = {
     "epoll_edge",
     nxt_epoll_edge_create,
     nxt_epoll_free,
@@ -163,8 +140,7 @@ const nxt_event_interface_t  nxt_epoll_edge_engine = {
 
 #endif
 
-
-const nxt_event_interface_t  nxt_epoll_level_engine = {
+const nxt_event_interface_t nxt_epoll_level_engine = {
     "epoll_level",
     nxt_epoll_level_create,
     nxt_epoll_free,
@@ -207,32 +183,22 @@ const nxt_event_interface_t  nxt_epoll_level_engine = {
 #endif
 };
 
-
 #if (NXT_HAVE_EPOLL_EDGE)
 
-static nxt_int_t
-nxt_epoll_edge_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents)
+static nxt_int_t nxt_epoll_edge_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents)
 {
-    return nxt_epoll_create(engine, mchanges, mevents, &nxt_epoll_edge_conn_io,
-                            EPOLLET | EPOLLRDHUP);
+    return nxt_epoll_create(engine, mchanges, mevents, &nxt_epoll_edge_conn_io, EPOLLET | EPOLLRDHUP);
 }
 
 #endif
 
-
-static nxt_int_t
-nxt_epoll_level_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents)
+static nxt_int_t nxt_epoll_level_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents)
 {
-    return nxt_epoll_create(engine, mchanges, mevents,
-                            &nxt_unix_conn_io, 0);
+    return nxt_epoll_create(engine, mchanges, mevents, &nxt_unix_conn_io, 0);
 }
 
-
-static nxt_int_t
-nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents, nxt_conn_io_t *io, uint32_t mode)
+static nxt_int_t nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges, nxt_uint_t mevents,
+                                  nxt_conn_io_t *io, uint32_t mode)
 {
     engine->u.epoll.fd = -1;
     engine->u.epoll.mode = mode;
@@ -243,28 +209,33 @@ nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
 #endif
 
     engine->u.epoll.changes = nxt_malloc(sizeof(nxt_epoll_change_t) * mchanges);
-    if (engine->u.epoll.changes == NULL) {
+    if (engine->u.epoll.changes == NULL)
+    {
         goto fail;
     }
 
     engine->u.epoll.events = nxt_malloc(sizeof(struct epoll_event) * mevents);
-    if (engine->u.epoll.events == NULL) {
+    if (engine->u.epoll.events == NULL)
+    {
         goto fail;
     }
 
     engine->u.epoll.fd = epoll_create(1);
-    if (engine->u.epoll.fd == -1) {
+    if (engine->u.epoll.fd == -1)
+    {
         nxt_alert(&engine->task, "epoll_create() failed %E", nxt_errno);
         goto fail;
     }
 
     nxt_debug(&engine->task, "epoll_create(): %d", engine->u.epoll.fd);
 
-    if (engine->signals != NULL) {
+    if (engine->signals != NULL)
+    {
 
 #if (NXT_HAVE_SIGNALFD)
 
-        if (nxt_epoll_add_signal(engine) != NXT_OK) {
+        if (nxt_epoll_add_signal(engine) != NXT_OK)
+        {
             goto fail;
         }
 
@@ -282,26 +253,26 @@ fail:
     return NXT_ERROR;
 }
 
-
-static void
-nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_conn_io_t *io)
+static void nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_conn_io_t *io)
 {
-    static nxt_work_handler_t  handler;
+    static nxt_work_handler_t handler;
 
-    if (handler == NULL) {
+    if (handler == NULL)
+    {
 
         handler = io->accept;
 
 #if (NXT_HAVE_ACCEPT4)
 
-        (void) accept4(-1, NULL, NULL, SOCK_NONBLOCK);
+        (void)accept4(-1, NULL, NULL, SOCK_NONBLOCK);
 
-        if (nxt_errno != NXT_ENOSYS) {
+        if (nxt_errno != NXT_ENOSYS)
+        {
             handler = nxt_epoll_conn_io_accept4;
-
-        } else {
-            nxt_log(&engine->task, NXT_LOG_INFO, "accept4() failed %E",
-                    NXT_ENOSYS);
+        }
+        else
+        {
+            nxt_log(&engine->task, NXT_LOG_INFO, "accept4() failed %E", NXT_ENOSYS);
         }
 
 #endif
@@ -310,11 +281,9 @@ nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_conn_io_t *io)
     io->accept = handler;
 }
 
-
-static void
-nxt_epoll_free(nxt_event_engine_t *engine)
+static void nxt_epoll_free(nxt_event_engine_t *engine)
 {
-    int  fd;
+    int fd;
 
     nxt_debug(&engine->task, "epoll %d free", engine->u.epoll.fd);
 
@@ -322,7 +291,8 @@ nxt_epoll_free(nxt_event_engine_t *engine)
 
     fd = engine->u.epoll.signalfd.fd;
 
-    if (fd != -1 && close(fd) != 0) {
+    if (fd != -1 && close(fd) != 0)
+    {
         nxt_alert(&engine->task, "signalfd close(%d) failed %E", fd, nxt_errno);
     }
 
@@ -332,7 +302,8 @@ nxt_epoll_free(nxt_event_engine_t *engine)
 
     fd = engine->u.epoll.eventfd.fd;
 
-    if (fd != -1 && close(fd) != 0) {
+    if (fd != -1 && close(fd) != 0)
+    {
         nxt_alert(&engine->task, "eventfd close(%d) failed %E", fd, nxt_errno);
     }
 
@@ -340,7 +311,8 @@ nxt_epoll_free(nxt_event_engine_t *engine)
 
     fd = engine->u.epoll.fd;
 
-    if (fd != -1 && close(fd) != 0) {
+    if (fd != -1 && close(fd) != 0)
+    {
         nxt_alert(&engine->task, "epoll close(%d) failed %E", fd, nxt_errno);
     }
 
@@ -350,22 +322,18 @@ nxt_epoll_free(nxt_event_engine_t *engine)
     nxt_memzero(&engine->u.epoll, sizeof(nxt_epoll_engine_t));
 }
 
-
-static void
-nxt_epoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
     ev->read = NXT_EVENT_ACTIVE;
     ev->write = NXT_EVENT_ACTIVE;
 
-    nxt_epoll_change(engine, ev, EPOLL_CTL_ADD,
-                     EPOLLIN | EPOLLOUT | engine->u.epoll.mode);
+    nxt_epoll_change(engine, ev, EPOLL_CTL_ADD, EPOLLIN | EPOLLOUT | engine->u.epoll.mode);
 }
 
-
-static void
-nxt_epoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    if (ev->read > NXT_EVENT_DISABLED || ev->write > NXT_EVENT_DISABLED) {
+    if (ev->read > NXT_EVENT_DISABLED || ev->write > NXT_EVENT_DISABLED)
+    {
 
         ev->read = NXT_EVENT_INACTIVE;
         ev->write = NXT_EVENT_INACTIVE;
@@ -374,11 +342,10 @@ nxt_epoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     }
 }
 
-
-static void
-nxt_epoll_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    if (ev->read != NXT_EVENT_INACTIVE || ev->write != NXT_EVENT_INACTIVE) {
+    if (ev->read != NXT_EVENT_INACTIVE || ev->write != NXT_EVENT_INACTIVE)
+    {
 
         ev->read = NXT_EVENT_INACTIVE;
         ev->write = NXT_EVENT_INACTIVE;
@@ -386,7 +353,6 @@ nxt_epoll_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
         nxt_epoll_change(engine, ev, EPOLL_CTL_DEL, 0);
     }
 }
-
 
 /*
  * Although calling close() on a file descriptor will remove any epoll
@@ -397,30 +363,30 @@ nxt_epoll_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
  * eliminates possible lock contention.
  */
 
-static nxt_bool_t
-nxt_epoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static nxt_bool_t nxt_epoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
     nxt_epoll_delete(engine, ev);
 
     return ev->changing;
 }
 
-
-static void
-nxt_epoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int       op;
-    uint32_t  events;
+    int op;
+    uint32_t events;
 
-    if (ev->read != NXT_EVENT_BLOCKED) {
+    if (ev->read != NXT_EVENT_BLOCKED)
+    {
 
         op = EPOLL_CTL_MOD;
         events = EPOLLIN | engine->u.epoll.mode;
 
-        if (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) {
+        if (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE)
+        {
             op = EPOLL_CTL_ADD;
-
-        } else if (ev->write >= NXT_EVENT_BLOCKED) {
+        }
+        else if (ev->write >= NXT_EVENT_BLOCKED)
+        {
             events |= EPOLLOUT;
         }
 
@@ -430,22 +396,23 @@ nxt_epoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->read = NXT_EVENT_ACTIVE;
 }
 
-
-static void
-nxt_epoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int       op;
-    uint32_t  events;
+    int op;
+    uint32_t events;
 
-    if (ev->write != NXT_EVENT_BLOCKED) {
+    if (ev->write != NXT_EVENT_BLOCKED)
+    {
 
         op = EPOLL_CTL_MOD;
         events = EPOLLOUT | engine->u.epoll.mode;
 
-        if (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) {
+        if (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE)
+        {
             op = EPOLL_CTL_ADD;
-
-        } else if (ev->read >= NXT_EVENT_BLOCKED) {
+        }
+        else if (ev->read >= NXT_EVENT_BLOCKED)
+        {
             events |= EPOLLIN;
         }
 
@@ -455,21 +422,21 @@ nxt_epoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_ACTIVE;
 }
 
-
-static void
-nxt_epoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int       op;
-    uint32_t  events;
+    int op;
+    uint32_t events;
 
     ev->read = NXT_EVENT_INACTIVE;
 
-    if (ev->write <= NXT_EVENT_DISABLED) {
+    if (ev->write <= NXT_EVENT_DISABLED)
+    {
         ev->write = NXT_EVENT_INACTIVE;
         op = EPOLL_CTL_DEL;
         events = 0;
-
-    } else {
+    }
+    else
+    {
         op = EPOLL_CTL_MOD;
         events = EPOLLOUT | engine->u.epoll.mode;
     }
@@ -477,21 +444,21 @@ nxt_epoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     nxt_epoll_change(engine, ev, op, events);
 }
 
-
-static void
-nxt_epoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int       op;
-    uint32_t  events;
+    int op;
+    uint32_t events;
 
     ev->write = NXT_EVENT_INACTIVE;
 
-    if (ev->read <= NXT_EVENT_DISABLED) {
+    if (ev->read <= NXT_EVENT_DISABLED)
+    {
         ev->read = NXT_EVENT_INACTIVE;
         op = EPOLL_CTL_DEL;
         events = 0;
-
-    } else {
+    }
+    else
+    {
         op = EPOLL_CTL_MOD;
         events = EPOLLIN | engine->u.epoll.mode;
     }
@@ -499,24 +466,21 @@ nxt_epoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     nxt_epoll_change(engine, ev, op, events);
 }
 
-
-static void
-nxt_epoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    if (ev->read != NXT_EVENT_INACTIVE) {
+    if (ev->read != NXT_EVENT_INACTIVE)
+    {
         ev->read = NXT_EVENT_BLOCKED;
     }
 }
 
-
-static void
-nxt_epoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    if (ev->write != NXT_EVENT_INACTIVE) {
+    if (ev->write != NXT_EVENT_INACTIVE)
+    {
         ev->write = NXT_EVENT_BLOCKED;
     }
 }
-
 
 /*
  * NXT_EVENT_DISABLED state is used to track whether EPOLLONESHOT
@@ -531,13 +495,11 @@ nxt_epoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
  *     descriptor with a new event mask.
  */
 
-static void
-nxt_epoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int  op;
+    int op;
 
-    op = (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) ?
-             EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    op = (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 
     ev->read = NXT_EVENT_ONESHOT;
     ev->write = NXT_EVENT_INACTIVE;
@@ -545,14 +507,11 @@ nxt_epoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     nxt_epoll_change(engine, ev, op, EPOLLIN | EPOLLONESHOT);
 }
 
-
-static void
-nxt_epoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    int  op;
+    int op;
 
-    op = (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) ?
-             EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    op = (ev->read == NXT_EVENT_INACTIVE && ev->write == NXT_EVENT_INACTIVE) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 
     ev->read = NXT_EVENT_INACTIVE;
     ev->write = NXT_EVENT_ONESHOT;
@@ -560,11 +519,9 @@ nxt_epoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     nxt_epoll_change(engine, ev, op, EPOLLOUT | EPOLLONESHOT);
 }
 
-
-static void
-nxt_epoll_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
+static void nxt_epoll_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    uint32_t  events;
+    uint32_t events;
 
     ev->read = NXT_EVENT_ACTIVE;
 
@@ -577,22 +534,19 @@ nxt_epoll_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     nxt_epoll_change(engine, ev, EPOLL_CTL_ADD, events);
 }
 
-
 /*
  * epoll changes are batched to improve instruction and data cache
  * locality of several epoll_ctl() calls followed by epoll_wait() call.
  */
 
-static void
-nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op,
-    uint32_t events)
+static void nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op, uint32_t events)
 {
-    nxt_epoll_change_t  *change;
+    nxt_epoll_change_t *change;
 
-    nxt_debug(ev->task, "epoll %d set event: fd:%d op:%d ev:%XD",
-              engine->u.epoll.fd, ev->fd, op, events);
+    nxt_debug(ev->task, "epoll %d set event: fd:%d op:%d ev:%XD", engine->u.epoll.fd, ev->fd, op, events);
 
-    if (engine->u.epoll.nchanges >= engine->u.epoll.mchanges) {
+    if (engine->u.epoll.nchanges >= engine->u.epoll.mchanges)
+    {
         nxt_epoll_commit_changes(engine);
     }
 
@@ -604,36 +558,32 @@ nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op,
     change->event.data.ptr = ev;
 }
 
-
-static void
-nxt_epoll_commit_changes(nxt_event_engine_t *engine)
+static void nxt_epoll_commit_changes(nxt_event_engine_t *engine)
 {
-    int                 ret;
-    nxt_fd_event_t      *ev;
-    nxt_epoll_change_t  *change, *end;
+    int ret;
+    nxt_fd_event_t *ev;
+    nxt_epoll_change_t *change, *end;
 
-    nxt_debug(&engine->task, "epoll %d changes:%ui",
-              engine->u.epoll.fd, engine->u.epoll.nchanges);
+    nxt_debug(&engine->task, "epoll %d changes:%ui", engine->u.epoll.fd, engine->u.epoll.nchanges);
 
     change = engine->u.epoll.changes;
     end = change + engine->u.epoll.nchanges;
 
-    do {
+    do
+    {
         ev = change->event.data.ptr;
         ev->changing = 0;
 
-        nxt_debug(ev->task, "epoll_ctl(%d): fd:%d op:%d ev:%XD",
-                  engine->u.epoll.fd, ev->fd, change->op,
+        nxt_debug(ev->task, "epoll_ctl(%d): fd:%d op:%d ev:%XD", engine->u.epoll.fd, ev->fd, change->op,
                   change->event.events);
 
         ret = epoll_ctl(engine->u.epoll.fd, change->op, ev->fd, &change->event);
 
-        if (nxt_slow_path(ret != 0)) {
-            nxt_alert(ev->task, "epoll_ctl(%d, %d, %d) failed %E",
-                      engine->u.epoll.fd, change->op, ev->fd, nxt_errno);
+        if (nxt_slow_path(ret != 0))
+        {
+            nxt_alert(ev->task, "epoll_ctl(%d, %d, %d) failed %E", engine->u.epoll.fd, change->op, ev->fd, nxt_errno);
 
-            nxt_work_queue_add(&engine->fast_work_queue,
-                               nxt_epoll_error_handler, ev->task, ev, ev->data);
+            nxt_work_queue_add(&engine->fast_work_queue, nxt_epoll_error_handler, ev->task, ev, ev->data);
 
             engine->u.epoll.error = 1;
         }
@@ -645,11 +595,9 @@ nxt_epoll_commit_changes(nxt_event_engine_t *engine)
     engine->u.epoll.nchanges = 0;
 }
 
-
-static void
-nxt_epoll_error_handler(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_error_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_fd_event_t  *ev;
+    nxt_fd_event_t *ev;
 
     ev = obj;
 
@@ -659,16 +607,15 @@ nxt_epoll_error_handler(nxt_task_t *task, void *obj, void *data)
     ev->error_handler(ev->task, ev, data);
 }
 
-
 #if (NXT_HAVE_SIGNALFD)
 
-static nxt_int_t
-nxt_epoll_add_signal(nxt_event_engine_t *engine)
+static nxt_int_t nxt_epoll_add_signal(nxt_event_engine_t *engine)
 {
-    int                 fd;
-    struct epoll_event  ee;
+    int fd;
+    struct epoll_event ee;
 
-    if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0) {
+    if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0)
+    {
         nxt_alert(&engine->task, "sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
         return NXT_ERROR;
     }
@@ -684,15 +631,16 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
 
     fd = signalfd(-1, &engine->signals->sigmask, 0);
 
-    if (fd == -1) {
-        nxt_alert(&engine->task, "signalfd(%d) failed %E",
-                  engine->u.epoll.signalfd.fd, nxt_errno);
+    if (fd == -1)
+    {
+        nxt_alert(&engine->task, "signalfd(%d) failed %E", engine->u.epoll.signalfd.fd, nxt_errno);
         return NXT_ERROR;
     }
 
     engine->u.epoll.signalfd.fd = fd;
 
-    if (nxt_fd_nonblocking(&engine->task, fd) != NXT_OK) {
+    if (nxt_fd_nonblocking(&engine->task, fd) != NXT_OK)
+    {
         return NXT_ERROR;
     }
 
@@ -707,9 +655,9 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
     ee.events = EPOLLIN;
     ee.data.ptr = &engine->u.epoll.signalfd;
 
-    if (epoll_ctl(engine->u.epoll.fd, EPOLL_CTL_ADD, fd, &ee) != 0) {
-        nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E",
-                  engine->u.epoll.fd, EPOLL_CTL_ADD, fd, nxt_errno);
+    if (epoll_ctl(engine->u.epoll.fd, EPOLL_CTL_ADD, fd, &ee) != 0)
+    {
+        nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E", engine->u.epoll.fd, EPOLL_CTL_ADD, fd, nxt_errno);
 
         return NXT_ERROR;
     }
@@ -717,14 +665,12 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
     return NXT_OK;
 }
 
-
-static void
-nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data)
 {
-    int                      n;
-    nxt_fd_event_t           *ev;
-    nxt_work_handler_t       handler;
-    struct signalfd_siginfo  sfd;
+    int n;
+    nxt_fd_event_t *ev;
+    nxt_work_handler_t handler;
+    struct signalfd_siginfo sfd;
 
     ev = obj;
     handler = data;
@@ -735,26 +681,25 @@ nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "read signalfd(%d): %d", ev->fd, n);
 
-    if (n != sizeof(struct signalfd_siginfo)) {
+    if (n != sizeof(struct signalfd_siginfo))
+    {
         nxt_alert(task, "read signalfd(%d) failed %E", ev->fd, nxt_errno);
         return;
     }
 
     nxt_debug(task, "signalfd(%d) signo:%d", ev->fd, sfd.ssi_signo);
 
-    handler(task, (void *) (uintptr_t) sfd.ssi_signo, NULL);
+    handler(task, (void *)(uintptr_t)sfd.ssi_signo, NULL);
 }
 
 #endif
 
-
 #if (NXT_HAVE_EVENTFD)
 
-static nxt_int_t
-nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
+static nxt_int_t nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
 {
-    int                 ret;
-    struct epoll_event  ee;
+    int ret;
+    struct epoll_event ee;
 
     engine->u.epoll.post_handler = handler;
 
@@ -769,13 +714,15 @@ nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
 
     engine->u.epoll.eventfd.fd = eventfd(0, 0);
 
-    if (engine->u.epoll.eventfd.fd == -1) {
+    if (engine->u.epoll.eventfd.fd == -1)
+    {
         nxt_alert(&engine->task, "eventfd() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
     ret = nxt_fd_nonblocking(&engine->task, engine->u.epoll.eventfd.fd);
-    if (nxt_slow_path(ret != NXT_OK)) {
+    if (nxt_slow_path(ret != NXT_OK))
+    {
         return NXT_ERROR;
     }
 
@@ -790,27 +737,24 @@ nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
     ee.events = EPOLLIN | EPOLLET;
     ee.data.ptr = &engine->u.epoll.eventfd;
 
-    ret = epoll_ctl(engine->u.epoll.fd, EPOLL_CTL_ADD,
-                    engine->u.epoll.eventfd.fd, &ee);
+    ret = epoll_ctl(engine->u.epoll.fd, EPOLL_CTL_ADD, engine->u.epoll.eventfd.fd, &ee);
 
-    if (nxt_fast_path(ret == 0)) {
+    if (nxt_fast_path(ret == 0))
+    {
         return NXT_OK;
     }
 
-    nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E",
-              engine->u.epoll.fd, EPOLL_CTL_ADD, engine->u.epoll.eventfd.fd,
-              nxt_errno);
+    nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E", engine->u.epoll.fd, EPOLL_CTL_ADD,
+              engine->u.epoll.eventfd.fd, nxt_errno);
 
     return NXT_ERROR;
 }
 
-
-static void
-nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data)
 {
-    int                 n;
-    uint64_t            events;
-    nxt_event_engine_t  *engine;
+    int n;
+    uint64_t events;
+    nxt_event_engine_t *engine;
 
     engine = data;
 
@@ -825,29 +769,27 @@ nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data)
      * only the latest write() to the descriptor.
      */
 
-    if (engine->u.epoll.neventfd++ >= 0xFFFFFFFE) {
+    if (engine->u.epoll.neventfd++ >= 0xFFFFFFFE)
+    {
         engine->u.epoll.neventfd = 0;
 
         n = read(engine->u.epoll.eventfd.fd, &events, sizeof(uint64_t));
 
-        nxt_debug(task, "read(%d): %d events:%uL",
-                  engine->u.epoll.eventfd.fd, n, events);
+        nxt_debug(task, "read(%d): %d events:%uL", engine->u.epoll.eventfd.fd, n, events);
 
-        if (n != sizeof(uint64_t)) {
-            nxt_alert(task, "read eventfd(%d) failed %E",
-                      engine->u.epoll.eventfd.fd, nxt_errno);
+        if (n != sizeof(uint64_t))
+        {
+            nxt_alert(task, "read eventfd(%d) failed %E", engine->u.epoll.eventfd.fd, nxt_errno);
         }
     }
 
     engine->u.epoll.post_handler(task, NULL, NULL);
 }
 
-
-static void
-nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
+static void nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
 {
-    size_t    ret;
-    uint64_t  event;
+    size_t ret;
+    uint64_t event;
 
     /*
      * eventfd() presents along with signalfd(), so the function
@@ -858,42 +800,40 @@ nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
 
     ret = write(engine->u.epoll.eventfd.fd, &event, sizeof(uint64_t));
 
-    if (nxt_slow_path(ret != sizeof(uint64_t))) {
-        nxt_alert(&engine->task, "write(%d) to eventfd failed %E",
-                  engine->u.epoll.eventfd.fd, nxt_errno);
+    if (nxt_slow_path(ret != sizeof(uint64_t)))
+    {
+        nxt_alert(&engine->task, "write(%d) to eventfd failed %E", engine->u.epoll.eventfd.fd, nxt_errno);
     }
 }
 
 #endif
 
-
-static void
-nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
+static void nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 {
-    int                 nevents;
-    uint32_t            events;
-    nxt_int_t           i;
-    nxt_err_t           err;
-    nxt_bool_t          error;
-    nxt_uint_t          level;
-    nxt_fd_event_t      *ev;
-    struct epoll_event  *event;
+    int nevents;
+    uint32_t events;
+    nxt_int_t i;
+    nxt_err_t err;
+    nxt_bool_t error;
+    nxt_uint_t level;
+    nxt_fd_event_t *ev;
+    struct epoll_event *event;
 
-    if (engine->u.epoll.nchanges != 0) {
+    if (engine->u.epoll.nchanges != 0)
+    {
         nxt_epoll_commit_changes(engine);
     }
 
-    if (engine->u.epoll.error) {
+    if (engine->u.epoll.error)
+    {
         engine->u.epoll.error = 0;
         /* Error handlers have been enqueued on failure. */
         timeout = 0;
     }
 
-    nxt_debug(&engine->task, "epoll_wait(%d) timeout:%M",
-              engine->u.epoll.fd, timeout);
+    nxt_debug(&engine->task, "epoll_wait(%d) timeout:%M", engine->u.epoll.fd, timeout);
 
-    nevents = epoll_wait(engine->u.epoll.fd, engine->u.epoll.events,
-                         engine->u.epoll.mevents, timeout);
+    nevents = epoll_wait(engine->u.epoll.fd, engine->u.epoll.events, engine->u.epoll.mevents, timeout);
 
     err = (nevents == -1) ? nxt_errno : 0;
 
@@ -901,23 +841,23 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 
     nxt_debug(&engine->task, "epoll_wait(%d): %d", engine->u.epoll.fd, nevents);
 
-    if (nevents == -1) {
+    if (nevents == -1)
+    {
         level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
 
-        nxt_log(&engine->task, level, "epoll_wait(%d) failed %E",
-                engine->u.epoll.fd, err);
+        nxt_log(&engine->task, level, "epoll_wait(%d) failed %E", engine->u.epoll.fd, err);
 
         return;
     }
 
-    for (i = 0; i < nevents; i++) {
+    for (i = 0; i < nevents; i++)
+    {
 
         event = &engine->u.epoll.events[i];
         events = event->events;
         ev = event->data.ptr;
 
-        nxt_debug(ev->task, "epoll: fd:%d ev:%04XD d:%p rd:%d wr:%d",
-                  ev->fd, events, ev, ev->read, ev->write);
+        nxt_debug(ev->task, "epoll: fd:%d ev:%04XD d:%p rd:%d wr:%d", ev->fd, events, ev, ev->read, ev->write);
 
         /*
          * On error epoll may set EPOLLERR and EPOLLHUP only without EPOLLIN
@@ -926,9 +866,7 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         error = ((events & (EPOLLERR | EPOLLHUP)) != 0);
         ev->epoll_error = error;
 
-        if (error
-            && ev->read <= NXT_EVENT_BLOCKED
-            && ev->write <= NXT_EVENT_BLOCKED)
+        if (error && ev->read <= NXT_EVENT_BLOCKED && ev->write <= NXT_EVENT_BLOCKED)
         {
             error = 0;
         }
@@ -939,56 +877,65 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 
 #endif
 
-        if ((events & EPOLLIN) != 0) {
+        if ((events & EPOLLIN) != 0)
+        {
             ev->read_ready = 1;
 
-            if (ev->read != NXT_EVENT_BLOCKED) {
+            if (ev->read != NXT_EVENT_BLOCKED)
+            {
 
-                if (ev->read == NXT_EVENT_ONESHOT) {
+                if (ev->read == NXT_EVENT_ONESHOT)
+                {
                     ev->read = NXT_EVENT_DISABLED;
                 }
 
-                nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
-                                   ev->task, ev, ev->data);
+                nxt_work_queue_add(ev->read_work_queue, ev->read_handler, ev->task, ev, ev->data);
 
                 error = 0;
-
-            } else if (engine->u.epoll.mode == 0) {
+            }
+            else if (engine->u.epoll.mode == 0)
+            {
                 /* Level-triggered mode. */
                 nxt_epoll_disable_read(engine, ev);
             }
         }
 
-        if ((events & EPOLLOUT) != 0) {
+        if ((events & EPOLLOUT) != 0)
+        {
             ev->write_ready = 1;
 
-            if (ev->write != NXT_EVENT_BLOCKED) {
+            if (ev->write != NXT_EVENT_BLOCKED)
+            {
 
-                if (ev->write == NXT_EVENT_ONESHOT) {
+                if (ev->write == NXT_EVENT_ONESHOT)
+                {
                     ev->write = NXT_EVENT_DISABLED;
                 }
 
-                nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
-                                   ev->task, ev, ev->data);
+                nxt_work_queue_add(ev->write_work_queue, ev->write_handler, ev->task, ev, ev->data);
 
                 error = 0;
-
-            } else if (engine->u.epoll.mode == 0) {
+            }
+            else if (engine->u.epoll.mode == 0)
+            {
                 /* Level-triggered mode. */
                 nxt_epoll_disable_write(engine, ev);
             }
         }
 
-        if (!error) {
+        if (!error)
+        {
             continue;
         }
 
         ev->read_ready = 1;
         ev->write_ready = 1;
 
-        if (ev->read == NXT_EVENT_BLOCKED && ev->write == NXT_EVENT_BLOCKED) {
+        if (ev->read == NXT_EVENT_BLOCKED && ev->write == NXT_EVENT_BLOCKED)
+        {
 
-            if (engine->u.epoll.mode == 0) {
+            if (engine->u.epoll.mode == 0)
+            {
                 /* Level-triggered mode. */
                 nxt_epoll_disable(engine, ev);
             }
@@ -996,22 +943,19 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             continue;
         }
 
-        nxt_work_queue_add(&engine->fast_work_queue, nxt_epoll_error_handler,
-                           ev->task, ev, ev->data);
+        nxt_work_queue_add(&engine->fast_work_queue, nxt_epoll_error_handler, ev->task, ev, ev->data);
     }
 }
 
-
 #if (NXT_HAVE_ACCEPT4)
 
-static void
-nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
 {
-    socklen_t           socklen;
-    nxt_conn_t          *c;
-    nxt_socket_t        s;
-    struct sockaddr     *sa;
-    nxt_listen_event_t  *lev;
+    socklen_t socklen;
+    nxt_conn_t *c;
+    nxt_socket_t s;
+    struct sockaddr *sa;
+    nxt_listen_event_t *lev;
 
     lev = obj;
     c = lev->next;
@@ -1027,7 +971,8 @@ nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
      */
     s = accept4(lev->socket.fd, sa, &socklen, SOCK_NONBLOCK);
 
-    if (s != -1) {
+    if (s != -1)
+    {
         c->socket.fd = s;
 
         nxt_debug(task, "accept4(%d): %d", lev->socket.fd, s);
@@ -1041,7 +986,6 @@ nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
 
 #endif
 
-
 #if (NXT_HAVE_EPOLL_EDGE)
 
 /*
@@ -1054,19 +998,19 @@ nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
  * with single non-generic connect() interface.
  */
 
-static void
-nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t                    *c;
-    nxt_event_engine_t            *engine;
-    nxt_work_handler_t            handler;
-    const nxt_event_conn_state_t  *state;
+    nxt_conn_t *c;
+    nxt_event_engine_t *engine;
+    nxt_work_handler_t handler;
+    const nxt_event_conn_state_t *state;
 
     c = obj;
 
     state = c->write_state;
 
-    switch (nxt_socket_connect(task, c->socket.fd, c->remote)) {
+    switch (nxt_socket_connect(task, c->socket.fd, c->remote))
+    {
 
     case NXT_OK:
         c->socket.write_ready = 1;
@@ -1117,7 +1061,7 @@ nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         handler = state->error_handler;
         break;
 
-    default:  /* NXT_DECLINED: connection refused. */
+    default: /* NXT_DECLINED: connection refused. */
         handler = state->close_handler;
         break;
     }
@@ -1125,31 +1069,29 @@ nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
     nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }
 
-
-static void
-nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj, void *data)
+static void nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t  *c;
+    nxt_conn_t *c;
 
     c = obj;
 
     nxt_debug(task, "epoll event conn connected fd:%d", c->socket.fd);
 
-    if (!c->socket.epoll_error) {
+    if (!c->socket.epoll_error)
+    {
         c->socket.write = NXT_EVENT_BLOCKED;
 
-        if (c->write_state->timer_autoreset) {
+        if (c->write_state->timer_autoreset)
+        {
             nxt_timer_disable(task->thread->engine, &c->write_timer);
         }
 
-        nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
-                           task, c, data);
+        nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler, task, c, data);
         return;
     }
 
     nxt_conn_connect_test(task, c, data);
 }
-
 
 /*
  * nxt_epoll_edge_conn_io_recvbuf() is just wrapper around
@@ -1157,14 +1099,14 @@ nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj, void *data)
  * in edge-triggered mode.
  */
 
-static ssize_t
-nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
+static ssize_t nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
 {
-    ssize_t  n;
+    ssize_t n;
 
     n = nxt_conn_io_recvbuf(c, b);
 
-    if (n > 0 && c->socket.epoll_eof) {
+    if (n > 0 && c->socket.epoll_eof)
+    {
         c->socket.read_ready = 1;
     }
 

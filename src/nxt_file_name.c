@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * Supported formats:
  *    %s     null-terminated string
@@ -16,29 +15,30 @@
  *    %Z     '\0', this null is not counted in file name lenght.
  */
 
-nxt_int_t
-nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
-    const char *format, ...)
+nxt_int_t nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name, const char *format, ...)
 {
-    u_char           ch, *p;
-    size_t           length;
-    va_list          args;
-    nxt_str_t        *v;
-    nxt_bool_t       zero;
-    const char       *fmt;
-    nxt_file_name_t  *dst, *fn;
+    u_char ch, *p;
+    size_t length;
+    va_list args;
+    nxt_str_t *v;
+    nxt_bool_t zero;
+    const char *fmt;
+    nxt_file_name_t *dst, *fn;
 
     va_start(args, format);
     fmt = format;
     zero = 0;
     length = 0;
 
-    for ( ;; ) {
+    for (;;)
+    {
         ch = *fmt++;
 
-        if (ch != '%') {
+        if (ch != '%')
+        {
 
-            if (ch != '\0') {
+            if (ch != '\0')
+            {
                 length++;
                 continue;
             }
@@ -48,12 +48,14 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
 
         ch = *fmt++;
 
-        switch (ch) {
+        switch (ch)
+        {
 
         case 'V':
             v = va_arg(args, nxt_str_t *);
 
-            if (nxt_fast_path(v != NULL)) {
+            if (nxt_fast_path(v != NULL))
+            {
                 length += v->length;
             }
 
@@ -62,8 +64,10 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
         case 's':
             p = va_arg(args, u_char *);
 
-            if (nxt_fast_path(p != NULL)) {
-                while (*p != '\0') {
+            if (nxt_fast_path(p != NULL))
+            {
+                while (*p != '\0')
+                {
                     p++;
                     length++;
                 }
@@ -80,11 +84,14 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
         case 'F':
             ch = *fmt++;
 
-            if (nxt_fast_path(ch == 'N')) {
+            if (nxt_fast_path(ch == 'N'))
+            {
                 fn = va_arg(args, nxt_file_name_t *);
 
-                if (nxt_fast_path(fn != NULL)) {
-                    while (*fn != '\0') {
+                if (nxt_fast_path(fn != NULL))
+                {
+                    while (*fn != '\0')
+                    {
                         fn++;
                         length += sizeof(nxt_file_name_t);
                     }
@@ -105,14 +112,16 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
 
     va_end(args);
 
-    if (length == 0) {
+    if (length == 0)
+    {
         return NXT_ERROR;
     }
 
     file_name->len = length - zero;
 
     fn = nxt_file_name_alloc(mp, length);
-    if (nxt_slow_path(fn == NULL)) {
+    if (nxt_slow_path(fn == NULL))
+    {
         return NXT_ERROR;
     }
 
@@ -122,13 +131,16 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
     va_start(args, format);
     fmt = format;
 
-    for ( ;; ) {
+    for (;;)
+    {
         ch = *fmt++;
 
-        if (ch != '%') {
+        if (ch != '%')
+        {
 
-            if (ch != '\0') {
-                *dst++ = (nxt_file_name_t) ch;
+            if (ch != '\0')
+            {
+                *dst++ = (nxt_file_name_t)ch;
                 continue;
             }
 
@@ -137,12 +149,14 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
 
         ch = *fmt++;
 
-        switch (ch) {
+        switch (ch)
+        {
 
         case 'V':
             v = va_arg(args, nxt_str_t *);
 
-            if (nxt_fast_path(v != NULL)) {
+            if (nxt_fast_path(v != NULL))
+            {
                 dst = nxt_file_name_add(dst, v->start, v->length);
             }
 
@@ -151,9 +165,11 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
         case 's':
             p = va_arg(args, u_char *);
 
-            if (nxt_fast_path(p != NULL)) {
-                while (*p != '\0') {
-                    *dst++ = (nxt_file_name_t) (*p++);
+            if (nxt_fast_path(p != NULL))
+            {
+                while (*p != '\0')
+                {
+                    *dst++ = (nxt_file_name_t)(*p++);
                 }
             }
 
@@ -164,7 +180,8 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
 
             ch = *fmt++;
 
-            if (nxt_fast_path(ch == 's')) {
+            if (nxt_fast_path(ch == 's'))
+            {
                 p = va_arg(args, u_char *);
                 dst = nxt_file_name_add(dst, p, length);
             }
@@ -174,11 +191,14 @@ nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
         case 'F':
             ch = *fmt++;
 
-            if (nxt_fast_path(ch == 'N')) {
+            if (nxt_fast_path(ch == 'N'))
+            {
                 fn = va_arg(args, nxt_file_name_t *);
 
-                if (nxt_fast_path(fn != NULL)) {
-                    while (*fn != '\0') {
+                if (nxt_fast_path(fn != NULL))
+                {
+                    while (*fn != '\0')
+                    {
                         *dst++ = *fn++;
                     }
                 }

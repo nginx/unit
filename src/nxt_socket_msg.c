@@ -6,12 +6,9 @@
 #include <nxt_main.h>
 #include <nxt_socket_msg.h>
 
-
-ssize_t
-nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
-    const nxt_send_oob_t *oob)
+ssize_t nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob, const nxt_send_oob_t *oob)
 {
-    struct msghdr  msg;
+    struct msghdr msg;
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
@@ -20,11 +17,13 @@ nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
     /* Flags are cleared just to suppress valgrind warning. */
     msg.msg_flags = 0;
 
-    if (oob != NULL && oob->size != 0) {
-        msg.msg_control = (void *) oob->buf;
+    if (oob != NULL && oob->size != 0)
+    {
+        msg.msg_control = (void *)oob->buf;
         msg.msg_controllen = oob->size;
-
-    } else {
+    }
+    else
+    {
         msg.msg_control = NULL;
         msg.msg_controllen = 0;
     }
@@ -32,13 +31,10 @@ nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
     return sendmsg(s, &msg, 0);
 }
 
-
-ssize_t
-nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
-    nxt_recv_oob_t *oob)
+ssize_t nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob, nxt_recv_oob_t *oob)
 {
-    ssize_t        n;
-    struct msghdr  msg;
+    ssize_t n;
+    struct msghdr msg;
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
@@ -49,7 +45,8 @@ nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
 
     n = recvmsg(s, &msg, 0);
 
-    if (nxt_fast_path(n != -1)) {
+    if (nxt_fast_path(n != -1))
+    {
         oob->size = msg.msg_controllen;
     }
 

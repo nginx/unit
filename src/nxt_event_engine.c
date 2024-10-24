@@ -6,49 +6,40 @@
 
 #include <nxt_main.h>
 
+typedef struct nxt_mem_cache_block_s nxt_mem_cache_block_t;
 
-typedef struct nxt_mem_cache_block_s  nxt_mem_cache_block_t;
-
-struct nxt_mem_cache_block_s {
-    nxt_mem_cache_block_t  *next;
+struct nxt_mem_cache_block_s
+{
+    nxt_mem_cache_block_t *next;
 };
 
-
-typedef struct {
-    nxt_mem_cache_block_t  *free;
-    uint32_t               size;
-    uint32_t               count;
+typedef struct
+{
+    nxt_mem_cache_block_t *free;
+    uint32_t size;
+    uint32_t count;
 } nxt_mem_cache_t;
 
-
 static nxt_int_t nxt_event_engine_post_init(nxt_event_engine_t *engine);
-static nxt_int_t nxt_event_engine_signal_pipe_create(
-    nxt_event_engine_t *engine);
-static void nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_engine_post_handler(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_engine_signal_pipe_error(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_engine_signal_handler(nxt_task_t *task, void *obj,
-    void *data);
-static nxt_work_handler_t nxt_event_engine_queue_pop(nxt_event_engine_t *engine,
-    nxt_task_t **task, void **obj, void **data);
+static nxt_int_t nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine);
+static void nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj, void *data);
+static void nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj, void *data);
+static void nxt_event_engine_post_handler(nxt_task_t *task, void *obj, void *data);
+static void nxt_event_engine_signal_pipe_error(nxt_task_t *task, void *obj, void *data);
+static void nxt_event_engine_signal_handler(nxt_task_t *task, void *obj, void *data);
+static nxt_work_handler_t nxt_event_engine_queue_pop(nxt_event_engine_t *engine, nxt_task_t **task, void **obj,
+                                                     void **data);
 
-
-nxt_event_engine_t *
-nxt_event_engine_create(nxt_task_t *task,
-    const nxt_event_interface_t *interface, const nxt_sig_event_t *signals,
-    nxt_uint_t flags, nxt_uint_t batch)
+nxt_event_engine_t *nxt_event_engine_create(nxt_task_t *task, const nxt_event_interface_t *interface,
+                                            const nxt_sig_event_t *signals, nxt_uint_t flags, nxt_uint_t batch)
 {
-    nxt_uint_t          events;
-    nxt_thread_t        *thread;
-    nxt_event_engine_t  *engine;
+    nxt_uint_t events;
+    nxt_thread_t *thread;
+    nxt_event_engine_t *engine;
 
     engine = nxt_zalloc(sizeof(nxt_event_engine_t));
-    if (engine == NULL) {
+    if (engine == NULL)
+    {
         return NULL;
     }
 
@@ -93,16 +84,20 @@ nxt_event_engine_create(nxt_task_t *task,
     nxt_work_queue_name(&engine->shutdown_work_queue, "shutdown");
     nxt_work_queue_name(&engine->close_work_queue, "close");
 
-    if (signals != NULL) {
+    if (signals != NULL)
+    {
         engine->signals = nxt_event_engine_signals(signals);
-        if (engine->signals == NULL) {
+        if (engine->signals == NULL)
+        {
             goto signals_fail;
         }
 
         engine->signals->handler = nxt_event_engine_signal_handler;
 
-        if (!interface->signal_support) {
-            if (nxt_event_engine_signals_start(engine) != NXT_OK) {
+        if (!interface->signal_support)
+        {
+            if (nxt_event_engine_signals_start(engine) != NXT_OK)
+            {
                 goto signals_fail;
             }
         }
@@ -115,17 +110,20 @@ nxt_event_engine_create(nxt_task_t *task,
      */
     events = (batch != 0) ? batch : 32;
 
-    if (interface->create(engine, 4 * events, events) != NXT_OK) {
+    if (interface->create(engine, 4 * events, events) != NXT_OK)
+    {
         goto event_set_fail;
     }
 
     engine->event = *interface;
 
-    if (nxt_event_engine_post_init(engine) != NXT_OK) {
+    if (nxt_event_engine_post_init(engine) != NXT_OK)
+    {
         goto post_fail;
     }
 
-    if (nxt_timers_init(&engine->timers, 4 * events) != NXT_OK) {
+    if (nxt_timers_init(&engine->timers, 4 * events) != NXT_OK)
+    {
         goto timers_fail;
     }
 
@@ -163,29 +161,28 @@ fibers_fail:
     return NULL;
 }
 
-
-static nxt_int_t
-nxt_event_engine_post_init(nxt_event_engine_t *engine)
+static nxt_int_t nxt_event_engine_post_init(nxt_event_engine_t *engine)
 {
-    if (engine->event.enable_post != NULL) {
+    if (engine->event.enable_post != NULL)
+    {
         return engine->event.enable_post(engine, nxt_event_engine_post_handler);
     }
 
-    if (nxt_event_engine_signal_pipe_create(engine) != NXT_OK) {
+    if (nxt_event_engine_signal_pipe_create(engine) != NXT_OK)
+    {
         return NXT_ERROR;
     }
 
     return NXT_OK;
 }
 
-
-static nxt_int_t
-nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine)
+static nxt_int_t nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine)
 {
-    nxt_event_engine_pipe_t  *pipe;
+    nxt_event_engine_pipe_t *pipe;
 
     pipe = nxt_zalloc(sizeof(nxt_event_engine_pipe_t));
-    if (pipe == NULL) {
+    if (pipe == NULL)
+    {
         return NXT_ERROR;
     }
 
@@ -196,7 +193,8 @@ nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine)
      * and in non-blocking node for reader.
      */
 
-    if (nxt_pipe_create(&engine->task, pipe->fds, 1, 0) != NXT_OK) {
+    if (nxt_pipe_create(&engine->task, pipe->fds, 1, 0) != NXT_OK)
+    {
         nxt_free(pipe);
         return NXT_ERROR;
     }
@@ -214,17 +212,17 @@ nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine)
     return NXT_OK;
 }
 
-
-static void
-nxt_event_engine_signal_pipe_free(nxt_event_engine_t *engine)
+static void nxt_event_engine_signal_pipe_free(nxt_event_engine_t *engine)
 {
-    nxt_event_engine_pipe_t  *pipe;
+    nxt_event_engine_pipe_t *pipe;
 
     pipe = engine->pipe;
 
-    if (pipe != NULL) {
+    if (pipe != NULL)
+    {
 
-        if (pipe->event.read_work_queue != NULL) {
+        if (pipe->event.read_work_queue != NULL)
+        {
             nxt_fd_event_close(engine, &pipe->event);
             nxt_pipe_close(pipe->event.task, pipe->fds);
         }
@@ -233,11 +231,9 @@ nxt_event_engine_signal_pipe_free(nxt_event_engine_t *engine)
     }
 }
 
-
-static void
-nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj, void *data)
+static void nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_engine_pipe_t  *pipe;
+    nxt_event_engine_pipe_t *pipe;
 
     pipe = obj;
 
@@ -245,14 +241,13 @@ nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj, void *data)
     nxt_free(pipe);
 }
 
-
-void
-nxt_event_engine_post(nxt_event_engine_t *engine, nxt_work_t *work)
+void nxt_event_engine_post(nxt_event_engine_t *engine, nxt_work_t *work)
 {
     nxt_debug(&engine->task, "event engine post");
 
 #if (NXT_DEBUG)
-    if (nxt_slow_path(work->next != NULL)) {
+    if (nxt_slow_path(work->next != NULL))
+    {
         nxt_debug(&engine->task, "event engine post multiple works");
     }
 #endif
@@ -262,11 +257,9 @@ nxt_event_engine_post(nxt_event_engine_t *engine, nxt_work_t *work)
     nxt_event_engine_signal(engine, 0);
 }
 
-
-void
-nxt_event_engine_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
+void nxt_event_engine_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
 {
-    u_char  buf;
+    u_char buf;
 
     nxt_debug(&engine->task, "event engine signal:%ui", signo);
 
@@ -275,24 +268,23 @@ nxt_event_engine_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
      * information cannot be passed via a locked work queue.
      */
 
-    if (engine->event.signal != NULL) {
+    if (engine->event.signal != NULL)
+    {
         engine->event.signal(engine, signo);
         return;
     }
 
-    buf = (u_char) signo;
-    (void) nxt_fd_write(engine->pipe->fds[1], &buf, 1);
+    buf = (u_char)signo;
+    (void)nxt_fd_write(engine->pipe->fds[1], &buf, 1);
 }
 
-
-static void
-nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj, void *data)
+static void nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj, void *data)
 {
-    int             i, n;
-    u_char          signo;
-    nxt_bool_t      post;
-    nxt_fd_event_t  *ev;
-    u_char          buf[128];
+    int i, n;
+    u_char signo;
+    nxt_bool_t post;
+    nxt_fd_event_t *ev;
+    u_char buf[128];
 
     ev = obj;
 
@@ -300,94 +292,87 @@ nxt_event_engine_signal_pipe(nxt_task_t *task, void *obj, void *data)
 
     post = 0;
 
-    do {
+    do
+    {
         n = nxt_fd_read(ev->fd, buf, sizeof(buf));
 
-        for (i = 0; i < n; i++) {
+        for (i = 0; i < n; i++)
+        {
             signo = buf[i];
 
             nxt_debug(task, "engine pipe signo:%d", signo);
 
-            if (signo == 0) {
+            if (signo == 0)
+            {
                 /* A post should be processed only once. */
                 post = 1;
-
-            } else {
-                nxt_event_engine_signal_handler(task,
-                                             (void *) (uintptr_t) signo, NULL);
+            }
+            else
+            {
+                nxt_event_engine_signal_handler(task, (void *)(uintptr_t)signo, NULL);
             }
         }
 
     } while (n == sizeof(buf));
 
-    if (post) {
+    if (post)
+    {
         nxt_event_engine_post_handler(task, NULL, NULL);
     }
 }
 
-
-static void
-nxt_event_engine_post_handler(nxt_task_t *task, void *obj, void *data)
+static void nxt_event_engine_post_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_thread_t        *thread;
-    nxt_event_engine_t  *engine;
+    nxt_thread_t *thread;
+    nxt_event_engine_t *engine;
 
     thread = task->thread;
     engine = thread->engine;
 
-    nxt_locked_work_queue_move(thread, &engine->locked_work_queue,
-                               &engine->fast_work_queue);
+    nxt_locked_work_queue_move(thread, &engine->locked_work_queue, &engine->fast_work_queue);
 }
 
-
-static void
-nxt_event_engine_signal_pipe_error(nxt_task_t *task, void *obj, void *data)
+static void nxt_event_engine_signal_pipe_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_engine_t       *engine;
-    nxt_event_engine_pipe_t  *pipe;
+    nxt_event_engine_t *engine;
+    nxt_event_engine_pipe_t *pipe;
 
     engine = task->thread->engine;
     pipe = engine->pipe;
 
-    nxt_alert(task, "engine pipe(%FD:%FD) event error",
-              pipe->fds[0], pipe->fds[1]);
+    nxt_alert(task, "engine pipe(%FD:%FD) event error", pipe->fds[0], pipe->fds[1]);
 
     nxt_fd_event_close(engine, &pipe->event);
     nxt_pipe_close(pipe->event.task, pipe->fds);
 }
 
-
-static void
-nxt_event_engine_signal_handler(nxt_task_t *task, void *obj, void *data)
+static void nxt_event_engine_signal_handler(nxt_task_t *task, void *obj, void *data)
 {
-    uintptr_t              signo;
-    const nxt_sig_event_t  *sigev;
+    uintptr_t signo;
+    const nxt_sig_event_t *sigev;
 
-    signo = (uintptr_t) obj;
+    signo = (uintptr_t)obj;
 
-    for (sigev = task->thread->engine->signals->sigev;
-         sigev->signo != 0;
-         sigev++)
+    for (sigev = task->thread->engine->signals->sigev; sigev->signo != 0; sigev++)
     {
-        if (signo == (nxt_uint_t) sigev->signo) {
-            sigev->handler(task, (void *) signo, (void *) sigev->name);
+        if (signo == (nxt_uint_t)sigev->signo)
+        {
+            sigev->handler(task, (void *)signo, (void *)sigev->name);
             return;
         }
     }
 
-    nxt_alert(task, "signal %ui handler not found", (nxt_uint_t) signo);
+    nxt_alert(task, "signal %ui handler not found", (nxt_uint_t)signo);
 }
 
-
-nxt_int_t
-nxt_event_engine_change(nxt_event_engine_t *engine,
-    const nxt_event_interface_t *interface, nxt_uint_t batch)
+nxt_int_t nxt_event_engine_change(nxt_event_engine_t *engine, const nxt_event_interface_t *interface, nxt_uint_t batch)
 {
-    nxt_uint_t  events;
+    nxt_uint_t events;
 
     engine->batch = batch;
 
-    if (!engine->event.signal_support && interface->signal_support) {
+    if (!engine->event.signal_support && interface->signal_support)
+    {
         /*
          * Block signal processing if the current event
          * facility does not support signal processing.
@@ -401,14 +386,14 @@ nxt_event_engine_change(nxt_event_engine_t *engine,
         nxt_event_engine_signal_pipe(&engine->task, &engine->pipe->event, NULL);
     }
 
-    if (engine->pipe != NULL && interface->enable_post != NULL) {
+    if (engine->pipe != NULL && interface->enable_post != NULL)
+    {
         /*
          * An engine pipe must be closed after all signal events
          * added above to engine fast work queue will be processed.
          */
-        nxt_work_queue_add(&engine->fast_work_queue,
-                           nxt_event_engine_signal_pipe_close,
-                           &engine->task, engine->pipe, NULL);
+        nxt_work_queue_add(&engine->fast_work_queue, nxt_event_engine_signal_pipe_close, &engine->task, engine->pipe,
+                           NULL);
 
         engine->pipe = NULL;
     }
@@ -417,19 +402,23 @@ nxt_event_engine_change(nxt_event_engine_t *engine,
 
     events = (batch != 0) ? batch : 32;
 
-    if (interface->create(engine, 4 * events, events) != NXT_OK) {
+    if (interface->create(engine, 4 * events, events) != NXT_OK)
+    {
         return NXT_ERROR;
     }
 
     engine->event = *interface;
 
-    if (nxt_event_engine_post_init(engine) != NXT_OK) {
+    if (nxt_event_engine_post_init(engine) != NXT_OK)
+    {
         return NXT_ERROR;
     }
 
-    if (engine->signals != NULL) {
+    if (engine->signals != NULL)
+    {
 
-        if (!engine->event.signal_support) {
+        if (!engine->event.signal_support)
+        {
             return nxt_event_engine_signals_start(engine);
         }
 
@@ -443,9 +432,7 @@ nxt_event_engine_change(nxt_event_engine_t *engine,
     return NXT_OK;
 }
 
-
-void
-nxt_event_engine_free(nxt_event_engine_t *engine)
+void nxt_event_engine_free(nxt_event_engine_t *engine)
 {
     nxt_thread_log_debug("free engine %p", engine);
 
@@ -461,31 +448,34 @@ nxt_event_engine_free(nxt_event_engine_t *engine)
     nxt_free(engine);
 }
 
-
-static nxt_work_handler_t
-nxt_event_engine_queue_pop(nxt_event_engine_t *engine, nxt_task_t **task,
-    void **obj, void **data)
+static nxt_work_handler_t nxt_event_engine_queue_pop(nxt_event_engine_t *engine, nxt_task_t **task, void **obj,
+                                                     void **data)
 {
-    nxt_work_queue_t  *wq, *last;
+    nxt_work_queue_t *wq, *last;
 
     wq = engine->current_work_queue;
     last = wq;
 
-    if (wq->head == NULL) {
+    if (wq->head == NULL)
+    {
         wq = &engine->fast_work_queue;
 
-        if (wq->head == NULL) {
+        if (wq->head == NULL)
+        {
 
-            do {
+            do
+            {
                 engine->current_work_queue++;
                 wq = engine->current_work_queue;
 
-                if (wq > &engine->close_work_queue) {
+                if (wq > &engine->close_work_queue)
+                {
                     wq = &engine->fast_work_queue;
                     engine->current_work_queue = wq;
                 }
 
-                if (wq->head != NULL) {
+                if (wq->head != NULL)
+                {
                     goto found;
                 }
 
@@ -504,19 +494,18 @@ found:
     return nxt_work_queue_pop(wq, task, obj, data);
 }
 
-
-void
-nxt_event_engine_start(nxt_event_engine_t *engine)
+void nxt_event_engine_start(nxt_event_engine_t *engine)
 {
-    void                *obj, *data;
-    nxt_task_t          *task;
-    nxt_msec_t          timeout, now;
-    nxt_thread_t        *thr;
-    nxt_work_handler_t  handler;
+    void *obj, *data;
+    nxt_task_t *task;
+    nxt_msec_t timeout, now;
+    nxt_thread_t *thr;
+    nxt_work_handler_t handler;
 
     thr = nxt_thread();
 
-    if (engine->fibers) {
+    if (engine->fibers)
+    {
         /*
          * _setjmp() cannot be wrapped in a function since return from
          * the function clobbers stack used by future _setjmp() returns.
@@ -528,12 +517,15 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
     thr->log = engine->task.log;
 
-    for ( ;; ) {
+    for (;;)
+    {
 
-        for ( ;; ) {
+        for (;;)
+        {
             handler = nxt_event_engine_queue_pop(engine, &task, &obj, &data);
 
-            if (handler == NULL) {
+            if (handler == NULL)
+            {
                 break;
             }
 
@@ -554,23 +546,22 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
     }
 }
 
-
-void *
-nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
-    size_t size)
+void *nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint, size_t size)
 {
-    uint32_t               n;
-    nxt_uint_t             items;
-    nxt_array_t            *mem_cache;
-    nxt_mem_cache_t        *cache;
-    nxt_mem_cache_block_t  *block;
+    uint32_t n;
+    nxt_uint_t items;
+    nxt_array_t *mem_cache;
+    nxt_mem_cache_t *cache;
+    nxt_mem_cache_block_t *block;
 
     mem_cache = engine->mem_cache;
     n = *hint;
 
-    if (n == NXT_EVENT_ENGINE_NO_MEM_HINT) {
+    if (n == NXT_EVENT_ENGINE_NO_MEM_HINT)
+    {
 
-        if (mem_cache == NULL) {
+        if (mem_cache == NULL)
+        {
             /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
             items = 3;
 #if (NXT_INET6)
@@ -580,9 +571,9 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
             items++;
 #endif
 
-            mem_cache = nxt_array_create(engine->mem_pool, items,
-                                         sizeof(nxt_mem_cache_t));
-            if (nxt_slow_path(mem_cache == NULL)) {
+            mem_cache = nxt_array_create(engine->mem_pool, items, sizeof(nxt_mem_cache_t));
+            if (nxt_slow_path(mem_cache == NULL))
+            {
                 return mem_cache;
             }
 
@@ -590,14 +581,17 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
         }
 
         cache = mem_cache->elts;
-        for (n = 0; n < mem_cache->nelts; n++) {
-            if (cache[n].size == size) {
+        for (n = 0; n < mem_cache->nelts; n++)
+        {
+            if (cache[n].size == size)
+            {
                 goto found;
             }
         }
 
         cache = nxt_array_add(mem_cache);
-        if (nxt_slow_path(cache == NULL)) {
+        if (nxt_slow_path(cache == NULL))
+        {
             return cache;
         }
 
@@ -607,8 +601,9 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
 
     found:
 
-        if (n < NXT_EVENT_ENGINE_NO_MEM_HINT) {
-            *hint = (uint8_t) n;
+        if (n < NXT_EVENT_ENGINE_NO_MEM_HINT)
+        {
+            *hint = (uint8_t)n;
         }
     }
 
@@ -617,7 +612,8 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
 
     block = cache->free;
 
-    if (block != NULL) {
+    if (block != NULL)
+    {
         cache->free = block->next;
         cache->count--;
         return block;
@@ -626,15 +622,12 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
     return nxt_mp_alloc(engine->mem_pool, size);
 }
 
-
-void
-nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint, void *p,
-    size_t size)
+void nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint, void *p, size_t size)
 {
-    uint32_t               n;
-    nxt_array_t            *mem_cache;
-    nxt_mem_cache_t        *cache;
-    nxt_mem_cache_block_t  *block;
+    uint32_t n;
+    nxt_array_t *mem_cache;
+    nxt_mem_cache_t *cache;
+    nxt_mem_cache_block_t *block;
 
     block = p;
     mem_cache = engine->mem_cache;
@@ -642,17 +635,20 @@ nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint, void *p,
 
     n = hint;
 
-    if (nxt_slow_path(n == NXT_EVENT_ENGINE_NO_MEM_HINT)) {
+    if (nxt_slow_path(n == NXT_EVENT_ENGINE_NO_MEM_HINT))
+    {
 
-        if (size != 0) {
-            for (n = 0; n < mem_cache->nelts; n++) {
-                if (cache[n].size == size) {
+        if (size != 0)
+        {
+            for (n = 0; n < mem_cache->nelts; n++)
+            {
+                if (cache[n].size == size)
+                {
                     goto found;
                 }
             }
 
-            nxt_alert(&engine->task,
-                      "event engine mem free(%p, %z) not found", p, size);
+            nxt_alert(&engine->task, "event engine mem free(%p, %z) not found", p, size);
         }
 
         goto done;
@@ -662,7 +658,8 @@ found:
 
     cache = cache + n;
 
-    if (cache->count < 16) {
+    if (cache->count < 16)
+    {
         cache->count++;
         block->next = cache->free;
         cache->free = block;
@@ -675,17 +672,16 @@ done:
     nxt_mp_free(engine->mem_pool, p);
 }
 
-
-void *
-nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
+void *nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
 {
-    nxt_buf_t  *b;
-    uint8_t    hint;
+    nxt_buf_t *b;
+    uint8_t hint;
 
     hint = NXT_EVENT_ENGINE_NO_MEM_HINT;
 
     b = nxt_event_engine_mem_alloc(engine, &hint, NXT_BUF_MEM_SIZE + size);
-    if (nxt_slow_path(b == NULL)) {
+    if (nxt_slow_path(b == NULL))
+    {
         return NULL;
     }
 
@@ -695,7 +691,8 @@ nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
     b->data = engine;
     b->completion_handler = nxt_event_engine_buf_mem_completion;
 
-    if (size != 0) {
+    if (size != 0)
+    {
         b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
         b->mem.pos = b->mem.start;
         b->mem.free = b->mem.start;
@@ -705,23 +702,19 @@ nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
     return b;
 }
 
-
-void
-nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b)
+void nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b)
 {
-    size_t  size;
+    size_t size;
 
     size = NXT_BUF_MEM_SIZE + nxt_buf_mem_size(&b->mem);
 
     nxt_event_engine_mem_free(engine, b->cache_hint, b, size);
 }
 
-
-void
-nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
+void nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t           *b, *next, *parent;
-    nxt_event_engine_t  *engine;
+    nxt_buf_t *b, *next, *parent;
+    nxt_event_engine_t *engine;
 
     b = obj;
 
@@ -729,7 +722,8 @@ nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
 
     engine = b->data;
 
-    do {
+    do
+    {
         next = b->next;
         parent = b->parent;
 
@@ -740,7 +734,6 @@ nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
         b = next;
     } while (b != NULL);
 }
-
 
 #if (NXT_DEBUG)
 

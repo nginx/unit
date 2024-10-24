@@ -5,55 +5,49 @@
  */
 
 #include <math.h>
-#include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_router.h>
 #include <nxt_upstream.h>
 
-
-struct nxt_upstream_round_robin_server_s {
-    nxt_sockaddr_t                     *sockaddr;
-
-    int32_t                            current_weight;
-    int32_t                            effective_weight;
-    int32_t                            weight;
-
-    uint8_t                            protocol;
-};
-
-
-struct nxt_upstream_round_robin_s {
-    uint32_t                           items;
-    nxt_upstream_round_robin_server_t  server[];
-};
-
-
-static nxt_upstream_t *nxt_upstream_round_robin_joint_create(
-    nxt_router_temp_conf_t *tmcf, nxt_upstream_t *upstream);
-static void nxt_upstream_round_robin_server_get(nxt_task_t *task,
-    nxt_upstream_server_t *us);
-
-
-static const nxt_upstream_server_proto_t  nxt_upstream_round_robin_proto = {
-    .joint_create = nxt_upstream_round_robin_joint_create,
-    .get          = nxt_upstream_round_robin_server_get,
-};
-
-
-nxt_int_t
-nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_conf_value_t *upstream_conf, nxt_upstream_t *upstream)
+struct nxt_upstream_round_robin_server_s
 {
-    double                      total, k, w;
-    size_t                      size;
-    uint32_t                    i, n, next, wt;
-    nxt_mp_t                    *mp;
-    nxt_str_t                   name;
-    nxt_sockaddr_t              *sa;
-    nxt_conf_value_t            *servers_conf, *srvcf, *wtcf;
-    nxt_upstream_round_robin_t  *urr;
+    nxt_sockaddr_t *sockaddr;
 
-    static const nxt_str_t  servers = nxt_string("servers");
-    static const nxt_str_t  weight = nxt_string("weight");
+    int32_t current_weight;
+    int32_t effective_weight;
+    int32_t weight;
+
+    uint8_t protocol;
+};
+
+struct nxt_upstream_round_robin_s
+{
+    uint32_t items;
+    nxt_upstream_round_robin_server_t server[];
+};
+
+static nxt_upstream_t *nxt_upstream_round_robin_joint_create(nxt_router_temp_conf_t *tmcf, nxt_upstream_t *upstream);
+static void nxt_upstream_round_robin_server_get(nxt_task_t *task, nxt_upstream_server_t *us);
+
+static const nxt_upstream_server_proto_t nxt_upstream_round_robin_proto = {
+    .joint_create = nxt_upstream_round_robin_joint_create,
+    .get = nxt_upstream_round_robin_server_get,
+};
+
+nxt_int_t nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+                                          nxt_conf_value_t *upstream_conf, nxt_upstream_t *upstream)
+{
+    double total, k, w;
+    size_t size;
+    uint32_t i, n, next, wt;
+    nxt_mp_t *mp;
+    nxt_str_t name;
+    nxt_sockaddr_t *sa;
+    nxt_conf_value_t *servers_conf, *srvcf, *wtcf;
+    nxt_upstream_round_robin_t *urr;
+
+    static const nxt_str_t servers = nxt_string("servers");
+    static const nxt_str_t weight = nxt_string("weight");
 
     mp = tmcf->router_conf->mem_pool;
 
@@ -63,7 +57,8 @@ nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     total = 0.0;
     next = 0;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++)
+    {
         srvcf = nxt_conf_next_object_member(servers_conf, &name, &next);
         wtcf = nxt_conf_get_object_member(srvcf, &weight, NULL);
         w = (wtcf != NULL) ? nxt_conf_get_number(wtcf) : 1;
@@ -76,26 +71,29 @@ nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
      */
     k = (total == 0) ? 0 : (NXT_INT32_T_MAX / 2) / total;
 
-    if (isinf(k)) {
+    if (isinf(k))
+    {
         k = 1;
     }
 
-    size = sizeof(nxt_upstream_round_robin_t)
-           + n * sizeof(nxt_upstream_round_robin_server_t);
+    size = sizeof(nxt_upstream_round_robin_t) + n * sizeof(nxt_upstream_round_robin_server_t);
 
     urr = nxt_mp_zalloc(mp, size);
-    if (nxt_slow_path(urr == NULL)) {
+    if (nxt_slow_path(urr == NULL))
+    {
         return NXT_ERROR;
     }
 
     urr->items = n;
     next = 0;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++)
+    {
         srvcf = nxt_conf_next_object_member(servers_conf, &name, &next);
 
         sa = nxt_sockaddr_parse(mp, &name);
-        if (nxt_slow_path(sa == NULL)) {
+        if (nxt_slow_path(sa == NULL))
+        {
             return NXT_ERROR;
         }
 
@@ -118,21 +116,19 @@ nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     return NXT_OK;
 }
 
-
-static nxt_upstream_t *
-nxt_upstream_round_robin_joint_create(nxt_router_temp_conf_t *tmcf,
-    nxt_upstream_t *upstream)
+static nxt_upstream_t *nxt_upstream_round_robin_joint_create(nxt_router_temp_conf_t *tmcf, nxt_upstream_t *upstream)
 {
-    size_t                      size;
-    uint32_t                    i, n;
-    nxt_mp_t                    *mp;
-    nxt_upstream_t              *u;
-    nxt_upstream_round_robin_t  *urr, *urrcf;
+    size_t size;
+    uint32_t i, n;
+    nxt_mp_t *mp;
+    nxt_upstream_t *u;
+    nxt_upstream_round_robin_t *urr, *urrcf;
 
     mp = tmcf->router_conf->mem_pool;
 
     u = nxt_mp_alloc(mp, sizeof(nxt_upstream_t));
-    if (nxt_slow_path(u == NULL)) {
+    if (nxt_slow_path(u == NULL))
+    {
         return NULL;
     }
 
@@ -140,11 +136,11 @@ nxt_upstream_round_robin_joint_create(nxt_router_temp_conf_t *tmcf,
 
     urrcf = upstream->type.round_robin;
 
-    size = sizeof(nxt_upstream_round_robin_t)
-           + urrcf->items * sizeof(nxt_upstream_round_robin_server_t);
+    size = sizeof(nxt_upstream_round_robin_t) + urrcf->items * sizeof(nxt_upstream_round_robin_server_t);
 
     urr = nxt_mp_alloc(mp, size);
-    if (nxt_slow_path(urr == NULL)) {
+    if (nxt_slow_path(urr == NULL))
+    {
         return NULL;
     }
 
@@ -153,21 +149,20 @@ nxt_upstream_round_robin_joint_create(nxt_router_temp_conf_t *tmcf,
     n = urrcf->items;
     urr->items = n;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++)
+    {
         urr->server[i] = urrcf->server[i];
     }
 
     return u;
 }
 
-
-static void
-nxt_upstream_round_robin_server_get(nxt_task_t *task, nxt_upstream_server_t *us)
+static void nxt_upstream_round_robin_server_get(nxt_task_t *task, nxt_upstream_server_t *us)
 {
-    int32_t                            total;
-    uint32_t                           i, n;
-    nxt_upstream_round_robin_t         *round_robin;
-    nxt_upstream_round_robin_server_t  *s, *best;
+    int32_t total;
+    uint32_t i, n;
+    nxt_upstream_round_robin_t *round_robin;
+    nxt_upstream_round_robin_server_t *s, *best;
 
     best = NULL;
     total = 0;
@@ -177,21 +172,25 @@ nxt_upstream_round_robin_server_get(nxt_task_t *task, nxt_upstream_server_t *us)
     s = round_robin->server;
     n = round_robin->items;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++)
+    {
 
         s[i].current_weight += s[i].effective_weight;
         total += s[i].effective_weight;
 
-        if (s[i].effective_weight < s[i].weight) {
+        if (s[i].effective_weight < s[i].weight)
+        {
             s[i].effective_weight++;
         }
 
-        if (best == NULL || s[i].current_weight > best->current_weight) {
+        if (best == NULL || s[i].current_weight > best->current_weight)
+        {
             best = &s[i];
         }
     }
 
-    if (best == NULL || total == 0) {
+    if (best == NULL || total == 0)
+    {
         us->state->error(task, us);
         return;
     }

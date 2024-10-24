@@ -7,8 +7,6 @@
 #ifndef _NXT_SORT_H_INCLUDED_
 #define _NXT_SORT_H_INCLUDED_
 
-
-#define nxt_qsort  qsort
-
+#define nxt_qsort qsort
 
 #endif /* _NXT_SORT_H_INCLUDED_ */

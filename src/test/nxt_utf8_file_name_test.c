@@ -6,22 +6,19 @@
 
 #include <nxt_main.h>
 
-
-extern char  **environ;
+extern char **environ;
 
 static nxt_int_t nxt_utf8_file_name_test(nxt_thread_t *thr);
 
+nxt_module_init_t nxt_init_modules[1];
+nxt_uint_t nxt_init_modules_n;
 
-nxt_module_init_t  nxt_init_modules[1];
-nxt_uint_t         nxt_init_modules_n;
-
-
-int nxt_cdecl
-main(int argc, char **argv)
+int nxt_cdecl main(int argc, char **argv)
 {
-    nxt_thread_t     *thr;
+    nxt_thread_t *thr;
 
-    if (nxt_lib_start("utf8_file_name_test", argv, &environ) != NXT_OK) {
+    if (nxt_lib_start("utf8_file_name_test", argv, &environ) != NXT_OK)
+    {
         return 1;
     }
 
@@ -29,26 +26,25 @@ main(int argc, char **argv)
 
     thr = nxt_thread();
 
-    if (nxt_utf8_file_name_test(thr) != NXT_OK) {
+    if (nxt_utf8_file_name_test(thr) != NXT_OK)
+    {
         return 1;
     }
 
     return 0;
 }
 
-
-static nxt_int_t
-nxt_utf8_file_name_test(nxt_thread_t *thr)
+static nxt_int_t nxt_utf8_file_name_test(nxt_thread_t *thr)
 {
-    u_char               *p, test[4], buf[32];
-    ssize_t              n;
-    uint32_t             uc, lc;
-    nxt_int_t            ret;
-    nxt_task_t           task;
-    nxt_file_t           uc_file, lc_file;
-    const u_char         *pp;
-    nxt_file_name_t      uc_name[10], lc_name[10];
-    static const u_char  utf8[4] = "UTF8";
+    u_char *p, test[4], buf[32];
+    ssize_t n;
+    uint32_t uc, lc;
+    nxt_int_t ret;
+    nxt_task_t task;
+    nxt_file_t uc_file, lc_file;
+    const u_char *pp;
+    nxt_file_name_t uc_name[10], lc_name[10];
+    static const u_char utf8[4] = "UTF8";
 
     nxt_thread_time_update(thr);
 
@@ -76,11 +72,13 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
     task.thread = thr;
     task.log = thr->log;
 
-    for (uc = 0x41; uc < 0x110000; uc++) {
+    for (uc = 0x41; uc < 0x110000; uc++)
+    {
 
         p = nxt_utf8_encode(&uc_name[5], uc);
 
-        if (p == NULL) {
+        if (p == NULL)
+        {
             nxt_log_alert(thr->log, "nxt_utf8_encode(%05uxD) failed", uc);
             return NXT_ERROR;
         }
@@ -90,46 +88,50 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
         pp = &uc_name[5];
         lc = nxt_utf8_lowcase(&pp, p);
 
-        if (lc == 0xFFFFFFFF) {
-            nxt_log_alert(thr->log, "nxt_utf8_lowcase(%05uxD) failed: %05uxD",
-                          uc, lc);
+        if (lc == 0xFFFFFFFF)
+        {
+            nxt_log_alert(thr->log, "nxt_utf8_lowcase(%05uxD) failed: %05uxD", uc, lc);
             return NXT_ERROR;
         }
 
-        if (uc == lc) {
+        if (uc == lc)
+        {
             continue;
         }
 
         p = nxt_utf8_encode(&lc_name[5], lc);
 
-        if (p == NULL) {
+        if (p == NULL)
+        {
             nxt_log_alert(thr->log, "nxt_utf8_encode(%05uxD) failed", lc);
             return NXT_ERROR;
         }
 
         *p = '\0';
 
-        ret = nxt_file_open(&task, &uc_file, NXT_FILE_WRONLY, NXT_FILE_TRUNCATE,
-                            NXT_FILE_DEFAULT_ACCESS);
-        if (ret != NXT_OK) {
+        ret = nxt_file_open(&task, &uc_file, NXT_FILE_WRONLY, NXT_FILE_TRUNCATE, NXT_FILE_DEFAULT_ACCESS);
+        if (ret != NXT_OK)
+        {
             return NXT_ERROR;
         }
 
-        if (nxt_file_write(&uc_file, utf8, 4, 0) != 4) {
+        if (nxt_file_write(&uc_file, utf8, 4, 0) != 4)
+        {
             return NXT_ERROR;
         }
 
         nxt_file_close(&task, &uc_file);
 
-        ret = nxt_file_open(&task, &lc_file, NXT_FILE_RDONLY, NXT_FILE_OPEN,
-                            NXT_FILE_DEFAULT_ACCESS);
+        ret = nxt_file_open(&task, &lc_file, NXT_FILE_RDONLY, NXT_FILE_OPEN, NXT_FILE_DEFAULT_ACCESS);
 
-        if (ret == NXT_OK) {
+        if (ret == NXT_OK)
+        {
             n = nxt_file_read(&lc_file, test, 4, 0);
 
             nxt_file_close(&task, &lc_file);
 
-            if (n != 4 || memcmp(utf8, test, 4) != 0) {
+            if (n != 4 || memcmp(utf8, test, 4) != 0)
+            {
                 nxt_log_alert(thr->log, "nxt_file_read() mismatch");
 
                 nxt_file_delete(lc_file.name);

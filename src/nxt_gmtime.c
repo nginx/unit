@@ -6,17 +6,15 @@
 
 #include <nxt_main.h>
 
-
 /* The function is valid for positive nxt_time_t only. */
 
-void
-nxt_gmtime(nxt_time_t s, struct tm *tm)
+void nxt_gmtime(nxt_time_t s, struct tm *tm)
 {
-    nxt_int_t   yday;
-    nxt_uint_t  daytime, mday, mon, year, days, leap;
+    nxt_int_t yday;
+    nxt_uint_t daytime, mday, mon, year, days, leap;
 
-    days = (nxt_uint_t) (s / 86400);
-    daytime = (nxt_uint_t) (s % 86400);
+    days = (nxt_uint_t)(s / 86400);
+    daytime = (nxt_uint_t)(s % 86400);
 
     /* January 1, 1970 was Thursday. */
     tm->tm_wday = (4 + days) % 7;
@@ -38,7 +36,8 @@ nxt_gmtime(nxt_time_t s, struct tm *tm)
 
     leap = (year % 4 == 0) && (year % 100 || (year % 400 == 0));
 
-    if (yday < 0) {
+    if (yday < 0)
+    {
         yday = 365 + leap + yday;
         year--;
     }
@@ -57,12 +56,14 @@ nxt_gmtime(nxt_time_t s, struct tm *tm)
 
     mday = yday - (367 * mon / 12 - 30) + 1;
 
-    if (yday >= 306) {
+    if (yday >= 306)
+    {
         year++;
         mon -= 11;
         yday -= 306;
-
-    } else {
+    }
+    else
+    {
         mon++;
         yday += 31 + 28 + leap;
     }
