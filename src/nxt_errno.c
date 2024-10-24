@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * The strerror() messages are copied because:
  *
@@ -22,23 +21,19 @@
  *    causing false bug reports.
  */
 
-static u_char *nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr,
-    size_t size);
+static u_char *nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size);
 static u_char *nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size);
 
+nxt_strerror_t nxt_strerror = nxt_bootstrap_strerror;
+static nxt_str_t *nxt_sys_errlist;
+static nxt_uint_t nxt_sys_nerr;
 
-nxt_strerror_t     nxt_strerror = nxt_bootstrap_strerror;
-static nxt_str_t   *nxt_sys_errlist;
-static nxt_uint_t  nxt_sys_nerr;
-
-
-nxt_int_t
-nxt_strerror_start(void)
+nxt_int_t nxt_strerror_start(void)
 {
-    char        *msg;
-    u_char      *p;
-    size_t      size, length, n;
-    nxt_uint_t  err, invalid;
+    char *msg;
+    u_char *p;
+    size_t size, length, n;
+    nxt_uint_t err, invalid;
 
     /* The last entry. */
     size = nxt_length("Unknown error");
@@ -48,10 +43,11 @@ nxt_strerror_start(void)
      * stops only after 100 invalid codes in succession.
      */
 
-    for (invalid = 0; invalid < 100 && nxt_sys_nerr < 65536; nxt_sys_nerr++) {
+    for (invalid = 0; invalid < 100 && nxt_sys_nerr < 65536; nxt_sys_nerr++)
+    {
 
         nxt_set_errno(0);
-        msg = strerror((int) nxt_sys_nerr);
+        msg = strerror((int)nxt_sys_nerr);
 
         /*
          * strerror() behaviour on passing invalid error code depends
@@ -68,7 +64,8 @@ nxt_strerror_start(void)
          *     or empty string for larger codes.
          */
 
-        if (msg == NULL) {
+        if (msg == NULL)
+        {
             invalid++;
             continue;
         }
@@ -76,9 +73,8 @@ nxt_strerror_start(void)
         length = nxt_strlen(msg);
         size += length;
 
-        if (length == 0  /* HP-UX empty strings. */
-            || nxt_errno == NXT_EINVAL
-            || memcmp(msg, "Unknown error", 13) == 0)
+        if (length == 0 /* HP-UX empty strings. */
+            || nxt_errno == NXT_EINVAL || memcmp(msg, "Unknown error", 13) == 0)
         {
             invalid++;
             continue;
@@ -86,8 +82,7 @@ nxt_strerror_start(void)
 
 #if (NXT_AIX)
 
-        if (memcmp(msg, "Error ", 6) == 0
-            && memcmp(msg + length - 10, " occurred.", 9) == 0)
+        if (memcmp(msg, "Error ", 6) == 0 && memcmp(msg + length - 10, " occurred.", 9) == 0)
         {
             invalid++;
             continue;
@@ -103,14 +98,16 @@ nxt_strerror_start(void)
     n = (nxt_sys_nerr + 1) * sizeof(nxt_str_t);
 
     nxt_sys_errlist = nxt_malloc(n + size);
-    if (nxt_sys_errlist == NULL) {
+    if (nxt_sys_errlist == NULL)
+    {
         return NXT_ERROR;
     }
 
     p = nxt_pointer_to(nxt_sys_errlist, n);
 
-    for (err = 0; err < nxt_sys_nerr; err++) {
-        msg = strerror((int) err);
+    for (err = 0; err < nxt_sys_nerr; err++)
+    {
+        msg = strerror((int)err);
         length = nxt_strlen(msg);
 
         nxt_sys_errlist[err].length = length;
@@ -128,21 +125,17 @@ nxt_strerror_start(void)
     return NXT_OK;
 }
 
-
-static u_char *
-nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size)
+static u_char *nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size)
 {
-    return nxt_cpystrn(errstr, (u_char *) strerror(err), size);
+    return nxt_cpystrn(errstr, (u_char *)strerror(err), size);
 }
 
-
-static u_char *
-nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size)
+static u_char *nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size)
 {
-    nxt_str_t   *msg;
-    nxt_uint_t  n;
+    nxt_str_t *msg;
+    nxt_uint_t n;
 
-    n = nxt_min((nxt_uint_t) err, nxt_sys_nerr);
+    n = nxt_min((nxt_uint_t)err, nxt_sys_nerr);
 
     msg = &nxt_sys_errlist[n];
 

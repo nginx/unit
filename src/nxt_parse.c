@@ -6,36 +6,38 @@
 
 #include <nxt_main.h>
 
-
 /*
  * nxt_int_parse() returns size_t value >= 0 on success,
  * -1 on failure, and -2 on overflow.
  */
 
-nxt_int_t
-nxt_int_parse(const u_char *p, size_t length)
+nxt_int_t nxt_int_parse(const u_char *p, size_t length)
 {
-    u_char      c;
-    nxt_uint_t  val;
+    u_char c;
+    nxt_uint_t val;
 
     static const nxt_uint_t cutoff = NXT_INT_T_MAX / 10;
     static const nxt_uint_t cutlim = NXT_INT_T_MAX % 10;
 
-    if (nxt_fast_path(length != 0)) {
+    if (nxt_fast_path(length != 0))
+    {
 
         val = 0;
 
-        do {
+        do
+        {
             c = *p++;
 
             /* Values below '0' become >= 208. */
             c = c - '0';
 
-            if (nxt_slow_path(c > 9)) {
+            if (nxt_slow_path(c > 9))
+            {
                 return -1;
             }
 
-            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim))) {
+            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim)))
+            {
                 /* An overflow. */
                 return -2;
             }
@@ -51,37 +53,39 @@ nxt_int_parse(const u_char *p, size_t length)
 
     return -1;
 }
-
 
 /*
  * nxt_size_t_parse() returns size_t value >= 0 on success,
  * -1 on failure, and -2 on overflow.
  */
 
-ssize_t
-nxt_size_t_parse(const u_char *p, size_t length)
+ssize_t nxt_size_t_parse(const u_char *p, size_t length)
 {
-    u_char  c;
-    size_t  val;
+    u_char c;
+    size_t val;
 
     static const size_t cutoff = NXT_SIZE_T_MAX / 10;
     static const size_t cutlim = NXT_SIZE_T_MAX % 10;
 
-    if (nxt_fast_path(length != 0)) {
+    if (nxt_fast_path(length != 0))
+    {
 
         val = 0;
 
-        do {
+        do
+        {
             c = *p++;
 
             /* Values below '0' become >= 208. */
             c = c - '0';
 
-            if (nxt_slow_path(c > 9)) {
+            if (nxt_slow_path(c > 9))
+            {
                 return -1;
             }
 
-            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim))) {
+            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim)))
+            {
                 /* An overflow. */
                 return -2;
             }
@@ -98,27 +102,27 @@ nxt_size_t_parse(const u_char *p, size_t length)
     return -1;
 }
 
-
 /*
  * nxt_size_parse() parses size string with optional K or M units and
  * returns size_t value >= 0 on success, -1 on failure, and -2 on overflow.
  */
 
-ssize_t
-nxt_size_parse(const u_char *p, size_t length)
+ssize_t nxt_size_parse(const u_char *p, size_t length)
 {
-    u_char      unit;
-    ssize_t     val, max;
-    nxt_uint_t  shift;
+    u_char unit;
+    ssize_t val, max;
+    nxt_uint_t shift;
 
-    if (nxt_fast_path(length != 0)) {
+    if (nxt_fast_path(length != 0))
+    {
 
         length--;
 
         /* Upper case. */
         unit = p[length] & ~0x20;
 
-        switch (unit) {
+        switch (unit)
+        {
 
         case 'G':
             max = NXT_SIZE_T_MAX >> 30;
@@ -141,9 +145,11 @@ nxt_size_parse(const u_char *p, size_t length)
 
         val = nxt_size_t_parse(p, length);
 
-        if (nxt_fast_path(val >= 0)) {
+        if (nxt_fast_path(val >= 0))
+        {
 
-            if (nxt_slow_path(val > max)) {
+            if (nxt_slow_path(val > max))
+            {
                 /* An overflow. */
                 return -2;
             }
@@ -157,36 +163,38 @@ nxt_size_parse(const u_char *p, size_t length)
     return -1;
 }
 
-
 /*
  * nxt_off_t_parse() returns nxt_off_t value >= 0 on success,
  * -1 on failure, and -2 on overflow.
  */
 
-nxt_off_t
-nxt_off_t_parse(const u_char *p, size_t length)
+nxt_off_t nxt_off_t_parse(const u_char *p, size_t length)
 {
-    u_char      c;
-    nxt_uoff_t  val;
+    u_char c;
+    nxt_uoff_t val;
 
     static const nxt_uoff_t cutoff = NXT_OFF_T_MAX / 10;
     static const nxt_uoff_t cutlim = NXT_OFF_T_MAX % 10;
 
-    if (nxt_fast_path(length != 0)) {
+    if (nxt_fast_path(length != 0))
+    {
 
         val = 0;
 
-        do {
+        do
+        {
             c = *p++;
 
             /* Values below '0' become >= 208. */
             c = c - '0';
 
-            if (nxt_slow_path(c > 9)) {
+            if (nxt_slow_path(c > 9))
+            {
                 return -1;
             }
 
-            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim))) {
+            if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim)))
+            {
                 /* An overflow. */
                 return -2;
             }
@@ -203,42 +211,44 @@ nxt_off_t_parse(const u_char *p, size_t length)
     return -1;
 }
 
-
 /*
  * nxt_str_int_parse() returns nxt_int_t value >= 0 on success,
  * -1 on failure, and -2 on overflow and also updates the 's' argument.
  */
 
-nxt_int_t
-nxt_str_int_parse(nxt_str_t *s)
+nxt_int_t nxt_str_int_parse(nxt_str_t *s)
 {
-    u_char      c, *p;
-    size_t      length;
-    nxt_uint_t  val;
+    u_char c, *p;
+    size_t length;
+    nxt_uint_t val;
 
     static const nxt_uint_t cutoff = NXT_INT_T_MAX / 10;
     static const nxt_uint_t cutlim = NXT_INT_T_MAX % 10;
 
     length = s->length;
 
-    if (nxt_slow_path(length == 0)) {
+    if (nxt_slow_path(length == 0))
+    {
         return -1;
     }
 
     p = s->start;
     val = 0;
 
-    do {
+    do
+    {
         c = *p;
 
         /* Values below '0' become >= 208. */
         c = c - '0';
 
-        if (c > 9) {
+        if (c > 9)
+        {
             break;
         }
 
-        if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim))) {
+        if (nxt_slow_path(val >= cutoff && (val > cutoff || c > cutlim)))
+        {
             /* An overflow. */
             return -2;
         }
@@ -256,19 +266,17 @@ nxt_str_int_parse(nxt_str_t *s)
     return val;
 }
 
-
 /*
  * nxt_number_parse() returns a double value >= 0 and updates the start
  * argument on success, or returns -1 on failure or -2 on overflow.
  */
 
-double
-nxt_number_parse(const u_char **start, const u_char *end)
+double nxt_number_parse(const u_char **start, const u_char *end)
 {
-    u_char        c;
-    nxt_bool_t    overflow;
-    nxt_uint_t    integral, frac, power;
-    const u_char  *p;
+    u_char c;
+    nxt_bool_t overflow;
+    nxt_uint_t integral, frac, power;
+    const u_char *p;
 
     static const nxt_uint_t cutoff = NXT_INT_T_MAX / 10;
     static const nxt_uint_t cutlim = NXT_INT_T_MAX % 10;
@@ -276,24 +284,27 @@ nxt_number_parse(const u_char **start, const u_char *end)
     p = *start;
     integral = 0;
 
-    while (p < end) {
+    while (p < end)
+    {
         c = *p;
 
-        if (c == '.') {
+        if (c == '.')
+        {
             goto dot;
         }
 
         /* Values below '0' become >= 208. */
         c = c - '0';
 
-        if (c > 9) {
+        if (c > 9)
+        {
             break;
         }
 
-        overflow = nxt_expect(0, (integral >= cutoff
-                                  && (integral > cutoff || c > cutlim)));
+        overflow = nxt_expect(0, (integral >= cutoff && (integral > cutoff || c > cutlim)));
 
-        if (overflow) {
+        if (overflow)
+        {
             return -2;
         }
 
@@ -302,7 +313,8 @@ nxt_number_parse(const u_char **start, const u_char *end)
         p++;
     }
 
-    if (nxt_fast_path(p != *start)) {
+    if (nxt_fast_path(p != *start))
+    {
         *start = p;
         return integral;
     }
@@ -312,7 +324,8 @@ nxt_number_parse(const u_char **start, const u_char *end)
 
 dot:
 
-    if (nxt_slow_path(p == *start)) {
+    if (nxt_slow_path(p == *start))
+    {
         /* No leading digit before dot. */
         return -1;
     }
@@ -320,21 +333,22 @@ dot:
     frac = 0;
     power = 1;
 
-    for (p++; p < end; p++) {
+    for (p++; p < end; p++)
+    {
         c = *p;
 
         /* Values below '0' become >= 208. */
         c = c - '0';
 
-        if (c > 9) {
+        if (c > 9)
+        {
             break;
         }
 
-        overflow = nxt_expect(0, (frac >= cutoff && (frac > cutoff
-                                                     || c > cutlim))
-                                 || power > cutoff);
+        overflow = nxt_expect(0, (frac >= cutoff && (frac > cutoff || c > cutlim)) || power > cutoff);
 
-        if (overflow) {
+        if (overflow)
+        {
             return -2;
         }
 
@@ -344,5 +358,5 @@ dot:
 
     *start = p;
 
-    return integral + (double) frac / power;
+    return integral + (double)frac / power;
 }

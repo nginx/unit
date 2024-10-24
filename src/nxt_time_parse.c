@@ -6,89 +6,99 @@
 
 #include <nxt_main.h>
 
-
 /*
  * nxt_time_parse() parses a time string given in RFC822, RFC850, or ISOC
  * formats and returns nxt_time_t value >= 0 on success or -1 on failure.
  */
 
-nxt_time_t
-nxt_time_parse(const u_char *p, size_t len)
+nxt_time_t nxt_time_parse(const u_char *p, size_t len)
 {
-    size_t            n;
-    u_char            c;
-    uint64_t          s;
-    nxt_int_t         yr, month, day, hour, min, sec;
-    nxt_uint_t        year, days;
-    const u_char      *end;
+    size_t n;
+    u_char c;
+    uint64_t s;
+    nxt_int_t yr, month, day, hour, min, sec;
+    nxt_uint_t year, days;
+    const u_char *end;
 
-    static const nxt_int_t  mday[12] = {
-        31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-    };
+    static const nxt_int_t mday[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-    enum {
-        RFC822 = 0,   /* "Mon, 28 Sep 1970 12:00:00"  */
-        RFC850,       /* "Monday, 28-Sep-70 12:00:00" */
-        ISOC,         /* "Mon Sep 28 12:00:00 1970"   */
+    enum
+    {
+        RFC822 = 0, /* "Mon, 28 Sep 1970 12:00:00"  */
+        RFC850,     /* "Monday, 28-Sep-70 12:00:00" */
+        ISOC,       /* "Mon Sep 28 12:00:00 1970"   */
     } fmt;
 
     fmt = RFC822;
     end = p + len;
 
-    while (p < end) {
+    while (p < end)
+    {
         c = *p++;
 
-        if (c == ',') {
+        if (c == ',')
+        {
             break;
         }
 
-        if (c == ' ') {
+        if (c == ' ')
+        {
             fmt = ISOC;
             break;
         }
     }
 
-    while (p < end) {
-        if (*p != ' ') {
+    while (p < end)
+    {
+        if (*p != ' ')
+        {
             break;
         }
 
         p++;
     }
 
-    if (nxt_slow_path(p + 18 > end)) {
+    if (nxt_slow_path(p + 18 > end))
+    {
         /* Lesser than RFC850 "28-Sep-70 12:00:00" length. */
         return -1;
     }
 
     day = 0;
 
-    if (fmt != ISOC) {
+    if (fmt != ISOC)
+    {
         day = nxt_int_parse(p, 2);
-        if (nxt_slow_path(day <= 0)) {
+        if (nxt_slow_path(day <= 0))
+        {
             return -1;
         }
         p += 2;
 
-        if (*p == ' ') {
-            if (nxt_slow_path(p + 18 > end)) {
+        if (*p == ' ')
+        {
+            if (nxt_slow_path(p + 18 > end))
+            {
                 /* Lesser than RFC822 " Sep 1970 12:00:00" length. */
                 return -1;
             }
 
             /* RFC822 */
-
-        } else if (*p == '-') {
+        }
+        else if (*p == '-')
+        {
             fmt = RFC850;
-
-        } else {
+        }
+        else
+        {
             return -1;
         }
 
         p++;
     }
 
-    switch (*p) {
+    switch (*p)
+    {
 
     case 'J':
         month = p[1] == 'a' ? 0 : p[2] == 'n' ? 5 : 6;
@@ -129,15 +139,18 @@ nxt_time_parse(const u_char *p, size_t len)
     p += 3;
     yr = 0;
 
-    switch (fmt) {
+    switch (fmt)
+    {
 
     case RFC822:
-        if (nxt_slow_path(*p++ != ' ')) {
+        if (nxt_slow_path(*p++ != ' '))
+        {
             return -1;
         }
 
         yr = nxt_int_parse(p, 4);
-        if (nxt_slow_path(yr <= 0)) {
+        if (nxt_slow_path(yr <= 0))
+        {
             return -1;
         }
         p += 4;
@@ -145,12 +158,14 @@ nxt_time_parse(const u_char *p, size_t len)
         break;
 
     case RFC850:
-        if (nxt_slow_path(*p++ != '-')) {
+        if (nxt_slow_path(*p++ != '-'))
+        {
             return -1;
         }
 
         yr = nxt_int_parse(p, 2);
-        if (nxt_slow_path(yr <= 0)) {
+        if (nxt_slow_path(yr <= 0))
+        {
             return -1;
         }
         p += 2;
@@ -160,29 +175,35 @@ nxt_time_parse(const u_char *p, size_t len)
         break;
 
     default: /* ISOC */
-        if (nxt_slow_path(*p++ != ' ')) {
+        if (nxt_slow_path(*p++ != ' '))
+        {
             return -1;
         }
 
-        if (p[0] != ' ') {
+        if (p[0] != ' ')
+        {
             n = 2;
 
-            if (p[1] == ' ') {
+            if (p[1] == ' ')
+            {
                 n = 1;
             }
-
-        } else {
+        }
+        else
+        {
             p++;
             n = 1;
         }
 
         day = nxt_int_parse(p, n);
-        if (nxt_slow_path(day <= 0)) {
+        if (nxt_slow_path(day <= 0))
+        {
             return -1;
         }
         p += n;
 
-        if (nxt_slow_path(p + 14 > end)) {
+        if (nxt_slow_path(p + 14 > end))
+        {
             /* Lesser than ISOC " 12:00:00 1970" length. */
             return -1;
         }
@@ -190,67 +211,81 @@ nxt_time_parse(const u_char *p, size_t len)
         break;
     }
 
-    if (nxt_slow_path(*p++ != ' ')) {
+    if (nxt_slow_path(*p++ != ' '))
+    {
         return -1;
     }
 
     hour = nxt_int_parse(p, 2);
-    if (nxt_slow_path(hour < 0)) {
+    if (nxt_slow_path(hour < 0))
+    {
         return -1;
     }
     p += 2;
 
-    if (nxt_slow_path(*p++ != ':')) {
+    if (nxt_slow_path(*p++ != ':'))
+    {
         return -1;
     }
 
     min = nxt_int_parse(p, 2);
-    if (nxt_slow_path(min < 0)) {
+    if (nxt_slow_path(min < 0))
+    {
         return -1;
     }
     p += 2;
 
-    if (nxt_slow_path(*p++ != ':')) {
+    if (nxt_slow_path(*p++ != ':'))
+    {
         return -1;
     }
 
     sec = nxt_int_parse(p, 2);
-    if (nxt_slow_path(sec < 0)) {
+    if (nxt_slow_path(sec < 0))
+    {
         return -1;
     }
 
-    if (fmt == ISOC) {
+    if (fmt == ISOC)
+    {
         p += 2;
 
-        if (nxt_slow_path(*p++ != ' ')) {
+        if (nxt_slow_path(*p++ != ' '))
+        {
             return -1;
         }
 
         yr = nxt_int_parse(p, 4);
-        if (nxt_slow_path(yr < 0)) {
+        if (nxt_slow_path(yr < 0))
+        {
             return -1;
         }
     }
 
-    if (nxt_slow_path(hour > 23 || min > 59 || sec > 59)) {
+    if (nxt_slow_path(hour > 23 || min > 59 || sec > 59))
+    {
         return -1;
     }
 
     year = yr;
 
-    if (day == 29 && month == 1) {
+    if (day == 29 && month == 1)
+    {
 
-        if (nxt_slow_path((year & 3) != 0)) {
+        if (nxt_slow_path((year & 3) != 0))
+        {
             /* Not a leap year. */
             return -1;
         }
 
-        if (nxt_slow_path((year % 100 == 0) && (year % 400) != 0)) {
+        if (nxt_slow_path((year % 100 == 0) && (year % 400) != 0))
+        {
             /* Not a leap year. */
             return -1;
         }
-
-    } else if (nxt_slow_path(day > mday[(nxt_uint_t) month])) {
+    }
+    else if (nxt_slow_path(day > mday[(nxt_uint_t)month]))
+    {
         return -1;
     }
 
@@ -259,21 +294,24 @@ nxt_time_parse(const u_char *p, size_t len)
      * from 1 (not 0), as required for Gauss' formula.
      */
 
-    if (--month <= 0) {
+    if (--month <= 0)
+    {
         month += 12;
         year -= 1;
     }
 
     /* Gauss' formula for Gregorian days since March 1, 1 BCE. */
 
-           /* Days in years including leap years since March 1, 1 BCE. */
-    days = 365 * year + year / 4 - year / 100 + year / 400
+    /* Days in years including leap years since March 1, 1 BCE. */
+    days = 365 * year + year / 4 - year / 100 +
+           year / 400
 
            /* Days before the month. */
-           + 367 * (nxt_uint_t) month / 12 - 30
+           + 367 * (nxt_uint_t)month / 12 -
+           30
 
            /* Days before the day. */
-           + (nxt_uint_t) day - 1;
+           + (nxt_uint_t)day - 1;
 
     /*
      * 719527 days were between March 1, 1 BCE and March 1, 1970,
@@ -281,24 +319,21 @@ nxt_time_parse(const u_char *p, size_t len)
      */
     days = days - 719527 + 31 + 28;
 
-    s = (uint64_t) days * 86400
-        + (nxt_uint_t) hour * 3600
-        + (nxt_uint_t) min * 60
-        + (nxt_uint_t) sec;
+    s = (uint64_t)days * 86400 + (nxt_uint_t)hour * 3600 + (nxt_uint_t)min * 60 + (nxt_uint_t)sec;
 
 #if (NXT_TIME_T_SIZE <= 4)
 
     /* Y2038 */
 
-    if (nxt_slow_path(s > 0x7FFFFFFF)) {
+    if (nxt_slow_path(s > 0x7FFFFFFF))
+    {
         return -1;
     }
 
 #endif
 
-    return (nxt_time_t) s;
+    return (nxt_time_t)s;
 }
-
 
 /*
  * nxt_term_parse() parses term string given in format "200", "10m",
@@ -307,20 +342,21 @@ nxt_time_parse(const u_char *p, size_t len)
  * 68 years in seconds or about 24 days in milliseconds.
  */
 
-nxt_int_t
-nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
+nxt_int_t nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
 {
-    u_char        c, ch;
-    nxt_uint_t    val, term, scale, max;
-    const u_char  *end;
+    u_char c, ch;
+    nxt_uint_t val, term, scale, max;
+    const u_char *end;
 
-    enum {
+    enum
+    {
         st_first_digit = 0,
         st_digit,
         st_space,
     } state;
 
-    enum {
+    enum
+    {
         st_start = 0,
         st_year,
         st_month,
@@ -340,13 +376,16 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
 
     end = p + len;
 
-    while (p < end) {
+    while (p < end)
+    {
 
         ch = *p++;
 
-        if (state == st_space) {
+        if (state == st_space)
+        {
 
-            if (ch == ' ') {
+            if (ch == ' ')
+            {
                 continue;
             }
 
@@ -356,20 +395,24 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
         /* Values below '0' become >= 208. */
         c = ch - '0';
 
-        if (c <= 9) {
+        if (c <= 9)
+        {
             val = val * 10 + c;
             state = st_digit;
             continue;
         }
 
-        if (state == st_first_digit) {
+        if (state == st_first_digit)
+        {
             return -1;
         }
 
-        switch (ch) {
+        switch (ch)
+        {
 
         case 'y':
-            if (step > st_start) {
+            if (step > st_start)
+            {
                 return -1;
             }
             step = st_year;
@@ -378,7 +421,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 'M':
-            if (step >= st_month) {
+            if (step >= st_month)
+            {
                 return -1;
             }
             step = st_month;
@@ -387,7 +431,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 'w':
-            if (step >= st_week) {
+            if (step >= st_week)
+            {
                 return -1;
             }
             step = st_week;
@@ -396,7 +441,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 'd':
-            if (step >= st_day) {
+            if (step >= st_day)
+            {
                 return -1;
             }
             step = st_day;
@@ -405,7 +451,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 'h':
-            if (step >= st_hour) {
+            if (step >= st_hour)
+            {
                 return -1;
             }
             step = st_hour;
@@ -414,8 +461,10 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 'm':
-            if (p < end && *p == 's') {
-                if (seconds || step >= st_msec) {
+            if (p < end && *p == 's')
+            {
+                if (seconds || step >= st_msec)
+                {
                     return -1;
                 }
                 p++;
@@ -425,7 +474,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
                 break;
             }
 
-            if (step >= st_min) {
+            if (step >= st_min)
+            {
                 return -1;
             }
             step = st_min;
@@ -434,7 +484,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case 's':
-            if (step >= st_sec) {
+            if (step >= st_sec)
+            {
                 return -1;
             }
             step = st_sec;
@@ -443,7 +494,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             break;
 
         case ' ':
-            if (step >= st_sec) {
+            if (step >= st_sec)
+            {
                 return -1;
             }
             step = st_last;
@@ -455,18 +507,21 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             return -1;
         }
 
-        if (!seconds && step != st_msec) {
+        if (!seconds && step != st_msec)
+        {
             scale *= 1000;
             max /= 1000;
         }
 
-        if (val > max) {
+        if (val > max)
+        {
             return -2;
         }
 
         term += val * scale;
 
-        if (term > NXT_INT32_T_MAX) {
+        if (term > NXT_INT32_T_MAX)
+        {
             return -2;
         }
 
@@ -475,7 +530,8 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
         state = st_space;
     }
 
-    if (!seconds) {
+    if (!seconds)
+    {
         val *= 1000;
     }
 

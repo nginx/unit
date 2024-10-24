@@ -7,26 +7,25 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 
+extern char **environ;
 
-extern char  **environ;
-
-
-int nxt_cdecl
-main(int argc, char **argv)
+int nxt_cdecl main(int argc, char **argv)
 {
-    nxt_int_t  ret;
+    nxt_int_t ret;
 
-    if (nxt_lib_start("unit", argv, &environ) != NXT_OK) {
+    if (nxt_lib_start("unit", argv, &environ) != NXT_OK)
+    {
         return 1;
     }
 
-//    nxt_main_log.level = NXT_LOG_INFO;
+    //    nxt_main_log.level = NXT_LOG_INFO;
 
     nxt_main_log.handler = nxt_log_time_handler;
 
     ret = nxt_runtime_create(&nxt_main_task);
 
-    if (ret != NXT_OK) {
+    if (ret != NXT_OK)
+    {
         return 1;
     }
 

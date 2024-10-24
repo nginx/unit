@@ -6,19 +6,18 @@
 
 #include <nxt_main.h>
 
-
-uint32_t
-nxt_murmur_hash2(const void *data, size_t len)
+uint32_t nxt_murmur_hash2(const void *data, size_t len)
 {
-    uint32_t        h, k;
-    const u_char    *p;
-    const uint32_t  m = 0x5BD1E995;
+    uint32_t h, k;
+    const u_char *p;
+    const uint32_t m = 0x5BD1E995;
 
     p = data;
-    h = 0 ^ (uint32_t) len;
+    h = 0 ^ (uint32_t)len;
 
-    while (len >= 4) {
-        k  = p[0];
+    while (len >= 4)
+    {
+        k = p[0];
         k |= p[1] << 8;
         k |= p[2] << 16;
         k |= p[3] << 24;
@@ -34,7 +33,8 @@ nxt_murmur_hash2(const void *data, size_t len)
         len -= 4;
     }
 
-    switch (len) {
+    switch (len)
+    {
     case 3:
         h ^= p[2] << 16;
         /* Fall through. */
@@ -53,19 +53,17 @@ nxt_murmur_hash2(const void *data, size_t len)
     return h;
 }
 
-
 /* The MurmurHash2 for fixed 4 byte length. */
 
-uint32_t
-nxt_murmur_hash2_uint32(const void *data)
+uint32_t nxt_murmur_hash2_uint32(const void *data)
 {
-    uint32_t        h, k;
-    const u_char    *p;
-    const uint32_t  m = 0x5BD1E995;
+    uint32_t h, k;
+    const u_char *p;
+    const uint32_t m = 0x5BD1E995;
 
     p = data;
 
-    k  = p[0];
+    k = p[0];
     k |= p[1] << 8;
     k |= p[2] << 16;
     k |= p[3] << 24;

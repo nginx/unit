@@ -6,32 +6,23 @@
 
 #include <nxt_main.h>
 
-
 /*
  * The red-black tree code is based on the algorithm described in
  * the "Introduction to Algorithms" by Cormen, Leiserson and Rivest.
  */
 
-
 static void nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node);
-static void nxt_rbtree_delete_fixup(nxt_rbtree_t *tree,
-    nxt_rbtree_node_t *node);
+static void nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node);
 nxt_inline void nxt_rbtree_left_rotate(nxt_rbtree_node_t *node);
 nxt_inline void nxt_rbtree_right_rotate(nxt_rbtree_node_t *node);
-nxt_inline void nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst,
-    nxt_rbtree_node_t *node);
+nxt_inline void nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst, nxt_rbtree_node_t *node);
 
+#define NXT_RBTREE_BLACK 0
+#define NXT_RBTREE_RED 1
 
-#define NXT_RBTREE_BLACK  0
-#define NXT_RBTREE_RED    1
+#define nxt_rbtree_comparison_callback(tree) ((nxt_rbtree_compare_t)(tree)->sentinel.right)
 
-
-#define nxt_rbtree_comparison_callback(tree)                                  \
-    ((nxt_rbtree_compare_t) (tree)->sentinel.right)
-
-
-void
-nxt_rbtree_init(nxt_rbtree_t *tree, nxt_rbtree_compare_t compare)
+void nxt_rbtree_init(nxt_rbtree_t *tree, nxt_rbtree_compare_t compare)
 {
     /*
      * The sentinel is used as a leaf node sentinel and as a tree root
@@ -49,20 +40,18 @@ nxt_rbtree_init(nxt_rbtree_t *tree, nxt_rbtree_compare_t compare)
      * The sentinel's right child is never used so
      * comparison callback can be safely stored here.
      */
-    tree->sentinel.right = (void *) compare;
+    tree->sentinel.right = (void *)compare;
 
     /* The root and leaf sentinel must be black. */
     tree->sentinel.color = NXT_RBTREE_BLACK;
 }
 
-
-void
-nxt_rbtree_insert(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
+void nxt_rbtree_insert(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 {
-    nxt_rbtree_node_t     *node, *new_node, *sentinel, **child;
-    nxt_rbtree_compare_t  compare;
+    nxt_rbtree_node_t *node, *new_node, *sentinel, **child;
+    nxt_rbtree_compare_t compare;
 
-    new_node = (nxt_rbtree_node_t *) part;
+    new_node = (nxt_rbtree_node_t *)part;
 
     node = nxt_rbtree_root(tree);
     sentinel = nxt_rbtree_sentinel(tree);
@@ -71,10 +60,11 @@ nxt_rbtree_insert(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     new_node->right = sentinel;
     new_node->color = NXT_RBTREE_RED;
 
-    compare = (nxt_rbtree_compare_t) tree->sentinel.right;
+    compare = (nxt_rbtree_compare_t)tree->sentinel.right;
     child = &nxt_rbtree_root(tree);
 
-    while (*child != sentinel) {
+    while (*child != sentinel)
+    {
         node = *child;
 
         nxt_prefetch(node->left);
@@ -92,36 +82,39 @@ nxt_rbtree_insert(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     node->color = NXT_RBTREE_BLACK;
 }
 
-
-static void
-nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
+static void nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
 {
-    nxt_rbtree_node_t  *parent, *grandparent, *uncle;
+    nxt_rbtree_node_t *parent, *grandparent, *uncle;
 
     /*
      * Prefetching parent nodes does not help here because they are
      * already traversed during insertion.
      */
 
-    for ( ;; ) {
+    for (;;)
+    {
         parent = node->parent;
 
         /*
          * Testing whether a node is a tree root is not required here since
          * a root node's parent is the sentinel and it is always black.
          */
-        if (parent->color == NXT_RBTREE_BLACK) {
+        if (parent->color == NXT_RBTREE_BLACK)
+        {
             return;
         }
 
         grandparent = parent->parent;
 
-        if (parent == grandparent->left) {
+        if (parent == grandparent->left)
+        {
             uncle = grandparent->right;
 
-            if (uncle->color == NXT_RBTREE_BLACK) {
+            if (uncle->color == NXT_RBTREE_BLACK)
+            {
 
-                if (node == parent->right) {
+                if (node == parent->right)
+                {
                     node = parent;
                     nxt_rbtree_left_rotate(node);
                 }
@@ -143,13 +136,16 @@ nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
                  */
                 return;
             }
-
-        } else {
+        }
+        else
+        {
             uncle = grandparent->left;
 
-            if (uncle->color == NXT_RBTREE_BLACK) {
+            if (uncle->color == NXT_RBTREE_BLACK)
+            {
 
-                if (node == parent->left) {
+                if (node == parent->left)
+                {
                     node = parent;
                     nxt_rbtree_right_rotate(node);
                 }
@@ -175,33 +171,35 @@ nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
     }
 }
 
-
-nxt_rbtree_node_t *
-nxt_rbtree_find(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
+nxt_rbtree_node_t *nxt_rbtree_find(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 {
-    intptr_t              n;
-    nxt_rbtree_node_t     *node, *next, *sentinel;
-    nxt_rbtree_compare_t  compare;
+    intptr_t n;
+    nxt_rbtree_node_t *node, *next, *sentinel;
+    nxt_rbtree_compare_t compare;
 
-    node = (nxt_rbtree_node_t *) part;
+    node = (nxt_rbtree_node_t *)part;
 
     next = nxt_rbtree_root(tree);
     sentinel = nxt_rbtree_sentinel(tree);
     compare = nxt_rbtree_comparison_callback(tree);
 
-    while (next != sentinel) {
+    while (next != sentinel)
+    {
         nxt_prefetch(next->left);
         nxt_prefetch(next->right);
 
         n = compare(node, next);
 
-        if (n < 0) {
+        if (n < 0)
+        {
             next = next->left;
-
-        } else if (n > 0) {
+        }
+        else if (n > 0)
+        {
             next = next->right;
-
-        } else {
+        }
+        else
+        {
             return next;
         }
     }
@@ -209,35 +207,37 @@ nxt_rbtree_find(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     return NULL;
 }
 
-
-nxt_rbtree_node_t *
-nxt_rbtree_find_less_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
+nxt_rbtree_node_t *nxt_rbtree_find_less_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 {
-    intptr_t              n;
-    nxt_rbtree_node_t     *node, *retval, *next, *sentinel;
-    nxt_rbtree_compare_t  compare;
+    intptr_t n;
+    nxt_rbtree_node_t *node, *retval, *next, *sentinel;
+    nxt_rbtree_compare_t compare;
 
-    node = (nxt_rbtree_node_t *) part;
+    node = (nxt_rbtree_node_t *)part;
 
     retval = NULL;
     next = nxt_rbtree_root(tree);
     sentinel = nxt_rbtree_sentinel(tree);
     compare = nxt_rbtree_comparison_callback(tree);
 
-    while (next != sentinel) {
+    while (next != sentinel)
+    {
         nxt_prefetch(next->left);
         nxt_prefetch(next->right);
 
         n = compare(node, next);
 
-        if (n < 0) {
+        if (n < 0)
+        {
             next = next->left;
-
-        } else if (n > 0) {
+        }
+        else if (n > 0)
+        {
             retval = next;
             next = next->right;
-
-        } else {
+        }
+        else
+        {
             /* Exact match. */
             return next;
         }
@@ -246,35 +246,37 @@ nxt_rbtree_find_less_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     return retval;
 }
 
-
-nxt_rbtree_node_t *
-nxt_rbtree_find_greater_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
+nxt_rbtree_node_t *nxt_rbtree_find_greater_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 {
-    intptr_t              n;
-    nxt_rbtree_node_t     *node, *retval, *next, *sentinel;
-    nxt_rbtree_compare_t  compare;
+    intptr_t n;
+    nxt_rbtree_node_t *node, *retval, *next, *sentinel;
+    nxt_rbtree_compare_t compare;
 
-    node = (nxt_rbtree_node_t *) part;
+    node = (nxt_rbtree_node_t *)part;
 
     retval = NULL;
     next = nxt_rbtree_root(tree);
     sentinel = nxt_rbtree_sentinel(tree);
     compare = nxt_rbtree_comparison_callback(tree);
 
-    while (next != sentinel) {
+    while (next != sentinel)
+    {
         nxt_prefetch(next->left);
         nxt_prefetch(next->right);
 
         n = compare(node, next);
 
-        if (n < 0) {
+        if (n < 0)
+        {
             retval = next;
             next = next->left;
-
-        } else if (n > 0) {
+        }
+        else if (n > 0)
+        {
             next = next->right;
-
-        } else {
+        }
+        else
+        {
             /* Exact match. */
             return next;
         }
@@ -283,25 +285,26 @@ nxt_rbtree_find_greater_or_equal(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     return retval;
 }
 
-
-void
-nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
+void nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 {
-    uint8_t            color;
-    nxt_rbtree_node_t  *node, *sentinel, *subst, *child;
+    uint8_t color;
+    nxt_rbtree_node_t *node, *sentinel, *subst, *child;
 
-    node = (nxt_rbtree_node_t *) part;
+    node = (nxt_rbtree_node_t *)part;
 
     subst = node;
     sentinel = nxt_rbtree_sentinel(tree);
 
-    if (node->left == sentinel) {
+    if (node->left == sentinel)
+    {
         child = node->right;
-
-    } else if (node->right == sentinel) {
+    }
+    else if (node->right == sentinel)
+    {
         child = node->left;
-
-    } else {
+    }
+    else
+    {
         subst = nxt_rbtree_branch_min(tree, node->right);
         child = subst->right;
     }
@@ -310,7 +313,8 @@ nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
 
     color = subst->color;
 
-    if (subst != node) {
+    if (subst != node)
+    {
         /* Move the subst node to the deleted node position in the tree. */
 
         subst->color = node->color;
@@ -330,18 +334,18 @@ nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *part)
     node->parent = NULL;
 #endif
 
-    if (color == NXT_RBTREE_BLACK) {
+    if (color == NXT_RBTREE_BLACK)
+    {
         nxt_rbtree_delete_fixup(tree, child);
     }
 }
 
-
-static void
-nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
+static void nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
 {
-    nxt_rbtree_node_t  *parent, *sibling;
+    nxt_rbtree_node_t *parent, *sibling;
 
-    while (node != nxt_rbtree_root(tree) && node->color == NXT_RBTREE_BLACK) {
+    while (node != nxt_rbtree_root(tree) && node->color == NXT_RBTREE_BLACK)
+    {
         /*
          * Prefetching parent nodes does not help here according
          * to microbenchmarks.
@@ -349,10 +353,12 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
 
         parent = node->parent;
 
-        if (node == parent->left) {
+        if (node == parent->left)
+        {
             sibling = parent->right;
 
-            if (sibling->color != NXT_RBTREE_BLACK) {
+            if (sibling->color != NXT_RBTREE_BLACK)
+            {
 
                 sibling->color = NXT_RBTREE_BLACK;
                 parent->color = NXT_RBTREE_RED;
@@ -362,11 +368,13 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
                 sibling = parent->right;
             }
 
-            if (sibling->right->color == NXT_RBTREE_BLACK) {
+            if (sibling->right->color == NXT_RBTREE_BLACK)
+            {
 
                 sibling->color = NXT_RBTREE_RED;
 
-                if (sibling->left->color == NXT_RBTREE_BLACK) {
+                if (sibling->left->color == NXT_RBTREE_BLACK)
+                {
                     node = parent;
                     continue;
                 }
@@ -400,11 +408,13 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
             nxt_rbtree_left_rotate(parent);
 
             return;
-
-        } else {
+        }
+        else
+        {
             sibling = parent->left;
 
-            if (sibling->color != NXT_RBTREE_BLACK) {
+            if (sibling->color != NXT_RBTREE_BLACK)
+            {
 
                 sibling->color = NXT_RBTREE_BLACK;
                 parent->color = NXT_RBTREE_RED;
@@ -414,11 +424,13 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
                 sibling = parent->left;
             }
 
-            if (sibling->left->color == NXT_RBTREE_BLACK) {
+            if (sibling->left->color == NXT_RBTREE_BLACK)
+            {
 
                 sibling->color = NXT_RBTREE_RED;
 
-                if (sibling->right->color == NXT_RBTREE_BLACK) {
+                if (sibling->right->color == NXT_RBTREE_BLACK)
+                {
                     node = parent;
                     continue;
                 }
@@ -444,11 +456,9 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
     node->color = NXT_RBTREE_BLACK;
 }
 
-
-nxt_inline void
-nxt_rbtree_left_rotate(nxt_rbtree_node_t *node)
+nxt_inline void nxt_rbtree_left_rotate(nxt_rbtree_node_t *node)
 {
-    nxt_rbtree_node_t  *child;
+    nxt_rbtree_node_t *child;
 
     child = node->right;
     node->right = child->left;
@@ -460,11 +470,9 @@ nxt_rbtree_left_rotate(nxt_rbtree_node_t *node)
     node->parent = child;
 }
 
-
-nxt_inline void
-nxt_rbtree_right_rotate(nxt_rbtree_node_t *node)
+nxt_inline void nxt_rbtree_right_rotate(nxt_rbtree_node_t *node)
 {
-    nxt_rbtree_node_t  *child;
+    nxt_rbtree_node_t *child;
 
     child = node->left;
     node->left = child->right;
@@ -476,13 +484,11 @@ nxt_rbtree_right_rotate(nxt_rbtree_node_t *node)
     node->parent = child;
 }
 
-
 /* Relink a parent from the node to the subst node. */
 
-nxt_inline void
-nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst, nxt_rbtree_node_t *node)
+nxt_inline void nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst, nxt_rbtree_node_t *node)
 {
-    nxt_rbtree_node_t  *parent, **link;
+    nxt_rbtree_node_t *parent, **link;
 
     parent = node->parent;
     /*
@@ -498,16 +504,15 @@ nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst, nxt_rbtree_node_t *node)
     *link = subst;
 }
 
-
-nxt_rbtree_node_t *
-nxt_rbtree_destroy_next(nxt_rbtree_t *tree, nxt_rbtree_node_t **next)
+nxt_rbtree_node_t *nxt_rbtree_destroy_next(nxt_rbtree_t *tree, nxt_rbtree_node_t **next)
 {
-    nxt_rbtree_node_t  *node, *subst, *parent, *sentinel;
+    nxt_rbtree_node_t *node, *subst, *parent, *sentinel;
 
     sentinel = nxt_rbtree_sentinel(tree);
 
     /* Find the leftmost node. */
-    for (node = *next; node->left != sentinel; node = node->left);
+    for (node = *next; node->left != sentinel; node = node->left)
+        ;
 
     /* Replace the leftmost node with its right child. */
     subst = node->right;
@@ -523,7 +528,8 @@ nxt_rbtree_destroy_next(nxt_rbtree_t *tree, nxt_rbtree_node_t **next)
      * the single root node will be replaced with the sentinel, the next
      * start node will be equal to the sentinel and iteration will stop.
      */
-    if (subst == sentinel) {
+    if (subst == sentinel)
+    {
         subst = parent;
     }
 

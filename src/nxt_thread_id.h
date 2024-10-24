@@ -7,7 +7,6 @@
 #ifndef _NXT_UNIX_THREAD_ID_H_INCLUDED_
 #define _NXT_UNIX_THREAD_ID_H_INCLUDED_
 
-
 #if (NXT_LINUX)
 
 /*
@@ -15,10 +14,9 @@
  * glibc does not provide a wrapper for gettid().
  */
 
-typedef pid_t  nxt_tid_t;
+typedef pid_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
     return syscall(SYS_gettid);
 }
@@ -32,22 +30,20 @@ nxt_thread_get_tid(void)
  * Thread id is a number above 100,000.
  */
 
-typedef uint32_t  nxt_tid_t;
+typedef uint32_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
-    return (uint32_t) (*(long *) pthread_self());
+    return (uint32_t)(*(long *)pthread_self());
 }
 
 #elif (NXT_SOLARIS)
 
 /* Solaris pthread_t are numbers starting with 1. */
 
-typedef pthread_t  nxt_tid_t;
+typedef pthread_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
     return pthread_self();
 }
@@ -62,14 +58,13 @@ nxt_thread_get_tid(void)
  *    syscall.  It is a number above 300,000.
  */
 
-typedef uint64_t  nxt_tid_t;
+typedef uint64_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
-    uint64_t  tid;
+    uint64_t tid;
 
-    (void) pthread_threadid_np(NULL, &tid);
+    (void)pthread_threadid_np(NULL, &tid);
     return tid;
 }
 
@@ -82,12 +77,11 @@ nxt_thread_get_tid(void)
 
 #elif (NXT_OPENBSD)
 
-typedef pid_t  nxt_tid_t;
+typedef pid_t nxt_tid_t;
 
 /* OpenBSD 3.9 getthrid(). */
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
     return getthrid();
 }
@@ -102,27 +96,25 @@ nxt_thread_get_tid(void)
  * shown in "ps -ef -m -o THREAD" output.
  */
 
-typedef tid_t  nxt_tid_t;
+typedef tid_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
-    int                  err, size;
-    pthread_t            pt;
-    struct __pthrdsinfo  ti;
+    int err, size;
+    pthread_t pt;
+    struct __pthrdsinfo ti;
 
     size = 0;
     pt = pthread_self();
 
-    err = pthread_getthrds_np(&pt, PTHRDSINFO_QUERY_TID, &ti,
-                            sizeof(struct __pthrdsinfo), NULL, size);
+    err = pthread_getthrds_np(&pt, PTHRDSINFO_QUERY_TID, &ti, sizeof(struct __pthrdsinfo), NULL, size);
 
-    if (nxt_fast_path(err == 0)) {
+    if (nxt_fast_path(err == 0))
+    {
         return ti.__pi_tid;
     }
 
-    nxt_main_log_alert("pthread_getthrds_np(PTHRDSINFO_QUERY_TID) failed %E",
-                       err);
+    nxt_main_log_alert("pthread_getthrds_np(PTHRDSINFO_QUERY_TID) failed %E", err);
     return 0;
 }
 
@@ -144,29 +136,25 @@ nxt_thread_get_tid(void)
 
 /* HP-UX pthread_t are numbers starting with 1. */
 
-typedef pthread_t  nxt_tid_t;
+typedef pthread_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
     return pthread_self();
 }
 
 #else
 
-typedef pthread_t  nxt_tid_t;
+typedef pthread_t nxt_tid_t;
 
-nxt_inline nxt_tid_t
-nxt_thread_get_tid(void)
+nxt_inline nxt_tid_t nxt_thread_get_tid(void)
 {
     return pthread_self();
 }
 
 #endif
 
-
 NXT_EXPORT nxt_tid_t nxt_thread_tid(nxt_thread_t *thr);
-
 
 /*
  * On Linux pthread_t is unsigned long integer.
@@ -176,14 +164,10 @@ NXT_EXPORT nxt_tid_t nxt_thread_tid(nxt_thread_t *thr);
  * On Cygwin pthread_t is pointer to void.
  * On z/OS pthread_t is "struct { char __[0x08]; }".
  */
-typedef pthread_t  nxt_thread_handle_t;
+typedef pthread_t nxt_thread_handle_t;
 
+#define nxt_thread_handle_clear(th) th = (pthread_t)0
 
-#define nxt_thread_handle_clear(th)                                           \
-    th = (pthread_t) 0
-
-#define nxt_thread_handle_equal(th0, th1)                                     \
-    pthread_equal(th0, th1)
-
+#define nxt_thread_handle_equal(th0, th1) pthread_equal(th0, th1)
 
 #endif /* _NXT_UNIX_THREAD_ID_H_INCLUDED_ */

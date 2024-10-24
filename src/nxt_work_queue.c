@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * Available work items are crucial for overall engine operation, so
  * the items are preallocated in two chunks: cache and spare chunks.
@@ -27,27 +26,26 @@
 
 static void nxt_work_queue_allocate(nxt_work_queue_cache_t *cache);
 
-
 /* It should be adjusted with the "work_queue_bucket_items" directive. */
-static nxt_uint_t  nxt_work_queue_bucket_items = 409;
-
+static nxt_uint_t nxt_work_queue_bucket_items = 409;
 
 #if (NXT_DEBUG)
 
-nxt_inline void
-nxt_work_queue_thread_assert(nxt_work_queue_t *wq)
+nxt_inline void nxt_work_queue_thread_assert(nxt_work_queue_t *wq)
 {
-    nxt_tid_t     tid;
-    nxt_thread_t  *thread;
+    nxt_tid_t tid;
+    nxt_thread_t *thread;
 
     thread = nxt_thread();
     tid = nxt_thread_tid(thread);
 
-    if (nxt_fast_path(wq->tid == tid)) {
+    if (nxt_fast_path(wq->tid == tid))
+    {
         return;
     }
 
-    if (nxt_slow_path(nxt_pid != wq->pid)) {
+    if (nxt_slow_path(nxt_pid != wq->pid))
+    {
         wq->pid = nxt_pid;
         wq->tid = tid;
 
@@ -58,10 +56,9 @@ nxt_work_queue_thread_assert(nxt_work_queue_t *wq)
     nxt_abort();
 }
 
-
 void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq)
 {
-    nxt_thread_t  *thread;
+    nxt_thread_t *thread;
 
     thread = nxt_thread();
 
@@ -69,9 +66,7 @@ void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq)
     wq->tid = nxt_thread_tid(thread);
 }
 
-
-void
-nxt_work_queue_name(nxt_work_queue_t *wq, const char *name)
+void nxt_work_queue_name(nxt_work_queue_t *wq, const char *name)
 {
     nxt_work_queue_thread_assert(wq);
 
@@ -84,68 +79,69 @@ nxt_work_queue_name(nxt_work_queue_t *wq, const char *name)
 
 #endif
 
-
-void
-nxt_work_queue_cache_create(nxt_work_queue_cache_t *cache, size_t chunk_size)
+void nxt_work_queue_cache_create(nxt_work_queue_cache_t *cache, size_t chunk_size)
 {
     nxt_memzero(cache, sizeof(nxt_work_queue_cache_t));
 
-    if (chunk_size == 0) {
+    if (chunk_size == 0)
+    {
         chunk_size = nxt_work_queue_bucket_items;
     }
 
     /* nxt_work_queue_chunk_t already has one work item. */
     cache->chunk_size = chunk_size - 1;
 
-    while (cache->next == NULL) {
+    while (cache->next == NULL)
+    {
         nxt_work_queue_allocate(cache);
     }
 }
 
-
-void
-nxt_work_queue_cache_destroy(nxt_work_queue_cache_t *cache)
+void nxt_work_queue_cache_destroy(nxt_work_queue_cache_t *cache)
 {
-    nxt_work_queue_chunk_t  *chunk, *next;
+    nxt_work_queue_chunk_t *chunk, *next;
 
-    for (chunk = cache->chunk; chunk; chunk = next) {
+    for (chunk = cache->chunk; chunk; chunk = next)
+    {
         next = chunk->next;
         nxt_free(chunk);
     }
 }
 
-
-static void
-nxt_work_queue_allocate(nxt_work_queue_cache_t *cache)
+static void nxt_work_queue_allocate(nxt_work_queue_cache_t *cache)
 {
-    size_t                  size;
-    nxt_uint_t              i, n;
-    nxt_work_t              *work;
-    nxt_work_queue_chunk_t  *chunk;
+    size_t size;
+    nxt_uint_t i, n;
+    nxt_work_t *work;
+    nxt_work_queue_chunk_t *chunk;
 
     n = cache->chunk_size;
     size = sizeof(nxt_work_queue_chunk_t) + n * sizeof(nxt_work_t);
 
     chunk = nxt_malloc(size);
 
-    if (nxt_fast_path(chunk != NULL)) {
+    if (nxt_fast_path(chunk != NULL))
+    {
 
         chunk->next = cache->chunk;
         cache->chunk = chunk;
         work = &chunk->work;
 
-        for (i = 0; i < n; i++) {
+        for (i = 0; i < n; i++)
+        {
             work[i].next = &work[i + 1];
         }
 
         work[i].next = NULL;
         work++;
-
-    } else if (cache->spare != NULL) {
+    }
+    else if (cache->spare != NULL)
+    {
 
         work = NULL;
-
-    } else {
+    }
+    else
+    {
         return;
     }
 
@@ -153,21 +149,20 @@ nxt_work_queue_allocate(nxt_work_queue_cache_t *cache)
     cache->spare = work;
 }
 
-
 /* Add a work to a work queue tail. */
 
-void
-nxt_work_queue_add(nxt_work_queue_t *wq, nxt_work_handler_t handler,
-    nxt_task_t *task, void *obj, void *data)
+void nxt_work_queue_add(nxt_work_queue_t *wq, nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data)
 {
-    nxt_work_t  *work;
+    nxt_work_t *work;
 
     nxt_work_queue_thread_assert(wq);
 
-    for ( ;; ) {
+    for (;;)
+    {
         work = wq->cache->next;
 
-        if (nxt_fast_path(work != NULL)) {
+        if (nxt_fast_path(work != NULL))
+        {
             wq->cache->next = work->next;
             work->next = NULL;
 
@@ -176,10 +171,12 @@ nxt_work_queue_add(nxt_work_queue_t *wq, nxt_work_handler_t handler,
             work->obj = obj;
             work->data = data;
 
-            if (wq->tail != NULL) {
+            if (wq->tail != NULL)
+            {
                 wq->tail->next = work;
-
-            } else {
+            }
+            else
+            {
                 wq->head = work;
             }
 
@@ -192,12 +189,9 @@ nxt_work_queue_add(nxt_work_queue_t *wq, nxt_work_handler_t handler,
     }
 }
 
-
-nxt_work_handler_t
-nxt_work_queue_pop(nxt_work_queue_t *wq, nxt_task_t **task, void **obj,
-    void **data)
+nxt_work_handler_t nxt_work_queue_pop(nxt_work_queue_t *wq, nxt_task_t **task, void **obj, void **data)
 {
-    nxt_work_t  *work;
+    nxt_work_t *work;
 
     nxt_work_queue_thread_assert(wq);
 
@@ -205,7 +199,8 @@ nxt_work_queue_pop(nxt_work_queue_t *wq, nxt_task_t **task, void **obj,
 
     wq->head = work->next;
 
-    if (work->next == NULL) {
+    if (work->next == NULL)
+    {
         wq->tail = NULL;
     }
 
@@ -223,18 +218,18 @@ nxt_work_queue_pop(nxt_work_queue_t *wq, nxt_task_t **task, void **obj,
     return work->handler;
 }
 
-
 /* Add a work to a locked work queue tail. */
 
-void
-nxt_locked_work_queue_add(nxt_locked_work_queue_t *lwq, nxt_work_t *work)
+void nxt_locked_work_queue_add(nxt_locked_work_queue_t *lwq, nxt_work_t *work)
 {
     nxt_thread_spin_lock(&lwq->lock);
 
-    if (lwq->tail != NULL) {
+    if (lwq->tail != NULL)
+    {
         lwq->tail->next = work;
-
-    } else {
+    }
+    else
+    {
         lwq->head = work;
     }
 
@@ -243,15 +238,12 @@ nxt_locked_work_queue_add(nxt_locked_work_queue_t *lwq, nxt_work_t *work)
     nxt_thread_spin_unlock(&lwq->lock);
 }
 
-
 /* Pop a work from a locked work queue head. */
 
-nxt_work_handler_t
-nxt_locked_work_queue_pop(nxt_locked_work_queue_t *lwq, nxt_task_t **task,
-    void **obj, void **data)
+nxt_work_handler_t nxt_locked_work_queue_pop(nxt_locked_work_queue_t *lwq, nxt_task_t **task, void **obj, void **data)
 {
-    nxt_work_t          *work;
-    nxt_work_handler_t  handler;
+    nxt_work_t *work;
+    nxt_work_handler_t handler;
 
     handler = NULL;
 
@@ -259,7 +251,8 @@ nxt_locked_work_queue_pop(nxt_locked_work_queue_t *lwq, nxt_task_t **task,
 
     work = lwq->head;
 
-    if (work != NULL) {
+    if (work != NULL)
+    {
         *task = work->task;
 
         *obj = work->obj;
@@ -270,7 +263,8 @@ nxt_locked_work_queue_pop(nxt_locked_work_queue_t *lwq, nxt_task_t **task,
 
         lwq->head = work->next;
 
-        if (work->next == NULL) {
+        if (work->next == NULL)
+        {
             lwq->tail = NULL;
         }
 
@@ -282,14 +276,11 @@ nxt_locked_work_queue_pop(nxt_locked_work_queue_t *lwq, nxt_task_t **task,
     return handler;
 }
 
-
 /* Move all works from a locked work queue to a usual work queue. */
 
-void
-nxt_locked_work_queue_move(nxt_thread_t *thr, nxt_locked_work_queue_t *lwq,
-    nxt_work_queue_t *wq)
+void nxt_locked_work_queue_move(nxt_thread_t *thr, nxt_locked_work_queue_t *lwq, nxt_work_queue_t *wq)
 {
-    nxt_work_t  *work;
+    nxt_work_t *work;
 
     nxt_thread_spin_lock(&lwq->lock);
 
@@ -300,11 +291,11 @@ nxt_locked_work_queue_move(nxt_thread_t *thr, nxt_locked_work_queue_t *lwq,
 
     nxt_thread_spin_unlock(&lwq->lock);
 
-    while (work != NULL) {
+    while (work != NULL)
+    {
         work->task->thread = thr;
 
-        nxt_work_queue_add(wq, work->handler, work->task,
-                           work->obj, work->data);
+        nxt_work_queue_add(wq, work->handler, work->task, work->obj, work->data);
 
         work = work->next;
     }

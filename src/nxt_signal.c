@@ -6,7 +6,6 @@
 
 #include <nxt_main.h>
 
-
 /*
  * Signals are handled only via a main thread event engine work queue.
  * There are three ways to route signals to the work queue:
@@ -21,39 +20,41 @@
  *    to the event engine.
  */
 
-
 static nxt_int_t nxt_signal_action(int signo, void (*handler)(int));
 static void nxt_signal_thread(void *data);
 
-
-nxt_event_signals_t *
-nxt_event_engine_signals(const nxt_sig_event_t *sigev)
+nxt_event_signals_t *nxt_event_engine_signals(const nxt_sig_event_t *sigev)
 {
-    nxt_event_signals_t  *signals;
+    nxt_event_signals_t *signals;
 
     signals = nxt_zalloc(sizeof(nxt_event_signals_t));
-    if (signals == NULL) {
+    if (signals == NULL)
+    {
         return NULL;
     }
 
     signals->sigev = sigev;
 
-    if (nxt_signal_action(SIGSYS, SIG_IGN) != NXT_OK) {
+    if (nxt_signal_action(SIGSYS, SIG_IGN) != NXT_OK)
+    {
         goto fail;
     }
 
-    if (nxt_signal_action(SIGPIPE, SIG_IGN) != NXT_OK) {
+    if (nxt_signal_action(SIGPIPE, SIG_IGN) != NXT_OK)
+    {
         goto fail;
     }
 
     sigemptyset(&signals->sigmask);
 
-    while (sigev->signo != 0) {
+    while (sigev->signo != 0)
+    {
         sigaddset(&signals->sigmask, sigev->signo);
         sigev++;
     }
 
-    if (sigprocmask(SIG_BLOCK, &signals->sigmask, NULL) != 0) {
+    if (sigprocmask(SIG_BLOCK, &signals->sigmask, NULL) != 0)
+    {
         nxt_main_log_alert("sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
         goto fail;
     }
@@ -67,17 +68,16 @@ fail:
     return NULL;
 }
 
-
-static nxt_int_t
-nxt_signal_action(int signo, void (*handler)(int))
+static nxt_int_t nxt_signal_action(int signo, void (*handler)(int))
 {
-    struct sigaction  sa;
+    struct sigaction sa;
 
     nxt_memzero(&sa, sizeof(struct sigaction));
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = handler;
 
-    if (sigaction(signo, &sa, NULL) == 0) {
+    if (sigaction(signo, &sa, NULL) == 0)
+    {
         return NXT_OK;
     }
 
@@ -86,11 +86,9 @@ nxt_signal_action(int signo, void (*handler)(int))
     return NXT_ERROR;
 }
 
-
-static void
-nxt_signal_handler(int signo)
+static void nxt_signal_handler(int signo)
 {
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     thr = nxt_thread();
 
@@ -106,18 +104,18 @@ nxt_signal_handler(int signo)
     thr->time.signal--;
 }
 
-
-nxt_int_t
-nxt_signal_thread_start(nxt_event_engine_t *engine)
+nxt_int_t nxt_signal_thread_start(nxt_event_engine_t *engine)
 {
-    nxt_thread_link_t      *link;
-    const nxt_sig_event_t  *sigev;
+    nxt_thread_link_t *link;
+    const nxt_sig_event_t *sigev;
 
-    if (engine->signals->process == nxt_pid) {
+    if (engine->signals->process == nxt_pid)
+    {
         return NXT_OK;
     }
 
-    if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0) {
+    if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0)
+    {
         nxt_main_log_alert("sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
         return NXT_ERROR;
     }
@@ -127,19 +125,23 @@ nxt_signal_thread_start(nxt_event_engine_t *engine)
      * them after the switch of event facility from "kqueue" to "select".
      */
 
-    for (sigev = engine->signals->sigev; sigev->signo != 0; sigev++) {
-        if (nxt_signal_action(sigev->signo, nxt_signal_handler) != NXT_OK) {
+    for (sigev = engine->signals->sigev; sigev->signo != 0; sigev++)
+    {
+        if (nxt_signal_action(sigev->signo, nxt_signal_handler) != NXT_OK)
+        {
             return NXT_ERROR;
         }
     }
 
     link = nxt_zalloc(sizeof(nxt_thread_link_t));
 
-    if (nxt_fast_path(link != NULL)) {
+    if (nxt_fast_path(link != NULL))
+    {
         link->start = nxt_signal_thread;
         link->work.data = engine;
 
-        if (nxt_thread_create(&engine->signals->thread, link) == NXT_OK) {
+        if (nxt_thread_create(&engine->signals->thread, link) == NXT_OK)
+        {
             engine->signals->process = nxt_pid;
             return NXT_OK;
         }
@@ -148,14 +150,12 @@ nxt_signal_thread_start(nxt_event_engine_t *engine)
     return NXT_ERROR;
 }
 
-
-static void
-nxt_signal_thread(void *data)
+static void nxt_signal_thread(void *data)
 {
-    int                 signo;
-    nxt_err_t           err;
-    nxt_thread_t        *thr;
-    nxt_event_engine_t  *engine;
+    int signo;
+    nxt_err_t err;
+    nxt_thread_t *thr;
+    nxt_event_engine_t *engine;
 
     engine = data;
 
@@ -163,27 +163,28 @@ nxt_signal_thread(void *data)
 
     nxt_main_log_debug("signal thread");
 
-    for ( ;; ) {
+    for (;;)
+    {
         err = sigwait(&engine->signals->sigmask, &signo);
 
         nxt_thread_time_update(thr);
 
-        if (nxt_fast_path(err == 0)) {
+        if (nxt_fast_path(err == 0))
+        {
             nxt_main_log_error(NXT_LOG_INFO, "signo: %d", signo);
 
             nxt_event_engine_signal(engine, signo);
-
-        } else {
+        }
+        else
+        {
             nxt_main_log_alert("sigwait() failed %E", err);
         }
     }
 }
 
-
-void
-nxt_signal_thread_stop(nxt_event_engine_t *engine)
+void nxt_signal_thread_stop(nxt_event_engine_t *engine)
 {
-    nxt_thread_handle_t  thread;
+    nxt_thread_handle_t thread;
 
     thread = engine->signals->thread;
 
