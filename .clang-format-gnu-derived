@@ -1,0 +1,5 @@
+---
+BasedOnStyle: Gnu
+Language: Cpp
+SortIncludes: Never
+...

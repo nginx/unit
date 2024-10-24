@@ -6,9 +6,7 @@
 
 #include <nxt_main.h>
 
-
 /* OS-specific real, monotonic, and local times and timezone update. */
-
 
 /* Real time. */
 
@@ -22,16 +20,15 @@
  */
 
 void
-nxt_realtime(nxt_realtime_t *now)
+nxt_realtime (nxt_realtime_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_REALTIME_COARSE, &ts);
+  (void)clock_gettime (CLOCK_REALTIME_COARSE, &ts);
 
-    now->sec = (nxt_time_t) ts.tv_sec;
-    now->nsec = ts.tv_nsec;
+  now->sec = (nxt_time_t)ts.tv_sec;
+  now->nsec = ts.tv_nsec;
 }
-
 
 #elif (NXT_HAVE_CLOCK_REALTIME_FAST)
 
@@ -46,16 +43,15 @@ nxt_realtime(nxt_realtime_t *now)
  */
 
 void
-nxt_realtime(nxt_realtime_t *now)
+nxt_realtime (nxt_realtime_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_REALTIME_FAST, &ts);
+  (void)clock_gettime (CLOCK_REALTIME_FAST, &ts);
 
-    now->sec = (nxt_time_t) ts.tv_sec;
-    now->nsec = ts.tv_nsec;
+  now->sec = (nxt_time_t)ts.tv_sec;
+  now->nsec = ts.tv_nsec;
 }
-
 
 #elif (NXT_HAVE_CLOCK_REALTIME && !(NXT_HPUX))
 
@@ -69,34 +65,32 @@ nxt_realtime(nxt_realtime_t *now)
  */
 
 void
-nxt_realtime(nxt_realtime_t *now)
+nxt_realtime (nxt_realtime_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_REALTIME, &ts);
+  (void)clock_gettime (CLOCK_REALTIME, &ts);
 
-    now->sec = (nxt_time_t) ts.tv_sec;
-    now->nsec = ts.tv_nsec;
+  now->sec = (nxt_time_t)ts.tv_sec;
+  now->nsec = ts.tv_nsec;
 }
-
 
 #else
 
 /* MacOSX, HP-UX. */
 
 void
-nxt_realtime(nxt_realtime_t *now)
+nxt_realtime (nxt_realtime_t *now)
 {
-    struct timeval  tv;
+  struct timeval tv;
 
-    (void) gettimeofday(&tv, NULL);
+  (void)gettimeofday (&tv, NULL);
 
-    now->sec = (nxt_time_t) tv.tv_sec;
-    now->nsec = tv.tv_usec * 1000;
+  now->sec = (nxt_time_t)tv.tv_sec;
+  now->nsec = tv.tv_usec * 1000;
 }
 
 #endif
-
 
 /* Monotonic time. */
 
@@ -110,15 +104,14 @@ nxt_realtime(nxt_realtime_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_MONOTONIC_COARSE, &ts);
+  (void)clock_gettime (CLOCK_MONOTONIC_COARSE, &ts);
 
-    now->monotonic = (nxt_nsec_t) ts.tv_sec * 1000000000 + ts.tv_nsec;
+  now->monotonic = (nxt_nsec_t)ts.tv_sec * 1000000000 + ts.tv_nsec;
 }
-
 
 #elif (NXT_HAVE_CLOCK_MONOTONIC_FAST)
 
@@ -133,15 +126,14 @@ nxt_monotonic_time(nxt_monotonic_time_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_MONOTONIC_FAST, &ts);
+  (void)clock_gettime (CLOCK_MONOTONIC_FAST, &ts);
 
-    now->monotonic = (nxt_nsec_t) ts.tv_sec * 1000000000 + ts.tv_nsec;
+  now->monotonic = (nxt_nsec_t)ts.tv_sec * 1000000000 + ts.tv_nsec;
 }
-
 
 #elif (NXT_HAVE_HG_GETHRTIME)
 
@@ -152,11 +144,10 @@ nxt_monotonic_time(nxt_monotonic_time_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    now->monotonic = (nxt_nsec_t) hg_gethrtime();
+  now->monotonic = (nxt_nsec_t)hg_gethrtime ();
 }
-
 
 #elif (NXT_SOLARIS || NXT_HPUX)
 
@@ -171,11 +162,10 @@ nxt_monotonic_time(nxt_monotonic_time_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    now->monotonic = (nxt_nsec_t) gethrtime();
+  now->monotonic = (nxt_nsec_t)gethrtime ();
 }
-
 
 #elif (NXT_HAVE_CLOCK_MONOTONIC)
 
@@ -187,15 +177,14 @@ nxt_monotonic_time(nxt_monotonic_time_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    struct timespec  ts;
+  struct timespec ts;
 
-    (void) clock_gettime(CLOCK_MONOTONIC, &ts);
+  (void)clock_gettime (CLOCK_MONOTONIC, &ts);
 
-    now->monotonic = (nxt_nsec_t) ts.tv_sec * 1000000000 + ts.tv_nsec;
+  now->monotonic = (nxt_nsec_t)ts.tv_sec * 1000000000 + ts.tv_nsec;
 }
-
 
 #elif (NXT_MACOSX)
 
@@ -209,82 +198,80 @@ nxt_monotonic_time(nxt_monotonic_time_t *now)
  */
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    now->monotonic = mach_absolute_time();
+  now->monotonic = mach_absolute_time ();
 }
-
 
 #else
 
 void
-nxt_monotonic_time(nxt_monotonic_time_t *now)
+nxt_monotonic_time (nxt_monotonic_time_t *now)
 {
-    nxt_nsec_t      current;
-    nxt_nsec_int_t  delta;
-    struct timeval  tv;
+  nxt_nsec_t current;
+  nxt_nsec_int_t delta;
+  struct timeval tv;
 
-    (void) gettimeofday(&tv, NULL);
+  (void)gettimeofday (&tv, NULL);
 
-    now->realtime.sec = (nxt_time_t) tv.tv_sec;
-    now->realtime.nsec = tv.tv_usec * 1000;
+  now->realtime.sec = (nxt_time_t)tv.tv_sec;
+  now->realtime.nsec = tv.tv_usec * 1000;
 
-    /*
-     * Monotonic time emulation using gettimeofday()
-     * for platforms which lack monotonic time.
-     */
+  /*
+   * Monotonic time emulation using gettimeofday()
+   * for platforms which lack monotonic time.
+   */
 
-    current = (nxt_nsec_t) tv.tv_sec * 1000000000 + tv.tv_usec * 1000;
-    delta = current - now->previous;
-    now->previous = current;
+  current = (nxt_nsec_t)tv.tv_sec * 1000000000 + tv.tv_usec * 1000;
+  delta = current - now->previous;
+  now->previous = current;
 
-    if (delta > 0) {
-        now->monotonic += delta;
-
-    } else {
-        /* The time went backward. */
-        now->monotonic++;
+  if (delta > 0)
+    {
+      now->monotonic += delta;
+    }
+  else
+    {
+      /* The time went backward. */
+      now->monotonic++;
     }
 
-    /*
-     * Eliminate subsequent gettimeofday() call
-     * in nxt_thread_realtime_update().
-     */
-    now->update = now->monotonic + 1;
+  /*
+   * Eliminate subsequent gettimeofday() call
+   * in nxt_thread_realtime_update().
+   */
+  now->update = now->monotonic + 1;
 }
 
 #endif
-
 
 /* Local time. */
 
 #if (NXT_HAVE_LOCALTIME_R)
 
 void
-nxt_localtime(nxt_time_t s, struct tm *tm)
+nxt_localtime (nxt_time_t s, struct tm *tm)
 {
-    time_t  _s;
+  time_t _s;
 
-    _s = (time_t) s;
-    (void) localtime_r(&_s, tm);
+  _s = (time_t)s;
+  (void)localtime_r (&_s, tm);
 }
-
 
 #else
 
 void
-nxt_localtime(nxt_time_t s, struct tm *tm)
+nxt_localtime (nxt_time_t s, struct tm *tm)
 {
-    time_t     _s;
-    struct tm  *_tm;
+  time_t _s;
+  struct tm *_tm;
 
-    _s = (time_t) s;
-    _tm = localtime(&_s);
-    *tm = *_tm;
+  _s = (time_t)s;
+  _tm = localtime (&_s);
+  *tm = *_tm;
 }
 
 #endif
-
 
 /* Timezone update. */
 
@@ -296,14 +283,13 @@ nxt_localtime(nxt_time_t s, struct tm *tm)
  */
 
 void
-nxt_timezone_update(void)
+nxt_timezone_update (void)
 {
-    time_t  s;
+  time_t s;
 
-    s = time(NULL);
-    (void) localtime(&s);
+  s = time (NULL);
+  (void)localtime (&s);
 }
-
 
 #elif (NXT_FREEBSD)
 
@@ -314,21 +300,21 @@ nxt_timezone_update(void)
  */
 
 void
-nxt_timezone_update(void)
+nxt_timezone_update (void)
 {
-    if (getenv("TZ") != NULL) {
-        return;
+  if (getenv ("TZ") != NULL)
+    {
+      return;
     }
 
-    /* The libc uses /etc/localtime if TZ is not set. */
+  /* The libc uses /etc/localtime if TZ is not set. */
 
-    (void) putenv((char *) "TZ=UTC");
-    tzset();
+  (void)putenv ((char *)"TZ=UTC");
+  tzset ();
 
-    (void) unsetenv("TZ");
-    tzset();
+  (void)unsetenv ("TZ");
+  tzset ();
 }
-
 
 #elif (NXT_SOLARIS)
 
@@ -345,21 +331,20 @@ nxt_timezone_update(void)
  */
 
 void
-nxt_timezone_update(void)
+nxt_timezone_update (void)
 {
-    time_t  s;
+  time_t s;
 
-    s = time(NULL);
-    (void) ctime(&s);
+  s = time (NULL);
+  (void)ctime (&s);
 }
-
 
 #else
 
 void
-nxt_timezone_update(void)
+nxt_timezone_update (void)
 {
-    return;
+  return;
 }
 
 #endif
