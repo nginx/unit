@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -8,16 +7,14 @@
 #define _NXT_UNIX_TIME_H_INCLUDED_
 
 
-typedef uint64_t           nxt_nsec_t;
-typedef int64_t            nxt_nsec_int_t;
-#define NXT_INFINITE_NSEC  ((nxt_nsec_t) -1)
-
+typedef uint64_t nxt_nsec_t;
+typedef int64_t  nxt_nsec_int_t;
+#define NXT_INFINITE_NSEC ((nxt_nsec_t) - 1)
 
 typedef struct {
-    nxt_time_t             sec;
-    nxt_uint_t             nsec;
+    nxt_time_t sec;
+    nxt_uint_t nsec;
 } nxt_realtime_t;
-
 
 /*
  * nxt_monotonic_time_t includes nxt_realtime_t to eliminate
@@ -25,20 +22,23 @@ typedef struct {
  */
 
 typedef struct {
-    nxt_realtime_t         realtime;
-    nxt_nsec_t             monotonic;
-    nxt_nsec_t             update;
+    nxt_realtime_t realtime;
+    nxt_nsec_t     monotonic;
+    nxt_nsec_t     update;
 
 #if !(NXT_HAVE_CLOCK_MONOTONIC || NXT_SOLARIS || NXT_HPUX || NXT_MACOSX)
-    nxt_nsec_t             previous;
+    nxt_nsec_t previous;
 #endif
 } nxt_monotonic_time_t;
 
-
-NXT_EXPORT void nxt_realtime(nxt_realtime_t *now);
-NXT_EXPORT void nxt_monotonic_time(nxt_monotonic_time_t *now);
-NXT_EXPORT void nxt_localtime(nxt_time_t s, struct tm *tm);
-NXT_EXPORT void nxt_timezone_update(void);
+NXT_EXPORT void
+nxt_realtime(nxt_realtime_t *now);
+NXT_EXPORT void
+nxt_monotonic_time(nxt_monotonic_time_t *now);
+NXT_EXPORT void
+nxt_localtime(nxt_time_t s, struct tm *tm);
+NXT_EXPORT void
+nxt_timezone_update(void);
 
 /*
  * Both localtime() and localtime_r() are not Async-Signal-Safe, therefore,
@@ -74,25 +74,22 @@ NXT_EXPORT void nxt_timezone_update(void);
 
 #if (NXT_HAVE_TM_GMTOFF)
 
-#define nxt_timezone(tm)                                                      \
-    ((tm)->tm_gmtoff)
+#define nxt_timezone(tm) ((tm)->tm_gmtoff)
 
 #elif (NXT_HAVE_ALTZONE)
 
-#define nxt_timezone(tm)                                                      \
-    (-(((tm)->tm_isdst > 0) ? altzone : timezone))
+#define nxt_timezone(tm) (-(((tm)->tm_isdst > 0) ? altzone : timezone))
 
 #else
 
-#define nxt_timezone(tm)                                                      \
-    (-(((tm)->tm_isdst > 0) ? timezone + 3600 : timezone))
+#define nxt_timezone(tm) (-(((tm)->tm_isdst > 0) ? timezone + 3600 : timezone))
 
 #endif
 
 
-typedef uint32_t           nxt_msec_t;
-typedef int32_t            nxt_msec_int_t;
-#define NXT_INFINITE_MSEC  ((nxt_msec_t) -1)
+typedef uint32_t nxt_msec_t;
+typedef int32_t  nxt_msec_int_t;
+#define NXT_INFINITE_MSEC ((nxt_msec_t) - 1)
 
 
 /*
@@ -100,8 +97,7 @@ typedef int32_t            nxt_msec_int_t;
  * every 49 days.  This signed subtraction takes into account that overflow.
  * "nxt_msec_diff(m1, m2) < 0" means that m1 is lesser than m2.
  */
-#define nxt_msec_diff(m1, m2)                                                 \
-    ((int32_t) ((m1) - (m2)))
+#define nxt_msec_diff(m1, m2) ((int32_t) ((m1) - (m2)))
 
 
 #endif /* _NXT_UNIX_TIME_H_INCLUDED_ */

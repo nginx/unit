@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -43,7 +42,6 @@ nxt_sem_init(nxt_sem_t *sem, nxt_uint_t count)
     return NXT_ERROR;
 }
 
-
 void
 nxt_sem_destroy(nxt_sem_t *sem)
 {
@@ -54,7 +52,6 @@ nxt_sem_destroy(nxt_sem_t *sem)
 
     nxt_thread_log_alert("sem_destroy(%p) failed %E", sem, nxt_errno);
 }
-
 
 nxt_int_t
 nxt_sem_post(nxt_sem_t *sem)
@@ -70,24 +67,23 @@ nxt_sem_post(nxt_sem_t *sem)
     return NXT_ERROR;
 }
 
-
 nxt_err_t
 nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
 {
-    int              n;
-    nxt_err_t        err;
-    nxt_nsec_t       ns;
-    nxt_thread_t     *thr;
-    nxt_realtime_t   *now;
-    struct timespec  ts;
+    int             n;
+    nxt_err_t       err;
+    nxt_nsec_t      ns;
+    nxt_thread_t   *thr;
+    nxt_realtime_t *now;
+    struct timespec ts;
 
     thr = nxt_thread();
 
     if (timeout == NXT_INFINITE_NSEC) {
         nxt_log_debug(thr->log, "sem_wait(%p) enter", sem);
 
-        for ( ;; ) {
-            n = sem_wait(sem);
+        for (;;) {
+            n   = sem_wait(sem);
 
             err = nxt_errno;
 
@@ -99,7 +95,6 @@ nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
             }
 
             switch (err) {
-
             case NXT_EINTR:
                 nxt_log_error(NXT_LOG_INFO, thr->log, "sem_wait(%p) failed %E",
                               sem, err);
@@ -129,13 +124,13 @@ nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
 
     nxt_log_debug(thr->log, "sem_timedwait(%p, %N) enter", sem, timeout);
 
-    now = nxt_thread_realtime(thr);
-    ns = now->nsec + timeout;
-    ts.tv_sec = now->sec + ns / 1000000000;
+    now        = nxt_thread_realtime(thr);
+    ns         = now->nsec + timeout;
+    ts.tv_sec  = now->sec + ns / 1000000000;
     ts.tv_nsec = ns % 1000000000;
 
-    for ( ;; ) {
-        n = sem_timedwait(sem, &ts);
+    for (;;) {
+        n   = sem_timedwait(sem, &ts);
 
         err = nxt_errno;
 
@@ -147,7 +142,6 @@ nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
         }
 
         switch (err) {
-
         case NXT_ETIMEDOUT:
             nxt_log_debug(thr->log, "sem_timedwait(%p) exit: %d", sem, err);
             return err;
@@ -172,7 +166,6 @@ nxt_int_t
 nxt_sem_init(nxt_sem_t *sem, nxt_uint_t count)
 {
     if (nxt_thread_mutex_create(&sem->mutex) == NXT_OK) {
-
         if (nxt_thread_cond_create(&sem->cond) == NXT_OK) {
             sem->count = count;
             return NXT_OK;
@@ -184,7 +177,6 @@ nxt_sem_init(nxt_sem_t *sem, nxt_uint_t count)
     return NXT_ERROR;
 }
 
-
 void
 nxt_sem_destroy(nxt_sem_t *sem)
 {
@@ -192,11 +184,10 @@ nxt_sem_destroy(nxt_sem_t *sem)
     nxt_thread_mutex_destroy(&sem->mutex);
 }
 
-
 nxt_int_t
 nxt_sem_post(nxt_sem_t *sem)
 {
-    nxt_int_t  ret;
+    nxt_int_t ret;
 
     if (nxt_slow_path(nxt_thread_mutex_lock(&sem->mutex) != NXT_OK)) {
         return NXT_ERROR;
@@ -211,11 +202,10 @@ nxt_sem_post(nxt_sem_t *sem)
     return (nxt_thread_mutex_unlock(&sem->mutex) | ret);
 }
 
-
 nxt_err_t
 nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     err = 0;
 
@@ -224,7 +214,6 @@ nxt_sem_wait(nxt_sem_t *sem, nxt_nsec_t timeout)
     }
 
     while (sem->count == 0) {
-
         err = nxt_thread_cond_wait(&sem->cond, &sem->mutex, timeout);
 
         if (err != 0) {

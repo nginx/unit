@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,10 +6,10 @@
 #include <nxt_main.h>
 
 
-nxt_uint_t    nxt_ncpu = 1;
-nxt_uint_t    nxt_pagesize;
-nxt_task_t    nxt_main_task;
-nxt_atomic_t  nxt_task_ident;
+nxt_uint_t   nxt_ncpu = 1;
+nxt_uint_t   nxt_pagesize;
+nxt_task_t   nxt_main_task;
+nxt_atomic_t nxt_task_ident;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
 
@@ -35,13 +34,13 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     int           n = 0;
     nxt_int_t     flags;
     nxt_bool_t    update;
-    nxt_thread_t  *thread;
+    nxt_thread_t *thread;
 
     flags = nxt_stderr_start();
 
     nxt_log_start(app);
 
-    nxt_pid = getpid();
+    nxt_pid  = getpid();
     nxt_ppid = getppid();
     nxt_euid = geteuid();
     nxt_egid = getegid();
@@ -65,16 +64,16 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     /* Thread log is required for nxt_malloc() in nxt_strerror_start(). */
 
     nxt_thread_init_data(nxt_thread_context);
-    thread = nxt_thread();
-    thread->log = &nxt_main_log;
+    thread              = nxt_thread();
+    thread->log         = &nxt_main_log;
 
-    thread->handle = nxt_thread_handle();
+    thread->handle      = nxt_thread_handle();
     thread->time.signal = -1;
     nxt_thread_time_update(thread);
 
     nxt_main_task.thread = thread;
-    nxt_main_task.log = thread->log;
-    nxt_main_task.ident = nxt_task_next_ident();
+    nxt_main_task.log    = thread->log;
+    nxt_main_task.ident  = nxt_task_next_ident();
 
     if (nxt_strerror_start() != NXT_OK) {
         return NXT_ERROR;
@@ -93,7 +92,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     if (n > 0) {
         int        err;
         size_t     size;
-        cpu_set_t  *set;
+        cpu_set_t *set;
 
         set = CPU_ALLOC(n);
         if (set == NULL) {
@@ -102,7 +101,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
         size = CPU_ALLOC_SIZE(n);
 
-        err = sched_getaffinity(0, size, set);
+        err  = sched_getaffinity(0, size, set);
         if (err == 0) {
             n = CPU_COUNT_S(size, set);
         }
@@ -141,7 +140,6 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     return NXT_OK;
 }
-
 
 void
 nxt_lib_stop(void)

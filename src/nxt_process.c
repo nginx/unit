@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -21,101 +20,99 @@
 
 
 #if (NXT_HAVE_LINUX_NS) && (NXT_HAVE_CLONE_NEWPID)
-#define nxt_is_pid_isolated(process)                                          \
+#define nxt_is_pid_isolated(process)                                           \
     nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)
 #else
-#define nxt_is_pid_isolated(process)                                          \
-    (0)
+#define nxt_is_pid_isolated(process) (0)
 #endif
 
 
 #if (NXT_HAVE_LINUX_NS)
-static nxt_int_t nxt_process_pipe_timer(nxt_fd_t fd, short event);
-static nxt_int_t nxt_process_check_pid_status(const nxt_fd_t *gc_pipe);
-static nxt_pid_t nxt_process_recv_pid(const nxt_fd_t *pid_pipe,
-    const nxt_fd_t *gc_pipe);
-static void nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid);
-static nxt_int_t nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
-    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe, nxt_bool_t use_pidns);
-static nxt_int_t nxt_process_init_pidns(nxt_task_t *task,
-    const nxt_process_t *process, nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
-    nxt_bool_t *use_pidns);
+static nxt_int_t
+nxt_process_pipe_timer(nxt_fd_t fd, short event);
+static nxt_int_t
+nxt_process_check_pid_status(const nxt_fd_t *gc_pipe);
+static nxt_pid_t
+nxt_process_recv_pid(const nxt_fd_t *pid_pipe, const nxt_fd_t *gc_pipe);
+static void
+nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid);
+static nxt_int_t
+nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
+                    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
+                    nxt_bool_t use_pidns);
+static nxt_int_t
+nxt_process_init_pidns(nxt_task_t *task, const nxt_process_t *process,
+                       nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
+                       nxt_bool_t *use_pidns);
 #endif
 
-static nxt_pid_t nxt_process_create(nxt_task_t *task, nxt_process_t *process);
-static nxt_int_t nxt_process_do_start(nxt_task_t *task, nxt_process_t *process);
-static nxt_int_t nxt_process_whoami(nxt_task_t *task, nxt_process_t *process);
-static nxt_int_t nxt_process_setup(nxt_task_t *task, nxt_process_t *process);
-static nxt_int_t nxt_process_child_fixup(nxt_task_t *task,
-    nxt_process_t *process);
-static void nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data);
-static void nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data);
-static nxt_int_t nxt_process_send_created(nxt_task_t *task,
-    nxt_process_t *process);
-static nxt_int_t nxt_process_send_ready(nxt_task_t *task,
-    nxt_process_t *process);
-static void nxt_process_created_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data);
-static void nxt_process_created_error(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg, void *data);
+static nxt_pid_t
+nxt_process_create(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t
+nxt_process_do_start(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t
+nxt_process_whoami(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t
+nxt_process_setup(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t
+nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process);
+static void
+nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data);
+static void
+nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+                         void *data);
+static nxt_int_t
+nxt_process_send_created(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t
+nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process);
+static void
+nxt_process_created_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data);
+static void
+nxt_process_created_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+                          void *data);
 
 
 /* A cached process pid. */
-nxt_pid_t  nxt_pid;
+nxt_pid_t nxt_pid;
 
 /* An original parent process pid. */
-nxt_pid_t  nxt_ppid;
+nxt_pid_t nxt_ppid;
 
 /* A cached process effective uid */
-nxt_uid_t  nxt_euid;
+nxt_uid_t nxt_euid;
 
 /* A cached process effective gid */
-nxt_gid_t  nxt_egid;
+nxt_gid_t nxt_egid;
 
-uint8_t  nxt_proc_keep_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 1, 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0, 0 },
-    { 1, 0, 0, 1, 0, 0 },
-    { 1, 0, 1, 1, 1, 1 },
-    { 1, 0, 0, 1, 0, 0 },
-    { 1, 0, 0, 1, 0, 0 },
+uint8_t nxt_proc_keep_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    {1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 1, 0, 0},
+    {1, 0, 1, 1, 1, 1}, {1, 0, 0, 1, 0, 0}, {1, 0, 0, 1, 0, 0},
 };
 
-uint8_t  nxt_proc_send_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 1, 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0, 0 },
-    { 1, 0, 0, 1, 0, 0 },
-    { 1, 0, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0, 0 },
-    { 1, 0, 0, 0, 0, 0 },
+uint8_t nxt_proc_send_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    {1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 1, 0, 0},
+    {1, 0, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0},
 };
 
-uint8_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 1, 0, 0 },
-    { 0, 0, 1, 0, 1, 1 },
-    { 0, 0, 0, 1, 0, 0 },
-    { 1, 0, 0, 1, 0, 0 },
+uint8_t nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 1, 0, 0},
+    {0, 0, 1, 0, 1, 1}, {0, 0, 0, 1, 0, 0}, {1, 0, 0, 1, 0, 0},
 };
 
 
-static const nxt_port_handlers_t  nxt_process_whoami_port_handlers = {
-    .quit         = nxt_signal_quit_handler,
-    .rpc_ready    = nxt_port_rpc_handler,
-    .rpc_error    = nxt_port_rpc_handler,
+static const nxt_port_handlers_t nxt_process_whoami_port_handlers = {
+    .quit      = nxt_signal_quit_handler,
+    .rpc_ready = nxt_port_rpc_handler,
+    .rpc_error = nxt_port_rpc_handler,
 };
-
 
 nxt_process_t *
 nxt_process_new(nxt_runtime_t *rt)
 {
-    nxt_process_t  *process;
+    nxt_process_t *process;
 
-    process = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_t)
-                            + sizeof(nxt_process_init_t));
+    process = nxt_mp_zalloc(rt->mem_pool,
+                            sizeof(nxt_process_t) + sizeof(nxt_process_init_t));
 
     if (nxt_slow_path(process == NULL)) {
         return NULL;
@@ -132,7 +129,6 @@ nxt_process_new(nxt_runtime_t *rt)
     return process;
 }
 
-
 void
 nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
 {
@@ -143,16 +139,15 @@ nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
     }
 }
 
-
 nxt_int_t
 nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init)
 {
     nxt_int_t           ret;
-    nxt_runtime_t       *rt;
-    nxt_process_t       *process;
-    nxt_process_init_t  *pinit;
+    nxt_runtime_t      *rt;
+    nxt_process_t      *process;
+    nxt_process_init_t *pinit;
 
-    rt = task->thread->runtime;
+    rt      = task->thread->runtime;
 
     process = nxt_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
@@ -161,13 +156,13 @@ nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init)
 
     process->parent_port = rt->port_by_type[rt->type];
 
-    process->name = init.name;
-    process->user_cred = &rt->user_cred;
+    process->name        = init.name;
+    process->user_cred   = &rt->user_cred;
 
-    pinit = nxt_process_init(process);
-    *pinit = init;
+    pinit                = nxt_process_init(process);
+    *pinit               = init;
 
-    ret = nxt_process_start(task, process);
+    ret                  = nxt_process_start(task, process);
     if (nxt_slow_path(ret == NXT_ERROR)) {
         nxt_process_use(task, process, -1);
     }
@@ -175,15 +170,14 @@ nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init)
     return ret;
 }
 
-
 nxt_int_t
 nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_mp_t            *tmp_mp;
+    nxt_mp_t           *tmp_mp;
     nxt_int_t           ret;
     nxt_pid_t           pid;
-    nxt_port_t          *port;
-    nxt_process_init_t  *init;
+    nxt_port_t         *port;
+    nxt_process_init_t *init;
 
     init = nxt_process_init(process);
 
@@ -216,7 +210,6 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     pid = nxt_process_create(task, process);
 
     switch (pid) {
-
     case -1:
         ret = NXT_ERROR;
         break;
@@ -258,28 +251,27 @@ free_port:
     return ret;
 }
 
-
 static nxt_int_t
 nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_process_t       *p;
-    nxt_runtime_t       *rt;
-    nxt_process_init_t  *init;
+    nxt_process_t      *p;
+    nxt_runtime_t      *rt;
+    nxt_process_init_t *init;
     nxt_process_type_t  ptype;
 
-    init = nxt_process_init(process);
+    init                  = nxt_process_init(process);
 
-    nxt_ppid = nxt_pid;
+    nxt_ppid              = nxt_pid;
 
-    nxt_pid = getpid();
+    nxt_pid               = getpid();
 
-    process->pid = nxt_pid;
+    process->pid          = nxt_pid;
     process->isolated_pid = nxt_pid;
 
     /* Clean inherited cached thread tid. */
-    task->thread->tid = 0;
+    task->thread->tid     = 0;
 
-    ptype = init->type;
+    ptype                 = init->type;
 
     nxt_port_reset_next_id();
 
@@ -288,8 +280,8 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
     rt = task->thread->runtime;
 
     /* Remove not ready processes. */
-    nxt_runtime_process_each(rt, p) {
-
+    nxt_runtime_process_each(rt, p)
+    {
         if (nxt_proc_keep_matrix[ptype][nxt_process_type(p)] == 0
             && p->pid != nxt_ppid) /* Always keep parent's port. */
         {
@@ -309,17 +301,17 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
         }
 
         nxt_port_mmaps_destroy(&p->incoming, 0);
-
-    } nxt_runtime_process_loop;
+    }
+    nxt_runtime_process_loop;
 
     if (init->siblings != NULL) {
-        nxt_queue_each(p, init->siblings, nxt_process_t, link) {
-
+        nxt_queue_each(p, init->siblings, nxt_process_t, link)
+        {
             nxt_debug(task, "remove sibling process %PI", p->pid);
 
             nxt_process_close_ports(task, p);
-
-        } nxt_queue_loop;
+        }
+        nxt_queue_loop;
     }
 
     return NXT_OK;
@@ -331,11 +323,11 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 static nxt_int_t
 nxt_process_pipe_timer(nxt_fd_t fd, short event)
 {
-    int                           ret;
-    sigset_t                      mask;
-    struct pollfd                 pfd;
+    int           ret;
+    sigset_t      mask;
+    struct pollfd pfd;
 
-    static const struct timespec  ts = { .tv_sec = 5 };
+    static const struct timespec ts = {.tv_sec = 5};
 
     /*
      * Temporarily block the signals we are handling, (except
@@ -355,10 +347,10 @@ nxt_process_pipe_timer(nxt_fd_t fd, short event)
     sigdelset(&mask, SIGINT);
     sigdelset(&mask, SIGTERM);
 
-    pfd.fd = fd;
+    pfd.fd     = fd;
     pfd.events = event;
 
-    ret = ppoll(&pfd, 1, &ts, &mask);
+    ret        = ppoll(&pfd, 1, &ts, &mask);
     if (ret <= 0 || (ret == 1 && pfd.revents & POLLERR)) {
         return NXT_ERROR;
     }
@@ -366,12 +358,11 @@ nxt_process_pipe_timer(nxt_fd_t fd, short event)
     return NXT_OK;
 }
 
-
 static nxt_int_t
 nxt_process_check_pid_status(const nxt_fd_t *gc_pipe)
 {
-    int8_t   status = -1;
-    ssize_t  ret;
+    int8_t  status = -1;
+    ssize_t ret;
 
     close(gc_pipe[1]);
 
@@ -385,27 +376,26 @@ nxt_process_check_pid_status(const nxt_fd_t *gc_pipe)
     return status;
 }
 
-
 static nxt_pid_t
 nxt_process_recv_pid(const nxt_fd_t *pid_pipe, const nxt_fd_t *gc_pipe)
 {
-    int8_t     status;
-    ssize_t    ret;
-    nxt_pid_t  pid;
+    int8_t    status;
+    ssize_t   ret;
+    nxt_pid_t pid;
 
     close(pid_pipe[1]);
     close(gc_pipe[0]);
 
     status = 0;
 
-    ret = nxt_process_pipe_timer(pid_pipe[0], POLLIN);
+    ret    = nxt_process_pipe_timer(pid_pipe[0], POLLIN);
     if (ret == NXT_OK) {
         ret = read(pid_pipe[0], &pid, sizeof(nxt_pid_t));
     }
 
     if (ret <= 0) {
         status = -1;
-        pid = -1;
+        pid    = -1;
     }
 
     write(gc_pipe[1], &status, sizeof(int8_t));
@@ -416,11 +406,10 @@ nxt_process_recv_pid(const nxt_fd_t *pid_pipe, const nxt_fd_t *gc_pipe)
     return pid;
 }
 
-
 static void
 nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid)
 {
-    nxt_int_t  ret;
+    nxt_int_t ret;
 
     close(pid_pipe[0]);
 
@@ -432,14 +421,12 @@ nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid)
     close(pid_pipe[1]);
 }
 
-
 static nxt_int_t
 nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
-                    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
-                    nxt_bool_t use_pidns)
+                    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe, nxt_bool_t use_pidns)
 {
-    int        ret;
-    nxt_pid_t  pid;
+    int       ret;
+    nxt_pid_t pid;
 
     if (process->isolation.clone.flags == 0) {
         return NXT_OK;
@@ -447,8 +434,7 @@ nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
 
     ret = unshare(process->isolation.clone.flags);
     if (nxt_slow_path(ret == -1)) {
-        nxt_alert(task, "unshare() failed for %s %E", process->name,
-                  nxt_errno);
+        nxt_alert(task, "unshare() failed for %s %E", process->name, nxt_errno);
 
         if (use_pidns) {
             nxt_pipe_close(task, gc_pipe);
@@ -490,7 +476,6 @@ nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
 
     return NXT_OK;
 }
-
 
 static nxt_int_t
 nxt_process_init_pidns(nxt_task_t *task, const nxt_process_t *process,
@@ -538,11 +523,11 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t      ret;
     nxt_pid_t      pid;
-    nxt_runtime_t  *rt;
+    nxt_runtime_t *rt;
 
 #if (NXT_HAVE_LINUX_NS)
-    nxt_fd_t       pid_pipe[2], gc_pipe[2];
-    nxt_bool_t     use_pidns;
+    nxt_fd_t   pid_pipe[2], gc_pipe[2];
+    nxt_bool_t use_pidns;
 
     ret = nxt_process_init_pidns(task, process, pid_pipe, gc_pipe, &use_pidns);
     if (ret == NXT_ERROR) {
@@ -597,10 +582,10 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 #endif
 
-    process->pid = pid;
+    process->pid          = pid;
     process->isolated_pid = pid;
 
-    rt = task->thread->runtime;
+    rt                    = task->thread->runtime;
 
     if (rt->is_pid_isolated) {
         /*
@@ -629,16 +614,15 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     return pid;
 }
 
-
 static nxt_int_t
 nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t                    ret;
-    nxt_thread_t                 *thread;
-    nxt_runtime_t                *rt;
-    nxt_process_init_t           *init;
-    nxt_event_engine_t           *engine;
-    const nxt_event_interface_t  *interface;
+    nxt_thread_t                *thread;
+    nxt_runtime_t               *rt;
+    nxt_process_init_t          *init;
+    nxt_event_engine_t          *engine;
+    const nxt_event_interface_t *interface;
 
     init = nxt_process_init(process);
 
@@ -655,9 +639,9 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 
     nxt_random_init(&thread->random);
 
-    rt->type = init->type;
+    rt->type               = init->type;
 
-    engine = thread->engine;
+    engine                 = thread->engine;
 
     /* Update inherited main process event engine and signals processing. */
     engine->signals->sigev = init->signals;
@@ -689,8 +673,7 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
     }
 
     if (rt->is_pid_isolated
-        || process->parent_port != rt->port_by_type[NXT_PROCESS_MAIN])
-    {
+        || process->parent_port != rt->port_by_type[NXT_PROCESS_MAIN]) {
         ret = nxt_process_whoami(task, process);
 
     } else {
@@ -700,13 +683,12 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
     return ret;
 }
 
-
 static nxt_int_t
 nxt_process_do_start(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t           ret;
-    nxt_port_t          *port;
-    nxt_process_init_t  *init;
+    nxt_port_t         *port;
+    nxt_process_init_t *init;
 
     nxt_runtime_process_add(task, process);
 
@@ -721,7 +703,6 @@ nxt_process_do_start(nxt_task_t *task, nxt_process_t *process)
     }
 
     switch (process->state) {
-
     case NXT_PROCESS_STATE_CREATED:
         ret = nxt_process_send_created(task, process);
         break;
@@ -750,20 +731,19 @@ nxt_process_do_start(nxt_task_t *task, nxt_process_t *process)
     return ret;
 }
 
-
 static nxt_int_t
 nxt_process_whoami(nxt_task_t *task, nxt_process_t *process)
 {
     uint32_t       stream;
     nxt_fd_t       fd;
-    nxt_buf_t      *buf;
+    nxt_buf_t     *buf;
     nxt_int_t      ret;
-    nxt_port_t     *my_port, *main_port;
-    nxt_runtime_t  *rt;
+    nxt_port_t    *my_port, *main_port;
+    nxt_runtime_t *rt;
 
-    rt = task->thread->runtime;
+    rt        = task->thread->runtime;
 
-    my_port = nxt_process_port_first(process);
+    my_port   = nxt_process_port_first(process);
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
     nxt_assert(my_port != NULL && main_port != NULL);
@@ -777,8 +757,7 @@ nxt_process_whoami(nxt_task_t *task, nxt_process_t *process)
 
     buf->mem.free = nxt_cpymem(buf->mem.free, &nxt_ppid, sizeof(nxt_pid_t));
 
-    stream = nxt_port_rpc_register_handler(task, my_port,
-                                           nxt_process_whoami_ok,
+    stream = nxt_port_rpc_register_handler(task, my_port, nxt_process_whoami_ok,
                                            nxt_process_whoami_error,
                                            main_port->pid, process);
     if (nxt_slow_path(stream == 0)) {
@@ -787,10 +766,10 @@ nxt_process_whoami(nxt_task_t *task, nxt_process_t *process)
         return NXT_ERROR;
     }
 
-    fd = (process->parent_port != main_port) ? my_port->pair[1] : -1;
+    fd  = (process->parent_port != main_port) ? my_port->pair[1] : -1;
 
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_WHOAMI,
-                                fd, stream, my_port->id, buf);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_WHOAMI, fd,
+                                stream, my_port->id, buf);
 
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "%s failed to send WHOAMI message", process->name);
@@ -803,19 +782,18 @@ nxt_process_whoami(nxt_task_t *task, nxt_process_t *process)
     return NXT_OK;
 }
 
-
 static void
 nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 {
     nxt_pid_t      pid, isolated_pid;
-    nxt_buf_t      *buf;
-    nxt_port_t     *port;
-    nxt_process_t  *process;
-    nxt_runtime_t  *rt;
+    nxt_buf_t     *buf;
+    nxt_port_t    *port;
+    nxt_process_t *process;
+    nxt_runtime_t *rt;
 
     process = data;
 
-    buf = msg->buf;
+    buf     = msg->buf;
 
     nxt_assert(nxt_buf_used_size(buf) == sizeof(nxt_pid_t));
 
@@ -824,12 +802,14 @@ nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
     isolated_pid = nxt_pid;
 
     if (isolated_pid != pid) {
-        nxt_pid = pid;
+        nxt_pid      = pid;
         process->pid = pid;
 
-        nxt_process_port_each(process, port) {
+        nxt_process_port_each(process, port)
+        {
             port->pid = pid;
-        } nxt_process_port_loop;
+        }
+        nxt_process_port_loop;
     }
 
     rt = task->thread->runtime;
@@ -848,7 +828,6 @@ nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
     }
 }
 
-
 static void
 nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 {
@@ -857,28 +836,26 @@ nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
     nxt_process_quit(task, 1);
 }
 
-
 static nxt_int_t
 nxt_process_send_created(nxt_task_t *task, nxt_process_t *process)
 {
-    uint32_t            stream;
-    nxt_int_t           ret;
-    nxt_port_t          *my_port, *main_port;
-    nxt_runtime_t       *rt;
+    uint32_t       stream;
+    nxt_int_t      ret;
+    nxt_port_t    *my_port, *main_port;
+    nxt_runtime_t *rt;
 
     nxt_assert(process->state == NXT_PROCESS_STATE_CREATED);
 
-    rt = task->thread->runtime;
+    rt        = task->thread->runtime;
 
-    my_port = nxt_process_port_first(process);
+    my_port   = nxt_process_port_first(process);
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
     nxt_assert(my_port != NULL && main_port != NULL);
 
-    stream = nxt_port_rpc_register_handler(task, my_port,
-                                           nxt_process_created_ok,
-                                           nxt_process_created_error,
-                                           main_port->pid, process);
+    stream = nxt_port_rpc_register_handler(
+        task, my_port, nxt_process_created_ok, nxt_process_created_error,
+        main_port->pid, process);
 
     if (nxt_slow_path(stream == 0)) {
         return NXT_ERROR;
@@ -898,21 +875,20 @@ nxt_process_send_created(nxt_task_t *task, nxt_process_t *process)
     return NXT_OK;
 }
 
-
 static void
 nxt_process_created_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 {
     nxt_int_t           ret;
-    nxt_process_t       *process;
-    nxt_process_init_t  *init;
+    nxt_process_t      *process;
+    nxt_process_init_t *init;
 
-    process = data;
+    process        = data;
 
     process->state = NXT_PROCESS_STATE_READY;
 
-    init = nxt_process_init(process);
+    init           = nxt_process_init(process);
 
-    ret = nxt_process_apply_creds(task, process);
+    ret            = nxt_process_apply_creds(task, process);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }
@@ -938,27 +914,25 @@ fail:
     nxt_process_quit(task, 1);
 }
 
-
 static void
 nxt_process_created_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data)
+                          void *data)
 {
-    nxt_process_t       *process;
-    nxt_process_init_t  *init;
+    nxt_process_t      *process;
+    nxt_process_init_t *init;
 
     process = data;
-    init = nxt_process_init(process);
+    init    = nxt_process_init(process);
 
     nxt_alert(task, "%s failed to start", init->name);
 
     nxt_process_quit(task, 1);
 }
 
-
 nxt_int_t
 nxt_process_core_setup(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t  ret;
+    nxt_int_t ret;
 
     ret = nxt_process_apply_creds(task, process);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -970,15 +944,14 @@ nxt_process_core_setup(nxt_task_t *task, nxt_process_t *process)
     return NXT_OK;
 }
 
-
 nxt_int_t
 nxt_process_creds_set(nxt_task_t *task, nxt_process_t *process, nxt_str_t *user,
-    nxt_str_t *group)
+                      nxt_str_t *group)
 {
-    char  *str;
+    char *str;
 
-    process->user_cred = nxt_mp_zalloc(process->mem_pool,
-                                       sizeof(nxt_credential_t));
+    process->user_cred
+        = nxt_mp_zalloc(process->mem_pool, sizeof(nxt_credential_t));
 
     if (nxt_slow_path(process->user_cred == NULL)) {
         return NXT_ERROR;
@@ -990,7 +963,7 @@ nxt_process_creds_set(nxt_task_t *task, nxt_process_t *process, nxt_str_t *user,
     }
 
     nxt_memcpy(str, user->start, user->length);
-    str[user->length] = '\0';
+    str[user->length]        = '\0';
 
     process->user_cred->user = str;
 
@@ -1010,21 +983,19 @@ nxt_process_creds_set(nxt_task_t *task, nxt_process_t *process, nxt_str_t *user,
     return nxt_credential_get(task, process->mem_pool, process->user_cred, str);
 }
 
-
 nxt_int_t
 nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t      ret, cap_setid;
-    nxt_runtime_t  *rt;
+    nxt_runtime_t *rt;
 
-    rt = task->thread->runtime;
+    rt        = task->thread->runtime;
 
     cap_setid = rt->capabilities.setid;
 
 #if (NXT_HAVE_LINUX_NS && NXT_HAVE_CLONE_NEWUSER)
     if (!cap_setid
-        && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER))
-    {
+        && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER)) {
         cap_setid = 1;
     }
 #endif
@@ -1043,8 +1014,7 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 
 #if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
     if (nxt_slow_path(process->isolation.new_privs == 0
-                      && prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0))
-    {
+                      && prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0)) {
         nxt_alert(task, "failed to set no_new_privs %E", nxt_errno);
         return NXT_ERROR;
     }
@@ -1053,15 +1023,14 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
     return NXT_OK;
 }
 
-
 static nxt_int_t
 nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t  ret;
+    nxt_int_t ret;
 
     ret = nxt_port_socket_write(task, process->parent_port,
-                                NXT_PORT_MSG_PROCESS_READY,
-                                -1, process->stream, 0, NULL);
+                                NXT_PORT_MSG_PROCESS_READY, -1, process->stream,
+                                0, NULL);
 
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "%s failed to send READY message", process->name);
@@ -1072,7 +1041,6 @@ nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 
     return NXT_OK;
 }
-
 
 /*
  * Linux glibc 2.2 posix_spawn() is implemented via fork()/execve().
@@ -1096,7 +1064,7 @@ nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 nxt_pid_t
 nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
 {
-    nxt_pid_t  pid;
+    nxt_pid_t pid;
 
     nxt_debug(task, "posix_spawn(\"%s\")", name);
 
@@ -1108,15 +1076,14 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
     return pid;
 }
 
-
 nxt_int_t
 nxt_process_daemon(nxt_task_t *task)
 {
-    nxt_fd_t      fd;
-    nxt_pid_t     pid;
-    const char    *msg;
+    nxt_fd_t    fd;
+    nxt_pid_t   pid;
+    const char *msg;
 
-    fd = -1;
+    fd  = -1;
 
     /*
      * fork() followed by a parent process's exit() detaches a child process
@@ -1127,7 +1094,6 @@ nxt_process_daemon(nxt_task_t *task)
     pid = fork();
 
     switch (pid) {
-
     case -1:
         msg = "fork() failed %E";
         goto fail;
@@ -1143,7 +1109,7 @@ nxt_process_daemon(nxt_task_t *task)
         nxt_unreachable();
     }
 
-    nxt_pid = getpid();
+    nxt_pid           = getpid();
 
     /* Clean inherited cached thread tid. */
     task->thread->tid = 0;
@@ -1198,18 +1164,16 @@ fail:
     return NXT_ERROR;
 }
 
-
 void
 nxt_nanosleep(nxt_nsec_t ns)
 {
-    struct timespec  ts;
+    struct timespec ts;
 
-    ts.tv_sec = ns / 1000000000;
+    ts.tv_sec  = ns / 1000000000;
     ts.tv_nsec = ns % 1000000000;
 
     (void) nanosleep(&ts, NULL);
 }
-
 
 void
 nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
@@ -1222,51 +1186,47 @@ nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
     nxt_process_use(task, process, 1);
 }
 
-
 nxt_process_type_t
 nxt_process_type(nxt_process_t *process)
 {
-    return nxt_queue_is_empty(&process->ports) ? 0 :
-        (nxt_process_port_first(process))->type;
+    return nxt_queue_is_empty(&process->ports)
+               ? 0
+               : (nxt_process_port_first(process))->type;
 }
-
 
 void
 nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_port_t  *port;
+    nxt_port_t *port;
 
     nxt_process_use(task, process, 1);
 
-    nxt_process_port_each(process, port) {
-
+    nxt_process_port_each(process, port)
+    {
         nxt_port_close(task, port);
 
         nxt_runtime_port_remove(task, port);
-
-    } nxt_process_port_loop;
+    }
+    nxt_process_port_loop;
 
     nxt_process_use(task, process, -1);
 }
 
-
 void
 nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status)
 {
-    nxt_queue_t          *listen;
-    nxt_queue_link_t     *link, *next;
-    nxt_listen_event_t   *lev;
+    nxt_queue_t        *listen;
+    nxt_queue_link_t   *link, *next;
+    nxt_listen_event_t *lev;
 
     nxt_debug(task, "close listen connections");
 
     listen = &task->thread->engine->listen_connections;
 
-    for (link = nxt_queue_first(listen);
-         link != nxt_queue_tail(listen);
-         link = next)
-    {
+    for (link = nxt_queue_first(listen); link != nxt_queue_tail(listen);
+         link = next) {
         next = nxt_queue_next(link);
-        lev = nxt_queue_link_data(link, nxt_listen_event_t, link);
+        lev  = nxt_queue_link_data(link, nxt_listen_event_t, link);
         nxt_queue_remove(link);
 
         nxt_fd_event_close(task->thread->engine, &lev->socket);

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -8,33 +7,31 @@
 
 #include <netinet/in.h>
 
-
 typedef struct {
 #if (NXT_HAVE_BIG_ENDIAN)
-    uint8_t fin:1;
-    uint8_t rsv1:1;
-    uint8_t rsv2:1;
-    uint8_t rsv3:1;
+    uint8_t fin   :1;
+    uint8_t rsv1  :1;
+    uint8_t rsv2  :1;
+    uint8_t rsv3  :1;
     uint8_t opcode:4;
 
-    uint8_t mask:1;
+    uint8_t mask       :1;
     uint8_t payload_len:7;
 #endif
 
 #if (NXT_HAVE_LITTLE_ENDIAN)
     uint8_t opcode:4;
-    uint8_t rsv3:1;
-    uint8_t rsv2:1;
-    uint8_t rsv1:1;
-    uint8_t fin:1;
+    uint8_t rsv3  :1;
+    uint8_t rsv2  :1;
+    uint8_t rsv1  :1;
+    uint8_t fin   :1;
 
     uint8_t payload_len:7;
-    uint8_t mask:1;
+    uint8_t mask       :1;
 #endif
 
     uint8_t payload_len_[8];
 } nxt_websocket_header_t;
-
 
 enum {
     NXT_WEBSOCKET_OP_CONT   = 0x00,
@@ -47,21 +44,20 @@ enum {
     NXT_WEBSOCKET_OP_CTRL   = 0x08,
 };
 
-
 enum {
-    NXT_WEBSOCKET_CR_NORMAL                 = 1000,
-    NXT_WEBSOCKET_CR_GOING_AWAY             = 1001,
-    NXT_WEBSOCKET_CR_PROTOCOL_ERROR         = 1002,
-    NXT_WEBSOCKET_CR_UNPROCESSABLE_INPUT    = 1003,
-    NXT_WEBSOCKET_CR_RESERVED               = 1004,
-    NXT_WEBSOCKET_CR_NOT_PROVIDED           = 1005,
-    NXT_WEBSOCKET_CR_ABNORMAL               = 1006,
-    NXT_WEBSOCKET_CR_INVALID_DATA           = 1007,
-    NXT_WEBSOCKET_CR_POLICY_VIOLATION       = 1008,
-    NXT_WEBSOCKET_CR_MESSAGE_TOO_BIG        = 1009,
-    NXT_WEBSOCKET_CR_EXTENSION_REQUIRED     = 1010,
-    NXT_WEBSOCKET_CR_INTERNAL_SERVER_ERROR  = 1011,
-    NXT_WEBSOCKET_CR_TLS_HANDSHAKE_FAILED   = 1015,
+    NXT_WEBSOCKET_CR_NORMAL                = 1000,
+    NXT_WEBSOCKET_CR_GOING_AWAY            = 1001,
+    NXT_WEBSOCKET_CR_PROTOCOL_ERROR        = 1002,
+    NXT_WEBSOCKET_CR_UNPROCESSABLE_INPUT   = 1003,
+    NXT_WEBSOCKET_CR_RESERVED              = 1004,
+    NXT_WEBSOCKET_CR_NOT_PROVIDED          = 1005,
+    NXT_WEBSOCKET_CR_ABNORMAL              = 1006,
+    NXT_WEBSOCKET_CR_INVALID_DATA          = 1007,
+    NXT_WEBSOCKET_CR_POLICY_VIOLATION      = 1008,
+    NXT_WEBSOCKET_CR_MESSAGE_TOO_BIG       = 1009,
+    NXT_WEBSOCKET_CR_EXTENSION_REQUIRED    = 1010,
+    NXT_WEBSOCKET_CR_INTERNAL_SERVER_ERROR = 1011,
+    NXT_WEBSOCKET_CR_TLS_HANDSHAKE_FAILED  = 1015,
 };
 
 

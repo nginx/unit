@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -14,38 +13,46 @@
 
 #include NXT_PYTHON_MOUNTS_H
 
-
 typedef struct {
     pthread_t       thread;
-    nxt_unit_ctx_t  *ctx;
-    void            *ctx_data;
+    nxt_unit_ctx_t *ctx;
+    void           *ctx_data;
 } nxt_py_thread_info_t;
 
 
 #if PY_MAJOR_VERSION == 3
-static nxt_int_t nxt_python3_init_config(nxt_int_t pep405);
+static nxt_int_t
+nxt_python3_init_config(nxt_int_t pep405);
 #endif
 
-static nxt_int_t nxt_python_start(nxt_task_t *task,
-    nxt_process_data_t *data);
-static nxt_int_t nxt_python_set_target(nxt_task_t *task,
-    nxt_python_target_t *target, nxt_conf_value_t *conf);
-nxt_inline nxt_int_t nxt_python_set_prefix(nxt_task_t *task,
-    nxt_python_target_t *target, nxt_conf_value_t *value);
-static nxt_int_t nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value);
-static int nxt_python_init_threads(nxt_python_app_conf_t *c);
-static int nxt_python_ready_handler(nxt_unit_ctx_t *ctx);
-static void *nxt_python_thread_func(void *main_ctx);
-static void nxt_python_join_threads(nxt_unit_ctx_t *ctx,
-    nxt_python_app_conf_t *c);
-static void nxt_python_atexit(void);
+static nxt_int_t
+nxt_python_start(nxt_task_t *task, nxt_process_data_t *data);
+static nxt_int_t
+nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
+                      nxt_conf_value_t *conf);
+nxt_inline nxt_int_t
+nxt_python_set_prefix(nxt_task_t *task, nxt_python_target_t *target,
+                      nxt_conf_value_t *value);
+static nxt_int_t
+nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value);
+static int
+nxt_python_init_threads(nxt_python_app_conf_t *c);
+static int
+nxt_python_ready_handler(nxt_unit_ctx_t *ctx);
+static void *
+nxt_python_thread_func(void *main_ctx);
+static void
+nxt_python_join_threads(nxt_unit_ctx_t *ctx, nxt_python_app_conf_t *c);
+static void
+nxt_python_atexit(void);
 
-static uint32_t  compat[] = {
-    NXT_VERNUM, NXT_DEBUG,
+static uint32_t compat[] = {
+    NXT_VERNUM,
+    NXT_DEBUG,
 };
 
 
-NXT_EXPORT nxt_app_module_t  nxt_app_module = {
+NXT_EXPORT nxt_app_module_t nxt_app_module = {
     sizeof(compat),
     compat,
     nxt_string("python"),
@@ -56,17 +63,17 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_python_start,
 };
 
-static PyObject           *nxt_py_stderr_flush;
-nxt_python_targets_t      *nxt_py_targets;
+static PyObject      *nxt_py_stderr_flush;
+nxt_python_targets_t *nxt_py_targets;
 
 #if PY_MAJOR_VERSION == 3
-static wchar_t            *nxt_py_home;
+static wchar_t *nxt_py_home;
 #else
-static char               *nxt_py_home;
+static char *nxt_py_home;
 #endif
 
-static pthread_attr_t        *nxt_py_thread_attr;
-static nxt_py_thread_info_t  *nxt_py_threads;
+static pthread_attr_t       *nxt_py_thread_attr;
+static nxt_py_thread_info_t *nxt_py_threads;
 static nxt_python_proto_t    nxt_py_proto;
 
 
@@ -75,10 +82,10 @@ static nxt_python_proto_t    nxt_py_proto;
 static nxt_int_t
 nxt_python3_init_config(nxt_int_t pep405)
 {
-    PyConfig     config;
-    PyStatus     status;
-    nxt_int_t    ret;
-    PyPreConfig  preconfig;
+    PyConfig    config;
+    PyStatus    status;
+    nxt_int_t   ret;
+    PyPreConfig preconfig;
 
     ret = NXT_ERROR;
 
@@ -90,7 +97,7 @@ nxt_python3_init_config(nxt_int_t pep405)
      */
     preconfig.utf8_mode = -1;
 
-    status = Py_PreInitialize(&preconfig);
+    status              = Py_PreInitialize(&preconfig);
     if (PyStatus_Exception(status)) {
         return ret;
     }
@@ -98,8 +105,7 @@ nxt_python3_init_config(nxt_int_t pep405)
     PyConfig_InitIsolatedConfig(&config);
 
     if (pep405) {
-        status = PyConfig_SetString(&config, &config.program_name,
-                                    nxt_py_home);
+        status = PyConfig_SetString(&config, &config.program_name, nxt_py_home);
         if (PyStatus_Exception(status)) {
             goto out_config_clear;
         }
@@ -149,28 +155,28 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     int                    rc;
     size_t                 len, size;
     uint32_t               next;
-    PyObject               *obj;
+    PyObject              *obj;
     nxt_str_t              proto, probe_proto, name;
     nxt_int_t              ret, n, i;
-    nxt_unit_ctx_t         *unit_ctx;
+    nxt_unit_ctx_t        *unit_ctx;
     nxt_unit_init_t        python_init;
-    nxt_conf_value_t       *cv;
-    nxt_python_targets_t   *targets;
-    nxt_common_app_conf_t  *app_conf;
-    nxt_python_app_conf_t  *c;
+    nxt_conf_value_t      *cv;
+    nxt_python_targets_t  *targets;
+    nxt_common_app_conf_t *app_conf;
+    nxt_python_app_conf_t *c;
 #if PY_MAJOR_VERSION == 3
-    char                   *path;
-    nxt_int_t              pep405;
+    char     *path;
+    nxt_int_t pep405;
 
-    static const char pyvenv[] = "/pyvenv.cfg";
+    static const char pyvenv[]     = "/pyvenv.cfg";
     static const char bin_python[] = "/bin/python";
 #endif
 
-    static const nxt_str_t  wsgi = nxt_string("wsgi");
-    static const nxt_str_t  asgi = nxt_string("asgi");
+    static const nxt_str_t wsgi = nxt_string("wsgi");
+    static const nxt_str_t asgi = nxt_string("asgi");
 
-    app_conf = data->app;
-    c = &app_conf->u.python;
+    app_conf                    = data->app;
+    c                           = &app_conf->u.python;
 
     if (c->home != NULL) {
         len = nxt_strlen(c->home);
@@ -237,11 +243,11 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 #endif
 
-    obj = NULL;
+    obj                  = NULL;
 
     python_init.ctx_data = NULL;
 
-    obj = PySys_GetObject((char *) "stderr");
+    obj                  = PySys_GetObject((char *) "stderr");
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to get \"sys.stderr\" object");
         goto fail;
@@ -250,7 +256,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_py_stderr_flush = PyObject_GetAttrString(obj, "flush");
 
     /* obj is a Borrowed reference. */
-    obj = NULL;
+    obj                 = NULL;
 
     if (nxt_slow_path(nxt_py_stderr_flush == NULL)) {
         nxt_alert(task, "Python failed to get \"flush\" attribute of "
@@ -275,7 +281,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 
     Py_CLEAR(obj);
 
-    n = (c->targets != NULL ? nxt_conf_object_members_count(c->targets) : 1);
+    n    = (c->targets != NULL ? nxt_conf_object_members_count(c->targets) : 1);
 
     size = sizeof(nxt_python_targets_t) + n * sizeof(nxt_python_target_t);
 
@@ -314,18 +320,19 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 
     nxt_unit_default_init(task, &python_init, data->app);
 
-    python_init.data = c;
+    python_init.data                    = c;
     python_init.callbacks.ready_handler = nxt_python_ready_handler;
 
-    proto = c->protocol;
+    proto                               = c->protocol;
 
     if (proto.length == 0) {
-        proto = nxt_python_asgi_check(targets->target[0].application)
-                ? asgi : wsgi;
+        proto = nxt_python_asgi_check(targets->target[0].application) ? asgi
+                                                                      : wsgi;
 
         for (i = 1; i < targets->count; i++) {
             probe_proto = nxt_python_asgi_check(targets->target[i].application)
-                          ? asgi : wsgi;
+                              ? asgi
+                              : wsgi;
             if (probe_proto.start != proto.start) {
                 nxt_alert(task, "A mix of ASGI & WSGI targets is forbidden, "
                                 "specify protocol in config if incorrect");
@@ -395,25 +402,24 @@ fail:
     return NXT_ERROR;
 }
 
-
 static nxt_int_t
 nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
-    nxt_conf_value_t *conf)
+                      nxt_conf_value_t *conf)
 {
-    char              *callable, *module_name;
-    PyObject          *module, *obj;
+    char             *callable, *module_name;
+    PyObject         *module, *obj;
     nxt_str_t         str;
     nxt_bool_t        is_factory = 0;
-    nxt_conf_value_t  *value;
+    nxt_conf_value_t *value;
 
-    static const nxt_str_t  module_str = nxt_string("module");
-    static const nxt_str_t  callable_str = nxt_string("callable");
-    static const nxt_str_t  prefix_str = nxt_string("prefix");
-    static const nxt_str_t  factory_flag_str = nxt_string("factory");
+    static const nxt_str_t module_str       = nxt_string("module");
+    static const nxt_str_t callable_str     = nxt_string("callable");
+    static const nxt_str_t prefix_str       = nxt_string("prefix");
+    static const nxt_str_t factory_flag_str = nxt_string("factory");
 
     module = obj = NULL;
 
-    value = nxt_conf_get_object_member(conf, &module_str, NULL);
+    value        = nxt_conf_get_object_member(conf, &module_str, NULL);
     if (nxt_slow_path(value == NULL)) {
         goto fail;
     }
@@ -424,7 +430,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     nxt_memcpy(module_name, str.start, str.length);
     module_name[str.length] = '\0';
 
-    module = PyImport_ImportModule(module_name);
+    module                  = PyImport_ImportModule(module_name);
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", module_name);
         nxt_python_print_exception();
@@ -462,7 +468,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
                       "factory \"%s\" in module \"%s\" "
                       "can not be called to fetch callable",
                       callable, module_name);
-            Py_INCREF(obj);     /* borrowed reference */
+            Py_INCREF(obj); /* borrowed reference */
             goto fail;
         }
 
@@ -487,7 +493,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     }
 
     target->application = obj;
-    obj = NULL;
+    obj                 = NULL;
 
     Py_INCREF(target->application);
     Py_CLEAR(module);
@@ -502,13 +508,12 @@ fail:
     return NXT_ERROR;
 }
 
-
 nxt_inline nxt_int_t
 nxt_python_set_prefix(nxt_task_t *task, nxt_python_target_t *target,
-    nxt_conf_value_t *value)
+                      nxt_conf_value_t *value)
 {
-    u_char            *prefix;
-    nxt_str_t         str;
+    u_char   *prefix;
+    nxt_str_t str;
 
     if (value == NULL) {
         return NXT_OK;
@@ -524,14 +529,14 @@ nxt_python_set_prefix(nxt_task_t *task, nxt_python_target_t *target,
         str.length--;
     }
     target->prefix.length = str.length;
-    prefix = nxt_malloc(str.length);
+    prefix                = nxt_malloc(str.length);
     if (nxt_slow_path(prefix == NULL)) {
         nxt_alert(task, "Failed to allocate target prefix string");
         return NXT_ERROR;
     }
 
-    target->py_prefix = PyString_FromStringAndSize((char *)str.start,
-                                                    str.length);
+    target->py_prefix
+        = PyString_FromStringAndSize((char *) str.start, str.length);
     if (nxt_slow_path(target->py_prefix == NULL)) {
         nxt_free(prefix);
         nxt_alert(task, "Python failed to allocate target prefix "
@@ -544,15 +549,14 @@ nxt_python_set_prefix(nxt_task_t *task, nxt_python_target_t *target,
     return NXT_OK;
 }
 
-
 static nxt_int_t
 nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
 {
     int               ret;
-    PyObject          *path, *sys;
+    PyObject         *path, *sys;
     nxt_str_t         str;
     nxt_uint_t        n;
-    nxt_conf_value_t  *array;
+    nxt_conf_value_t *array;
 
     if (value == NULL) {
         return NXT_OK;
@@ -567,7 +571,7 @@ nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
     /* sys is a Borrowed reference. */
 
     array = value;
-    n = nxt_conf_array_elements_count_or_1(array);
+    n     = nxt_conf_array_elements_count_or_1(array);
 
     while (n != 0) {
         n--;
@@ -603,14 +607,13 @@ nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
     return NXT_OK;
 }
 
-
 static int
 nxt_python_init_threads(nxt_python_app_conf_t *c)
 {
-    int                    res;
-    uint32_t               i;
-    nxt_py_thread_info_t   *ti;
-    static pthread_attr_t  attr;
+    int                   res;
+    uint32_t              i;
+    nxt_py_thread_info_t *ti;
+    static pthread_attr_t attr;
 
     if (c->threads <= 1) {
         return NXT_UNIT_OK;
@@ -637,7 +640,7 @@ nxt_python_init_threads(nxt_python_app_conf_t *c)
     }
 
     nxt_py_threads = nxt_unit_malloc(NULL, sizeof(nxt_py_thread_info_t)
-                                           * (c->threads - 1));
+                                               * (c->threads - 1));
     if (nxt_slow_path(nxt_py_threads == NULL)) {
         nxt_unit_alert(NULL, "Failed to allocate thread info array");
 
@@ -647,7 +650,7 @@ nxt_python_init_threads(nxt_python_app_conf_t *c)
     memset(nxt_py_threads, 0, sizeof(nxt_py_thread_info_t) * (c->threads - 1));
 
     for (i = 0; i < c->threads - 1; i++) {
-        ti = &nxt_py_threads[i];
+        ti  = &nxt_py_threads[i];
 
         res = nxt_py_proto.ctx_data_alloc(&ti->ctx_data, 0);
         if (nxt_slow_path(res != NXT_UNIT_OK)) {
@@ -658,14 +661,13 @@ nxt_python_init_threads(nxt_python_app_conf_t *c)
     return NXT_UNIT_OK;
 }
 
-
 static int
 nxt_python_ready_handler(nxt_unit_ctx_t *ctx)
 {
     int                    res;
     uint32_t               i;
-    nxt_py_thread_info_t   *ti;
-    nxt_python_app_conf_t  *c;
+    nxt_py_thread_info_t  *ti;
+    nxt_python_app_conf_t *c;
 
     c = ctx->unit->data;
 
@@ -674,12 +676,12 @@ nxt_python_ready_handler(nxt_unit_ctx_t *ctx)
     }
 
     for (i = 0; i < c->threads - 1; i++) {
-        ti = &nxt_py_threads[i];
+        ti      = &nxt_py_threads[i];
 
         ti->ctx = ctx;
 
-        res = pthread_create(&ti->thread, nxt_py_thread_attr,
-                             nxt_python_thread_func, ti);
+        res     = pthread_create(&ti->thread, nxt_py_thread_attr,
+                                 nxt_python_thread_func, ti);
 
         if (nxt_fast_path(res == 0)) {
             nxt_unit_debug(ctx, "thread #%d created", (int) (i + 1));
@@ -693,13 +695,12 @@ nxt_python_ready_handler(nxt_unit_ctx_t *ctx)
     return NXT_UNIT_OK;
 }
 
-
 static void *
 nxt_python_thread_func(void *data)
 {
-    nxt_unit_ctx_t        *ctx;
+    nxt_unit_ctx_t       *ctx;
     PyGILState_STATE      gstate;
-    nxt_py_thread_info_t  *ti;
+    nxt_py_thread_info_t *ti;
 
     ti = data;
 
@@ -733,14 +734,13 @@ fail:
     return NULL;
 }
 
-
 static void
 nxt_python_join_threads(nxt_unit_ctx_t *ctx, nxt_python_app_conf_t *c)
 {
     int                   res;
     uint32_t              i;
-    PyThreadState         *thread_state;
-    nxt_py_thread_info_t  *ti;
+    PyThreadState        *thread_state;
+    nxt_py_thread_info_t *ti;
 
     if (nxt_py_threads == NULL) {
         return;
@@ -779,11 +779,10 @@ nxt_python_join_threads(nxt_unit_ctx_t *ctx, nxt_python_app_conf_t *c)
     nxt_unit_free(NULL, nxt_py_threads);
 }
 
-
 int
 nxt_python_init_strings(nxt_python_string_t *pstr)
 {
-    PyObject  *obj;
+    PyObject *obj;
 
     while (pstr->string.start != NULL) {
         obj = PyString_FromStringAndSize((char *) pstr->string.start,
@@ -802,11 +801,10 @@ nxt_python_init_strings(nxt_python_string_t *pstr)
     return NXT_UNIT_OK;
 }
 
-
 void
 nxt_python_done_strings(nxt_python_string_t *pstr)
 {
-    PyObject  *obj;
+    PyObject *obj;
 
     while (pstr->string.start != NULL) {
         obj = *pstr->object_p;
@@ -818,12 +816,11 @@ nxt_python_done_strings(nxt_python_string_t *pstr)
     }
 }
 
-
 static void
 nxt_python_atexit(void)
 {
     nxt_int_t            i;
-    nxt_python_target_t  *target;
+    nxt_python_target_t *target;
 
     if (nxt_py_proto.done != NULL) {
         nxt_py_proto.done();
@@ -851,7 +848,6 @@ nxt_python_atexit(void)
     }
 }
 
-
 void
 nxt_python_print_exception(void)
 {
@@ -860,7 +856,7 @@ nxt_python_print_exception(void)
 #if PY_MAJOR_VERSION == 3
     /* The backtrace may be buffered in sys.stderr file object. */
     {
-        PyObject  *result;
+        PyObject *result;
 
         result = PyObject_CallFunction(nxt_py_stderr_flush, NULL);
         if (nxt_slow_path(result == NULL)) {

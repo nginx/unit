@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,7 +6,6 @@
 #include <nxt_main.h>
 #include <math.h>
 #include <float.h>
-
 
 /*
  * Supported formats:
@@ -55,11 +53,11 @@
  */
 
 
-u_char * nxt_cdecl
+u_char *nxt_cdecl
 nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
 {
-    u_char   *p;
-    va_list  args;
+    u_char *p;
+    va_list args;
 
     va_start(args, fmt);
     p = nxt_vsprintf(buf, end, fmt, args);
@@ -68,7 +66,6 @@ nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
     return p;
 }
 
-
 /*
  * nxt_sprintf_t is used:
  *    to pass several parameters of nxt_integer() via single pointer
@@ -76,52 +73,50 @@ nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
  */
 
 typedef struct {
-    u_char        *end;
-    const u_char  *hex;
+    u_char       *end;
+    const u_char *hex;
     uint32_t      width;
     int32_t       frac_width;
     uint8_t       max_width;
     u_char        padding;
 } nxt_sprintf_t;
 
-
-static u_char *nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64);
-static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
+static u_char *
+nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64);
+static u_char *
+nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
 
 
 /* A right way of "f == 0.0". */
-#define nxt_double_is_zero(f)                                                 \
-    (fabs(f) <= FLT_EPSILON)
-
+#define nxt_double_is_zero(f) (fabs(f) <= FLT_EPSILON)
 
 u_char *
 nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 {
-    int                  d;
-    double               f, i;
-    size_t               length;
-    int64_t              i64;
-    uint64_t             ui64, frac;
-    nxt_str_t            *v;
-    nxt_err_t            err;
-    nxt_uint_t           scale, n;
-    nxt_msec_t           ms;
-    nxt_nsec_t           ns;
-    nxt_bool_t           sign;
-    const u_char         *p;
-    nxt_sprintf_t        spf;
-    nxt_file_name_t      *fn;
+    int              d;
+    double           f, i;
+    size_t           length;
+    int64_t          i64;
+    uint64_t         ui64, frac;
+    nxt_str_t       *v;
+    nxt_err_t        err;
+    nxt_uint_t       scale, n;
+    nxt_msec_t       ms;
+    nxt_nsec_t       ns;
+    nxt_bool_t       sign;
+    const u_char    *p;
+    nxt_sprintf_t    spf;
+    nxt_file_name_t *fn;
 
-    static const u_char  hexadecimal[16] = "0123456789abcdef";
-    static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
-    static const u_char  nan[] = "[nan]";
-    static const u_char  null[] = "[null]";
-    static const u_char  infinity[] = "[infinity]";
+    static const u_char hexadecimal[16] = "0123456789abcdef";
+    static const u_char HEXADECIMAL[16] = "0123456789ABCDEF";
+    static const u_char nan[]           = "[nan]";
+    static const u_char null[]          = "[null]";
+    static const u_char infinity[]      = "[infinity]";
 
-    spf.end = end;
+    spf.end                             = end;
 
     while (*fmt != '\0' && buf < end) {
-
         /*
          * "buf < end" means that we could copy at least one character:
          * a plain character, "%%", "%c", or a minus without test.
@@ -137,14 +132,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
         /* Test some often used text formats first. */
 
         switch (*fmt) {
-
         case 'V':
             fmt++;
             v = va_arg(args, nxt_str_t *);
 
             if (nxt_fast_path(v != NULL)) {
                 length = v->length;
-                p = v->start;
+                p      = v->start;
                 goto copy;
             }
 
@@ -189,25 +183,24 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             break;
         }
 
-        spf.hex = NULL;
-        spf.width = 0;
+        spf.hex        = NULL;
+        spf.width      = 0;
         spf.frac_width = -1;
-        spf.max_width = 0;
-        spf.padding = (*fmt == '0') ? '0' : ' ';
+        spf.max_width  = 0;
+        spf.padding    = (*fmt == '0') ? '0' : ' ';
 
-        sign = 1;
+        sign           = 1;
 
-        i64 = 0;
-        ui64 = 0;
+        i64            = 0;
+        ui64           = 0;
 
         while (*fmt >= '0' && *fmt <= '9') {
             spf.width = spf.width * 10 + (*fmt++ - '0');
         }
 
 
-        for ( ;; ) {
+        for (;;) {
             switch (*fmt) {
-
             case 'u':
                 sign = 0;
                 fmt++;
@@ -220,13 +213,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             case 'X':
                 spf.hex = HEXADECIMAL;
-                sign = 0;
+                sign    = 0;
                 fmt++;
                 continue;
 
             case 'x':
                 spf.hex = hexadecimal;
-                sign = 0;
+                sign    = 0;
                 fmt++;
                 continue;
 
@@ -249,14 +242,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
 
         switch (*fmt) {
-
         case 'E':
-            err = va_arg(args, nxt_err_t);
+            err       = va_arg(args, nxt_err_t);
 
-            *buf++ = '(';
-            spf.hex = NULL;
+            *buf++    = '(';
+            spf.hex   = NULL;
             spf.width = 0;
-            buf = nxt_integer(&spf, buf, err);
+            buf       = nxt_integer(&spf, buf, err);
 
             if (buf < end - 1) {
                 *buf++ = ':';
@@ -273,19 +265,19 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 'O':
-            i64 = (int64_t) va_arg(args, nxt_off_t);
+            i64  = (int64_t) va_arg(args, nxt_off_t);
             sign = 1;
             goto number;
 
         case 'T':
-            i64 = (int64_t) va_arg(args, nxt_time_t);
+            i64  = (int64_t) va_arg(args, nxt_time_t);
             sign = 1;
             goto number;
 
         case 'M':
             ms = (nxt_msec_t) va_arg(args, nxt_msec_t);
             if ((nxt_msec_int_t) ms == -1 && spf.hex == NULL) {
-                i64 = -1;
+                i64  = -1;
                 sign = 1;
             } else {
                 ui64 = (uint64_t) ms;
@@ -296,7 +288,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
         case 'N':
             ns = (nxt_nsec_t) va_arg(args, nxt_nsec_t);
             if ((nxt_nsec_int_t) ns == -1) {
-                i64 = -1;
+                i64  = -1;
                 sign = 1;
             } else {
                 ui64 = (uint64_t) ns;
@@ -382,17 +374,17 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (f < 0) {
                 *buf++ = '-';
-                f = -f;
+                f      = -f;
             }
 
             if (nxt_slow_path(isnan(f))) {
-                p = nan;
+                p      = nan;
                 length = nxt_length(nan);
 
                 goto copy;
 
             } else if (nxt_slow_path(isinf(f))) {
-                p = infinity;
+                p      = infinity;
                 length = nxt_length(infinity);
 
                 goto copy;
@@ -402,7 +394,6 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             frac = 0;
 
             if (spf.frac_width > 0) {
-
                 scale = 1;
                 for (n = spf.frac_width; n != 0; n--) {
                     scale *= 10;
@@ -411,22 +402,21 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 frac = (uint64_t) ((f - i) * scale + 0.5);
 
                 if (frac == scale) {
-                    i += 1;
-                    frac = 0;
+                    i    += 1;
+                    frac  = 0;
                 }
             }
 
             buf = nxt_number(&spf, buf, i);
 
             if (spf.frac_width > 0) {
-
                 if (buf < end) {
-                    *buf++ = '.';
+                    *buf++      = '.';
 
-                    spf.hex = NULL;
+                    spf.hex     = NULL;
                     spf.padding = '0';
-                    spf.width = spf.frac_width;
-                    buf = nxt_integer(&spf, buf, frac);
+                    spf.width   = spf.frac_width;
+                    buf         = nxt_integer(&spf, buf, frac);
                 }
 
             } else if (spf.frac_width < 0) {
@@ -436,9 +426,9 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                     *buf++ = '.';
 
                     while (!nxt_double_is_zero(f) && buf < end) {
-                        f *= 10;
-                        f = modf(f, &i);
-                        *buf++ = (u_char) i + '0';
+                        f      *= 10;
+                        f       = modf(f, &i);
+                        *buf++  = (u_char) i + '0';
                     }
                 }
             }
@@ -446,13 +436,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 'r':
-            i64 = (int64_t) va_arg(args, rlim_t);
+            i64  = (int64_t) va_arg(args, rlim_t);
             sign = 1;
             break;
 
         case 'p':
-            ui64 = (uintptr_t) va_arg(args, void *);
-            sign = 0;
+            ui64    = (uintptr_t) va_arg(args, void *);
+            sign    = 0;
             spf.hex = HEXADECIMAL;
             /*
              * spf.width = NXT_PTR_SIZE * 2;
@@ -461,7 +451,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             goto number;
 
         case 'c':
-            d = va_arg(args, int);
+            d      = va_arg(args, int);
             *buf++ = (u_char) (d & 0xFF);
             fmt++;
 
@@ -471,16 +461,15 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             fmt++;
 
             switch (*fmt) {
-
             case 'D':
-                i64 = (int64_t) va_arg(args, nxt_fd_t);
+                i64  = (int64_t) va_arg(args, nxt_fd_t);
                 sign = 1;
 
                 goto number;
 
             case 'N':
                 fn = va_arg(args, nxt_file_name_t *);
-                p = fn;
+                p  = fn;
 
                 while (*p != '\0' && buf < end) {
                     *buf++ = *p++;
@@ -497,9 +486,8 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             fmt++;
 
             switch (*fmt) {
-
             case 'I':
-                i64 = (int64_t) va_arg(args, nxt_pid_t);
+                i64  = (int64_t) va_arg(args, nxt_pid_t);
                 sign = 1;
                 goto number;
 
@@ -514,9 +502,9 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 goto number;
 #endif
             case 'H':
-                ui64 = (uint64_t) (uintptr_t) va_arg(args, pthread_t);
+                ui64    = (uint64_t) (uintptr_t) va_arg(args, pthread_t);
                 spf.hex = HEXADECIMAL;
-                sign = 0;
+                sign    = 0;
                 goto number;
 
             default:
@@ -548,7 +536,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
         if (sign) {
             if (i64 < 0) {
                 *buf++ = '-';
-                ui64 = (uint64_t) -i64;
+                ui64   = (uint64_t) -i64;
 
             } else {
                 ui64 = (uint64_t) i64;
@@ -563,30 +551,28 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     copy:
 
         length = nxt_min((size_t) (end - buf), length);
-        buf = nxt_cpymem(buf, p, length);
+        buf    = nxt_cpymem(buf, p, length);
         continue;
     }
 
     return buf;
 }
 
-
 static u_char *
 nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 {
-    u_char  *p, *end;
+    u_char *p, *end;
     size_t  length;
     u_char  temp[NXT_INT64_T_LEN];
 
     p = temp + NXT_INT64_T_LEN;
 
     if (spf->hex == NULL) {
-
 #if (NXT_32BIT)
 
-        for ( ;; ) {
-            u_char    *start;
-            uint32_t  ui32;
+        for (;;) {
+            u_char  *start;
+            uint32_t ui32;
 
             /*
              * 32-bit platforms usually lack hardware support of 64-bit
@@ -613,17 +599,17 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
              */
 
             if (ui64 <= 0xFFFFFFFF) {
-                ui32 = (uint32_t) ui64;
+                ui32  = (uint32_t) ui64;
                 start = NULL;
 
             } else {
-                ui32 = (uint32_t) (ui64 % 1000000000);
+                ui32  = (uint32_t) (ui64 % 1000000000);
                 start = p - 9;
             }
 
             do {
-                *(--p) = (u_char) (ui32 % 10 + '0');
-                ui32 /= 10;
+                *(--p)  = (u_char) (ui32 % 10 + '0');
+                ui32   /= 10;
             } while (ui32 != 0);
 
             if (start == NULL) {
@@ -639,30 +625,28 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
             ui64 /= 1000000000;
         }
 
-#else  /* NXT_64BIT */
+#else /* NXT_64BIT */
 
         do {
-            *(--p) = (u_char) (ui64 % 10 + '0');
-            ui64 /= 10;
+            *(--p)  = (u_char) (ui64 % 10 + '0');
+            ui64   /= 10;
         } while (ui64 != 0);
 
 #endif
 
     } else {
-
         do {
-            *(--p) = spf->hex[ui64 & 0xF];
-            ui64 >>= 4;
+            *(--p)   = spf->hex[ui64 & 0xF];
+            ui64   >>= 4;
         } while (ui64 != 0);
     }
 
     /* Zero or space padding. */
 
     if (spf->width != 0) {
-
         length = (temp + NXT_INT64_T_LEN) - p;
-        end = buf + (spf->width - length);
-        end = nxt_min(end, spf->end);
+        end    = buf + (spf->width - length);
+        end    = nxt_min(end, spf->end);
 
         while (buf < end) {
             *buf++ = spf->padding;
@@ -672,8 +656,8 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
     /* Number copying. */
 
     length = (temp + NXT_INT64_T_LEN) - p;
-    end = buf + length;
-    end = nxt_min(end, spf->end);
+    end    = buf + length;
+    end    = nxt_min(end, spf->end);
 
     while (buf < end) {
         *buf++ = *p++;
@@ -682,11 +666,10 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
     return buf;
 }
 
-
 static u_char *
 nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
 {
-    u_char  *p, *end;
+    u_char *p, *end;
     size_t  length;
     u_char  temp[NXT_DOUBLE_LEN];
 
@@ -694,15 +677,15 @@ nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
 
     do {
         *(--p) = (u_char) (fmod(n, 10) + '0');
-        n = trunc(n / 10);
+        n      = trunc(n / 10);
     } while (!nxt_double_is_zero(n));
 
     /* Zero or space padding. */
 
     if (spf->width != 0) {
         length = (temp + NXT_DOUBLE_LEN) - p;
-        end = buf + (spf->width - length);
-        end = nxt_min(end, spf->end);
+        end    = buf + (spf->width - length);
+        end    = nxt_min(end, spf->end);
 
         while (buf < end) {
             *buf++ = spf->padding;
@@ -713,8 +696,8 @@ nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
 
     length = (temp + NXT_DOUBLE_LEN) - p;
 
-    end = buf + length;
-    end = nxt_min(end, spf->end);
+    end    = buf + length;
+    end    = nxt_min(end, spf->end);
 
     while (buf < end) {
         *buf++ = *p++;

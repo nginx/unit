@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  * Copyright (C) Igor Sysoev
@@ -10,33 +9,33 @@
 #include <polarssl/x509.h>
 #include <polarssl/error.h>
 
-
 typedef struct {
-    ssl_context  ssl;
-    x509_cert    certificate;
-    rsa_context  key;
+    ssl_context ssl;
+    x509_cert   certificate;
+    rsa_context key;
 } nxt_polarssl_ctx_t;
 
+static nxt_int_t
+nxt_polarssl_server_init(nxt_ssltls_conf_t *conf);
+static void
+nxt_polarssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
+                       nxt_event_conn_t *c);
+static void
+nxt_polarssl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
+                       const char *fmt, ...);
 
-static nxt_int_t nxt_polarssl_server_init(nxt_ssltls_conf_t *conf);
-static void nxt_polarssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
-    nxt_event_conn_t *c);
-static void nxt_polarssl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
-    const char *fmt, ...);
 
-
-nxt_ssltls_lib_t  nxt_polarssl_lib = {
+nxt_ssltls_lib_t nxt_polarssl_lib = {
     nxt_polarssl_server_init,
     NULL,
 };
-
 
 static nxt_int_t
 nxt_polarssl_server_init(nxt_ssltls_conf_t *conf)
 {
     int                 n;
-    nxt_thread_t        *thr;
-    nxt_polarssl_ctx_t  *ctx;
+    nxt_thread_t       *thr;
+    nxt_polarssl_ctx_t *ctx;
 
     thr = nxt_thread();
 
@@ -53,12 +52,12 @@ nxt_polarssl_server_init(nxt_ssltls_conf_t *conf)
         return NXT_ERROR;
     }
 
-    ssl_set_endpoint(&ctx->ssl, SSL_IS_SERVER );
+    ssl_set_endpoint(&ctx->ssl, SSL_IS_SERVER);
 
-    conf->ctx = ctx;
+    conf->ctx       = ctx;
     conf->conn_init = nxt_polarssl_conn_init;
 
-    n = x509parse_crtfile(&ctx->certificate, conf->certificate);
+    n               = x509parse_crtfile(&ctx->certificate, conf->certificate);
     if (n != 0) {
         nxt_polarssl_log_error(NXT_LOG_ALERT, thr->log, n,
                                "x509parse_crt(\"%V\") failed",
@@ -89,20 +88,18 @@ fail:
     return NXT_ERROR;
 }
 
-
 static void
 nxt_polarssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
-    nxt_event_conn_t *c)
+                       nxt_event_conn_t *c)
 {
 }
 
-
 static void
 nxt_polarssl_log_error(nxt_uint_t level, nxt_log_t *log, int err,
-    const char *fmt, ...)
+                       const char *fmt, ...)
 {
-    va_list  args;
-    u_char   *p, *end, msg[NXT_MAX_ERROR_STR];
+    va_list args;
+    u_char *p, *end, msg[NXT_MAX_ERROR_STR];
 
     end = msg + NXT_MAX_ERROR_STR;
 

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,9 +6,8 @@
 #include <nxt_main.h>
 
 
-static u_char *nxt_listen_socket_log_handler(void *ctx, u_char *pos,
-    u_char *last);
-
+static u_char *
+nxt_listen_socket_log_handler(void *ctx, u_char *pos, u_char *last);
 
 nxt_int_t
 nxt_listen_socket(nxt_task_t *task, nxt_socket_t s, int backlog)
@@ -25,38 +23,37 @@ nxt_listen_socket(nxt_task_t *task, nxt_socket_t s, int backlog)
     return NXT_ERROR;
 }
 
-
 nxt_int_t
 nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
-    nxt_listen_socket_t *ls)
+                         nxt_listen_socket_t *ls)
 {
-    nxt_log_t          log, *old;
-    nxt_uint_t         family;
-    nxt_socket_t       s;
-    nxt_thread_t       *thr;
-    nxt_sockaddr_t     *sa;
+    nxt_log_t       log, *old;
+    nxt_uint_t      family;
+    nxt_socket_t    s;
+    nxt_thread_t   *thr;
+    nxt_sockaddr_t *sa;
 #if (NXT_HAVE_UNIX_DOMAIN)
-    int                ret;
-    u_char             *p;
-    nxt_err_t          err;
-    nxt_socket_t       ts;
-    nxt_sockaddr_t     *orig_sa;
-    nxt_file_name_t    *name, *tmp;
-    nxt_file_access_t  access;
+    int               ret;
+    u_char           *p;
+    nxt_err_t         err;
+    nxt_socket_t      ts;
+    nxt_sockaddr_t   *orig_sa;
+    nxt_file_name_t  *name, *tmp;
+    nxt_file_access_t access;
 #endif
 
-    sa = ls->sockaddr;
+    sa              = ls->sockaddr;
 
-    thr = nxt_thread();
-    old = thr->log;
-    log = *thr->log;
+    thr             = nxt_thread();
+    old             = thr->log;
+    log             = *thr->log;
     log.ctx_handler = nxt_listen_socket_log_handler;
-    log.ctx = sa;
-    thr->log = &log;
+    log.ctx         = sa;
+    thr->log        = &log;
 
-    family = sa->u.sockaddr.sa_family;
+    family          = sa->u.sockaddr.sa_family;
 
-    s = nxt_socket_create(task, family, sa->type, 0, ls->flags);
+    s               = nxt_socket_create(task, family, sa->type, 0, ls->flags);
     if (s == -1) {
         goto fail;
     }
@@ -68,7 +65,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 #if (NXT_INET6 && defined IPV6_V6ONLY)
 
     if (family == AF_INET6 && ls->ipv6only) {
-        int  ipv6only;
+        int ipv6only;
 
         ipv6only = (ls->ipv6only == 1);
 
@@ -92,18 +89,16 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
-    if (family == AF_UNIX
-        && sa->type == SOCK_STREAM
-        && sa->u.sockaddr_un.sun_path[0] != '\0')
-    {
+    if (family == AF_UNIX && sa->type == SOCK_STREAM
+        && sa->u.sockaddr_un.sun_path[0] != '\0') {
         orig_sa = sa;
 
-        sa = nxt_sockaddr_alloc(mp, sa->socklen + 4, sa->length + 4);
+        sa      = nxt_sockaddr_alloc(mp, sa->socklen + 4, sa->length + 4);
         if (sa == NULL) {
             goto fail;
         }
 
-        sa->type = SOCK_STREAM;
+        sa->type                     = SOCK_STREAM;
         sa->u.sockaddr_un.sun_family = AF_UNIX;
 
         p = nxt_cpystr((u_char *) sa->u.sockaddr_un.sun_path,
@@ -127,18 +122,18 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     if (family == AF_UNIX) {
-        const char     *user;
-        const char     *group;
-        nxt_runtime_t  *rt = thr->runtime;
+        const char    *user;
+        const char    *group;
+        nxt_runtime_t *rt = thr->runtime;
 
-        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
-        access = rt->control_mode > 0 ? rt->control_mode : 0600;
+        name              = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+        access            = rt->control_mode > 0 ? rt->control_mode : 0600;
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
             goto listen_fail;
         }
 
-        user = rt->control_user;
+        user  = rt->control_user;
         group = rt->control_group;
 
         if (nxt_file_chown(name, user, group) != NXT_OK) {
@@ -151,8 +146,8 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_debug(task, "listen(%d, %d)", s, ls->backlog);
 
     if (listen(s, ls->backlog) != 0) {
-        nxt_alert(task, "listen(%d, %d) failed %E",
-                  s, ls->backlog, nxt_socket_errno);
+        nxt_alert(task, "listen(%d, %d) failed %E", s, ls->backlog,
+                  nxt_socket_errno);
         goto listen_fail;
     }
 
@@ -171,22 +166,21 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         nxt_socket_close(task, ts);
 
         if (ret == 0) {
-            nxt_alert(task, "connect(%d, %*s) socket already in use",
-                      ts, (size_t) orig_sa->length,
-                      nxt_sockaddr_start(orig_sa));
+            nxt_alert(task, "connect(%d, %*s) socket already in use", ts,
+                      (size_t) orig_sa->length, nxt_sockaddr_start(orig_sa));
 
             goto listen_fail;
         }
 
         if (err != NXT_ENOENT && err != NXT_ECONNREFUSED) {
-            nxt_alert(task, "connect(%d, %*s) failed %E",
-                      ts, (size_t) orig_sa->length,
-                      nxt_sockaddr_start(orig_sa), err);
+            nxt_alert(task, "connect(%d, %*s) failed %E", ts,
+                      (size_t) orig_sa->length, nxt_sockaddr_start(orig_sa),
+                      err);
 
             goto listen_fail;
         }
 
-        tmp = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+        tmp  = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
         name = (nxt_file_name_t *) orig_sa->u.sockaddr_un.sun_path;
 
         if (nxt_file_rename(tmp, name) != NXT_OK) {
@@ -197,7 +191,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 #endif
 
     ls->socket = s;
-    thr->log = old;
+    thr->log   = old;
 
     return NXT_OK;
 
@@ -224,28 +218,27 @@ fail:
     return NXT_ERROR;
 }
 
-
 nxt_int_t
 nxt_listen_socket_update(nxt_task_t *task, nxt_listen_socket_t *ls,
-    nxt_listen_socket_t *prev)
+                         nxt_listen_socket_t *prev)
 {
     nxt_log_t     log, *old;
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
-    ls->socket = prev->socket;
+    ls->socket      = prev->socket;
 
-    thr = nxt_thread();
-    old = thr->log;
-    log = *thr->log;
+    thr             = nxt_thread();
+    old             = thr->log;
+    log             = *thr->log;
     log.ctx_handler = nxt_listen_socket_log_handler;
-    log.ctx = ls->sockaddr;
-    thr->log = &log;
+    log.ctx         = ls->sockaddr;
+    thr->log        = &log;
 
     nxt_debug(task, "listen(%d, %d)", ls->socket, ls->backlog);
 
     if (listen(ls->socket, ls->backlog) != 0) {
-        nxt_alert(task, "listen(%d, %d) failed %E",
-                  ls->socket, ls->backlog, nxt_socket_errno);
+        nxt_alert(task, "listen(%d, %d) failed %E", ls->socket, ls->backlog,
+                  nxt_socket_errno);
         goto fail;
     }
 
@@ -260,16 +253,14 @@ fail:
     return NXT_ERROR;
 }
 
-
 void
 nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
 {
     switch (ls->sockaddr->u.sockaddr.sa_family) {
-
 #if (NXT_INET6)
 
     case AF_INET6:
-        ls->socklen = sizeof(struct sockaddr_in6);
+        ls->socklen        = sizeof(struct sockaddr_in6);
         ls->address_length = NXT_INET6_ADDR_STR_LEN;
 
         break;
@@ -285,7 +276,7 @@ nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
          * a bound remote socket correctly ls->socklen should be larger, see
          * comment in nxt_socket.h.
          */
-        ls->socklen = offsetof(struct sockaddr_un, sun_path) + 1;
+        ls->socklen        = offsetof(struct sockaddr_un, sun_path) + 1;
         ls->address_length = nxt_length("unix:");
 
         break;
@@ -294,18 +285,17 @@ nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
 
     default:
     case AF_INET:
-        ls->socklen = sizeof(struct sockaddr_in);
+        ls->socklen        = sizeof(struct sockaddr_in);
         ls->address_length = NXT_INET_ADDR_STR_LEN;
 
         break;
     }
 }
 
-
 size_t
 nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 {
-    size_t  size;
+    size_t size;
 
     /*
      * The first nxt_sockaddr_t is intended for mandatory remote sockaddr
@@ -317,11 +307,10 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
      */
 
     switch (ls->sockaddr->u.sockaddr.sa_family) {
-
 #if (NXT_INET6)
 
     case AF_INET6:
-        ls->socklen = sizeof(struct sockaddr_in6);
+        ls->socklen        = sizeof(struct sockaddr_in6);
         ls->address_length = NXT_INET6_ADDR_STR_LEN;
 
         size = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in6)
@@ -344,8 +333,8 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
          * a bound remote socket correctly ls->socklen should be at least
          * sizeof(struct sockaddr_un), see comment in nxt_socket.h.
          */
-        ls->socklen = 3;
-        size = ls->socklen + nxt_length("unix:");
+        ls->socklen        = 3;
+        size               = ls->socklen + nxt_length("unix:");
         ls->address_length = nxt_length("unix:");
 
         break;
@@ -353,7 +342,7 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 #endif
 
     default:
-        ls->socklen = sizeof(struct sockaddr_in);
+        ls->socklen        = sizeof(struct sockaddr_in);
         ls->address_length = NXT_INET_ADDR_STR_LEN;
 
         size = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in)
@@ -369,23 +358,21 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 #if (NXT_TLS)
 
     if (ls->tls) {
-        size += 4 * sizeof(void *)       /* SSL/TLS connection */
+        size += 4 * sizeof(void *)    /* SSL/TLS connection */
                 + sizeof(nxt_buf_mem_t)
-                + sizeof(nxt_work_t);    /* nxt_mp_cleanup */
+                + sizeof(nxt_work_t); /* nxt_mp_cleanup */
     }
 
 #endif
 
     return size // + sizeof(nxt_mem_pool_t)
-                + sizeof(nxt_conn_t)
-                + sizeof(nxt_log_t);
+           + sizeof(nxt_conn_t) + sizeof(nxt_log_t);
 }
-
 
 static u_char *
 nxt_listen_socket_log_handler(void *ctx, u_char *pos, u_char *end)
 {
-    nxt_sockaddr_t  *sa;
+    nxt_sockaddr_t *sa;
 
     sa = ctx;
 

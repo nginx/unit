@@ -8,24 +8,22 @@
 #include <nxt_cgroup.h>
 
 
-static int nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir,
-    char *cgpath);
-static nxt_int_t nxt_mk_cgpath(nxt_task_t *task, const char *dir,
-    char *cgpath);
-
+static int
+nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath);
+static nxt_int_t
+nxt_mk_cgpath(nxt_task_t *task, const char *dir, char *cgpath);
 
 nxt_int_t
 nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
 {
-    int        len;
-    char       cgprocs[NXT_MAX_PATH_LEN];
-    FILE       *fp;
-    nxt_int_t  ret;
+    int       len;
+    char      cgprocs[NXT_MAX_PATH_LEN];
+    FILE     *fp;
+    nxt_int_t ret;
 
     if (task->thread->runtime->type != NXT_PROCESS_MAIN
         || nxt_process_type(process) != NXT_PROCESS_PROTOTYPE
-        || process->isolation.cgroup.path == NULL)
-    {
+        || process->isolation.cgroup.path == NULL) {
         return NXT_OK;
     }
 
@@ -63,13 +61,12 @@ nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
     return NXT_OK;
 }
 
-
 void
 nxt_cgroup_cleanup(nxt_task_t *task, const nxt_process_t *process)
 {
-    char       *ptr;
-    char       cgroot[NXT_MAX_PATH_LEN], cgpath[NXT_MAX_PATH_LEN];
-    nxt_int_t  ret;
+    char     *ptr;
+    char      cgroot[NXT_MAX_PATH_LEN], cgpath[NXT_MAX_PATH_LEN];
+    nxt_int_t ret;
 
     ret = nxt_mk_cgpath(task, "", cgroot);
     if (nxt_slow_path(ret == NXT_ERROR)) {
@@ -83,29 +80,28 @@ nxt_cgroup_cleanup(nxt_task_t *task, const nxt_process_t *process)
 
     while (*cgpath != '\0' && strcmp(cgroot, cgpath) != 0) {
         rmdir(cgpath);
-        ptr = strrchr(cgpath, '/');
+        ptr  = strrchr(cgpath, '/');
         *ptr = '\0';
     }
 }
 
-
 static int
 nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
 {
-    int         i, len;
-    char        *buf, *ptr;
-    FILE        *fp;
-    size_t      size;
-    ssize_t     nread;
-    nxt_bool_t  found;
+    int        i, len;
+    char      *buf, *ptr;
+    FILE      *fp;
+    size_t     size;
+    ssize_t    nread;
+    nxt_bool_t found;
 
     fp = nxt_file_fopen(task, "/proc/self/cgroup", "re");
     if (nxt_slow_path(fp == NULL)) {
         return -1;
     }
 
-    len = -1;
-    buf = NULL;
+    len   = -1;
+    buf   = NULL;
     found = 0;
     while ((nread = getline(&buf, &size, fp)) != -1) {
         if (strncmp(buf, "0::", 3) == 0) {
@@ -121,8 +117,8 @@ nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
         goto out_free_buf;
     }
 
-    buf[nread - 1] = '\0';  /* lose the trailing '\n' */
-    ptr = buf;
+    buf[nread - 1] = '\0'; /* lose the trailing '\n' */
+    ptr            = buf;
     for (i = 0; i < 2; i++) {
         ptr = strchr(ptr, ':');
         if (ptr == NULL) {
@@ -133,8 +129,7 @@ nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
         ptr++;
     }
 
-    len = snprintf(cgpath, NXT_MAX_PATH_LEN, NXT_CGROUP_ROOT "%s/%s",
-                   ptr, dir);
+    len = snprintf(cgpath, NXT_MAX_PATH_LEN, NXT_CGROUP_ROOT "%s/%s", ptr, dir);
 
 out_free_buf:
 
@@ -143,11 +138,10 @@ out_free_buf:
     return len;
 }
 
-
 static nxt_int_t
 nxt_mk_cgpath(nxt_task_t *task, const char *dir, char *cgpath)
 {
-    int  len;
+    int len;
 
     /*
      * If the path from the config is relative, we need to make

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -28,14 +27,12 @@
 
 
 /* It should be adjusted with the "spinlock_count" directive. */
-static nxt_uint_t  nxt_spinlock_count = 1000;
-
+static nxt_uint_t nxt_spinlock_count = 1000;
 
 void
 nxt_thread_spin_init(nxt_uint_t ncpu, nxt_uint_t count)
 {
     switch (ncpu) {
-
     case 0:
         /* Explicit spinlock count. */
         nxt_spinlock_count = count;
@@ -58,16 +55,14 @@ nxt_thread_spin_init(nxt_uint_t ncpu, nxt_uint_t count)
     }
 }
 
-
 void
 nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
 {
-    nxt_uint_t  n;
+    nxt_uint_t n;
 
     nxt_thread_log_debug("spin_lock(%p) enter", lock);
 
-    for ( ;; ) {
-
+    for (;;) {
     again:
 
         if (nxt_fast_path(nxt_atomic_try_lock(lock))) {
@@ -75,7 +70,6 @@ nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
         }
 
         for (n = nxt_spinlock_count; n != 0; n--) {
-
             nxt_cpu_pause();
 
             if (*lock == 0) {
@@ -86,7 +80,6 @@ nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
         nxt_thread_yield();
     }
 }
-
 
 nxt_bool_t
 nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
@@ -101,7 +94,6 @@ nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
 
     return 0;
 }
-
 
 void
 nxt_thread_spin_unlock(nxt_thread_spinlock_t *lock)

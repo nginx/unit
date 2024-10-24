@@ -15,21 +15,20 @@
 nxt_int_t
 nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 {
-    int            rc;
-    const char     *fsname;
-    unsigned long  flags;
+    int           rc;
+    const char   *fsname;
+    unsigned long flags;
 
     flags = 0;
 
     switch (mnt->type) {
     case NXT_FS_BIND:
         if (nxt_slow_path(mnt->flags != 0)) {
-            nxt_log(task, NXT_LOG_WARN,
-                    "bind mount ignores additional flags");
+            nxt_log(task, NXT_LOG_WARN, "bind mount ignores additional flags");
         }
 
         fsname = "bind";
-        flags = MS_BIND | MS_REC;
+        flags  = MS_BIND | MS_REC;
         break;
 
     case NXT_FS_PROC:
@@ -80,13 +79,13 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 nxt_int_t
 nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 {
-    int           flags;
-    u_char        *data, *p, *end;
-    size_t        iovlen;
-    nxt_int_t     ret;
-    const char    *fsname;
-    struct iovec  iov[128];
-    char          errmsg[256];
+    int          flags;
+    u_char      *data, *p, *end;
+    size_t       iovlen;
+    nxt_int_t    ret;
+    const char  *fsname;
+    struct iovec iov[128];
+    char         errmsg[256];
 
     if (nxt_slow_path((mnt->flags & NXT_FS_FLAGS_NODEV) && !mnt->builtin)) {
         nxt_alert(task, "nmount(2) doesn't support \"nodev\" option");
@@ -132,25 +131,25 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
     }
 
     iov[0].iov_base = (void *) "fstype";
-    iov[0].iov_len = 7;
+    iov[0].iov_len  = 7;
     iov[1].iov_base = (void *) fsname;
-    iov[1].iov_len = nxt_strlen(fsname) + 1;
+    iov[1].iov_len  = nxt_strlen(fsname) + 1;
     iov[2].iov_base = (void *) "fspath";
-    iov[2].iov_len = 7;
+    iov[2].iov_len  = 7;
     iov[3].iov_base = (void *) mnt->dst;
-    iov[3].iov_len = nxt_strlen(mnt->dst) + 1;
+    iov[3].iov_len  = nxt_strlen(mnt->dst) + 1;
     iov[4].iov_base = (void *) "target";
-    iov[4].iov_len = 7;
+    iov[4].iov_len  = 7;
     iov[5].iov_base = (void *) mnt->src;
-    iov[5].iov_len = nxt_strlen(mnt->src) + 1;
+    iov[5].iov_len  = nxt_strlen(mnt->src) + 1;
     iov[6].iov_base = (void *) "errmsg";
-    iov[6].iov_len = 7;
+    iov[6].iov_len  = 7;
     iov[7].iov_base = (void *) errmsg;
-    iov[7].iov_len = sizeof(errmsg);
+    iov[7].iov_len  = sizeof(errmsg);
 
-    iovlen = 8;
+    iovlen          = 8;
 
-    data = NULL;
+    data            = NULL;
 
     if (mnt->data != NULL) {
         data = (u_char *) nxt_strdup(mnt->data);
@@ -161,20 +160,20 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
         end = data - 1;
 
         do {
-            p = end + 1;
+            p   = end + 1;
             end = nxt_strchr(p, '=');
             if (end == NULL) {
                 break;
             }
 
-            *end = '\0';
+            *end                 = '\0';
 
             iov[iovlen].iov_base = (void *) p;
-            iov[iovlen].iov_len = (end - p) + 1;
+            iov[iovlen].iov_len  = (end - p) + 1;
 
             iovlen++;
 
-            p = end + 1;
+            p   = end + 1;
 
             end = nxt_strchr(p, ',');
             if (end != NULL) {
@@ -182,7 +181,7 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
             }
 
             iov[iovlen].iov_base = (void *) p;
-            iov[iovlen].iov_len = nxt_strlen(p) + 1;
+            iov[iovlen].iov_len  = nxt_strlen(p) + 1;
 
             iovlen++;
 
@@ -212,8 +211,8 @@ void
 nxt_fs_unmount(const u_char *path)
 {
     if (nxt_slow_path(umount2((const char *) path, MNT_DETACH) < 0)) {
-        nxt_thread_log_error(NXT_LOG_WARN, "umount2(%s, MNT_DETACH) %E",
-                             path, nxt_errno);
+        nxt_thread_log_error(NXT_LOG_WARN, "umount2(%s, MNT_DETACH) %E", path,
+                             nxt_errno);
     }
 }
 

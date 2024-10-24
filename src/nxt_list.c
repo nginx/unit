@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -6,37 +5,34 @@
 
 #include <nxt_main.h>
 
-
 nxt_list_t *
 nxt_list_create(nxt_mp_t *mp, nxt_uint_t n, size_t size)
 {
-    nxt_list_t  *list;
+    nxt_list_t *list;
 
     list = nxt_mp_get(mp, sizeof(nxt_list_t) + n * size);
 
     if (nxt_fast_path(list != NULL)) {
-        list->last = &list->part;
-        list->size = size;
-        list->nalloc = n;
-        list->mem_pool = mp;
-        list->part.next = NULL;
+        list->last       = &list->part;
+        list->size       = size;
+        list->nalloc     = n;
+        list->mem_pool   = mp;
+        list->part.next  = NULL;
         list->part.nelts = 0;
     }
 
     return list;
 }
 
-
 void *
 nxt_list_add(nxt_list_t *list)
 {
-    void             *elt;
-    nxt_list_part_t  *last;
+    void            *elt;
+    nxt_list_part_t *last;
 
     last = list->last;
 
     if (last->nelts == list->nalloc) {
-
         /* The last list part is filled up, allocating a new list part. */
 
         last = nxt_mp_get(list->mem_pool,
@@ -46,11 +42,11 @@ nxt_list_add(nxt_list_t *list)
             return NULL;
         }
 
-        last->next = NULL;
-        last->nelts = 0;
+        last->next       = NULL;
+        last->nelts      = 0;
 
         list->last->next = last;
-        list->last = last;
+        list->last       = last;
     }
 
     elt = nxt_pointer_to(nxt_list_data(last), last->nelts * list->size);
@@ -59,11 +55,10 @@ nxt_list_add(nxt_list_t *list)
     return elt;
 }
 
-
 void *
 nxt_list_zero_add(nxt_list_t *list)
 {
-    void  *p;
+    void *p;
 
     p = nxt_list_add(list);
 
@@ -73,7 +68,6 @@ nxt_list_zero_add(nxt_list_t *list)
 
     return p;
 }
-
 
 void *
 nxt_list_next(nxt_list_t *list, nxt_list_next_t *next)
@@ -101,7 +95,6 @@ nxt_list_next(nxt_list_t *list, nxt_list_next_t *next)
         if (next->part->nelts != 0) {
             return nxt_list_data(next->part);
         }
-
     }
 
     return NULL;

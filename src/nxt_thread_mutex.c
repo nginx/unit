@@ -1,11 +1,9 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
  */
 
 #include <nxt_main.h>
-
 
 /*
  * All modern pthread mutex implementations try to acquire a lock atomically
@@ -80,8 +78,8 @@
 nxt_int_t
 nxt_thread_mutex_create(nxt_thread_mutex_t *mtx)
 {
-    nxt_err_t            err;
-    pthread_mutexattr_t  attr;
+    nxt_err_t           err;
+    pthread_mutexattr_t attr;
 
     err = pthread_mutexattr_init(&attr);
     if (err != 0) {
@@ -92,7 +90,8 @@ nxt_thread_mutex_create(nxt_thread_mutex_t *mtx)
     err = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     if (err != 0) {
         nxt_thread_log_alert("pthread_mutexattr_settype"
-                             "(PTHREAD_MUTEX_ERRORCHECK) failed %E", err);
+                             "(PTHREAD_MUTEX_ERRORCHECK) failed %E",
+                             err);
         return NXT_ERROR;
     }
 
@@ -112,11 +111,10 @@ nxt_thread_mutex_create(nxt_thread_mutex_t *mtx)
     return NXT_OK;
 }
 
-
 void
 nxt_thread_mutex_destroy(nxt_thread_mutex_t *mtx)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     err = pthread_mutex_destroy(mtx);
     if (nxt_slow_path(err != 0)) {
@@ -126,11 +124,10 @@ nxt_thread_mutex_destroy(nxt_thread_mutex_t *mtx)
     nxt_thread_log_debug("pthread_mutex_destroy(%p)", mtx);
 }
 
-
 nxt_int_t
 nxt_thread_mutex_lock(nxt_thread_mutex_t *mtx)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     nxt_thread_log_debug("pthread_mutex_lock(%p) enter", mtx);
 
@@ -144,11 +141,10 @@ nxt_thread_mutex_lock(nxt_thread_mutex_t *mtx)
     return NXT_ERROR;
 }
 
-
 nxt_bool_t
 nxt_thread_mutex_trylock(nxt_thread_mutex_t *mtx)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     nxt_thread_debug(thr);
 
@@ -169,12 +165,11 @@ nxt_thread_mutex_trylock(nxt_thread_mutex_t *mtx)
     return 0;
 }
 
-
 nxt_int_t
 nxt_thread_mutex_unlock(nxt_thread_mutex_t *mtx)
 {
     nxt_err_t     err;
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     err = pthread_mutex_unlock(mtx);
 

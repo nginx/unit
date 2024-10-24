@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -9,16 +8,15 @@
 #include "nxt_jni_Thread.h"
 
 
-static jclass     nxt_java_Thread_class;
-static jmethodID  nxt_java_Thread_currentThread;
-static jmethodID  nxt_java_Thread_getContextClassLoader;
-static jmethodID  nxt_java_Thread_setContextClassLoader;
-
+static jclass    nxt_java_Thread_class;
+static jmethodID nxt_java_Thread_currentThread;
+static jmethodID nxt_java_Thread_getContextClassLoader;
+static jmethodID nxt_java_Thread_setContextClassLoader;
 
 int
 nxt_java_initThread(JNIEnv *env)
 {
-    jclass  cls;
+    jclass cls;
 
     cls = (*env)->FindClass(env, "java/lang/Thread");
     if (cls == NULL) {
@@ -28,28 +26,28 @@ nxt_java_initThread(JNIEnv *env)
 
     nxt_java_Thread_class = (*env)->NewGlobalRef(env, cls);
     (*env)->DeleteLocalRef(env, cls);
-    cls = nxt_java_Thread_class;
+    cls                           = nxt_java_Thread_class;
 
-    nxt_java_Thread_currentThread = (*env)->GetStaticMethodID(env, cls,
-        "currentThread", "()Ljava/lang/Thread;");
+    nxt_java_Thread_currentThread = (*env)->GetStaticMethodID(
+        env, cls, "currentThread", "()Ljava/lang/Thread;");
     if (nxt_java_Thread_currentThread == NULL) {
         nxt_unit_warn(NULL, "java.lang.Thread.currentThread() not found");
         goto failed;
     }
 
-    nxt_java_Thread_getContextClassLoader = (*env)->GetMethodID(env, cls,
-        "getContextClassLoader", "()Ljava/lang/ClassLoader;");
+    nxt_java_Thread_getContextClassLoader = (*env)->GetMethodID(
+        env, cls, "getContextClassLoader", "()Ljava/lang/ClassLoader;");
     if (nxt_java_Thread_getContextClassLoader == NULL) {
         nxt_unit_warn(NULL, "java.lang.Thread.getContextClassLoader() "
-                      "not found");
+                            "not found");
         goto failed;
     }
 
-    nxt_java_Thread_setContextClassLoader = (*env)->GetMethodID(env, cls,
-        "setContextClassLoader", "(Ljava/lang/ClassLoader;)V");
+    nxt_java_Thread_setContextClassLoader = (*env)->GetMethodID(
+        env, cls, "setContextClassLoader", "(Ljava/lang/ClassLoader;)V");
     if (nxt_java_Thread_setContextClassLoader == NULL) {
         nxt_unit_warn(NULL, "java.lang.Thread.setContextClassLoader() "
-                      "not found");
+                            "not found");
         goto failed;
     }
 

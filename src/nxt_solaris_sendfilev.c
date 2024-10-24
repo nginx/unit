@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -15,23 +14,24 @@
  *   AF_INET6 family type SOCK_STREAM socket that is open for writing.
  */
 
-ssize_t nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
-    size_t limit);
-static size_t nxt_solaris_buf_coalesce(nxt_buf_t *b, sendfilevec_t *sfv,
-    int32_t *nsfv, nxt_bool_t *sync, size_t limit);
-
+ssize_t
+nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
+                                    size_t limit);
+static size_t
+nxt_solaris_buf_coalesce(nxt_buf_t *b, sendfilevec_t *sfv, int32_t *nsfv,
+                         nxt_bool_t *sync, size_t limit);
 
 ssize_t
 nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
-    size_t limit)
+                                    size_t limit)
 {
-    size_t         sent;
-    ssize_t        n;
-    int32_t        nsfv;
-    nxt_err_t      err;
-    nxt_off_t      size;
-    nxt_bool_t     sync;
-    sendfilevec_t  sfv[NXT_IOBUF_MAX];
+    size_t        sent;
+    ssize_t       n;
+    int32_t       nsfv;
+    nxt_err_t     err;
+    nxt_off_t     size;
+    nxt_bool_t    sync;
+    sendfilevec_t sfv[NXT_IOBUF_MAX];
 
     if (c->sendfile == 0) {
         /* AF_UNIX does not support sendfilev(). */
@@ -49,15 +49,14 @@ nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
     }
 
     sent = 0;
-    n = sendfilev(c->socket.fd, sfv, nsfv, &sent);
+    n    = sendfilev(c->socket.fd, sfv, nsfv, &sent);
 
-    err = (n == -1) ? nxt_errno : 0;
+    err  = (n == -1) ? nxt_errno : 0;
 
     nxt_debug(c->socket.task, "sendfilev(): %d sent:%uz", n, sent);
 
     if (n == -1) {
         switch (err) {
-
         case NXT_EAGAIN:
             c->socket.write_ready = 0;
             break;
@@ -85,27 +84,24 @@ nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
     return sent;
 }
 
-
 static size_t
 nxt_solaris_buf_coalesce(nxt_buf_t *b, sendfilevec_t *sfv, int32_t *nsfv,
-    nxt_bool_t *sync, size_t limit)
+                         nxt_bool_t *sync, size_t limit)
 {
-    size_t     size, total;
-    nxt_fd_t   fd, last_fd;
-    nxt_int_t  i;
-    nxt_off_t  pos, last_pos;
+    size_t    size, total;
+    nxt_fd_t  fd, last_fd;
+    nxt_int_t i;
+    nxt_off_t pos, last_pos;
 
-    i = -1;
-    last_fd = -1;
+    i        = -1;
+    last_fd  = -1;
     last_pos = 0;
-    total = 0;
+    total    = 0;
 
     for (total = 0; b != NULL && total < limit; b = b->next) {
-
         if (nxt_buf_is_file(b)) {
-
-            fd = b->file->fd;
-            pos = b->file_pos;
+            fd   = b->file->fd;
+            pos  = b->file_pos;
             size = b->file_end - pos;
 
             if (size == 0) {
@@ -117,9 +113,8 @@ nxt_solaris_buf_coalesce(nxt_buf_t *b, sendfilevec_t *sfv, int32_t *nsfv,
             }
 
         } else if (nxt_buf_is_mem(b)) {
-
-            fd = SFV_FD_SELF;
-            pos = (uintptr_t) b->mem.pos;
+            fd   = SFV_FD_SELF;
+            pos  = (uintptr_t) b->mem.pos;
             size = b->mem.free - b->mem.pos;
 
             if (size == 0) {
@@ -140,23 +135,22 @@ nxt_solaris_buf_coalesce(nxt_buf_t *b, sendfilevec_t *sfv, int32_t *nsfv,
         }
 
         if (fd != last_fd || pos != last_pos) {
-
             if (++i >= NXT_IOBUF_MAX) {
                 goto done;
             }
 
-            sfv[i].sfv_fd = fd;
+            sfv[i].sfv_fd   = fd;
             sfv[i].sfv_flag = 0;
-            sfv[i].sfv_off = pos;
-            sfv[i].sfv_len = size;
+            sfv[i].sfv_off  = pos;
+            sfv[i].sfv_len  = size;
 
         } else {
             sfv[i].sfv_len += size;
         }
 
-        total += size;
-        last_pos = pos + size;
-        last_fd = fd;
+        total    += size;
+        last_pos  = pos + size;
+        last_fd   = fd;
     }
 
     i++;

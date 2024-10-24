@@ -11,63 +11,60 @@
 
 
 #if (NXT_HAVE_UCRED)
-#define NXT_CRED_USECMSG    1
-#define NXT_CRED_CMSGTYPE   SCM_CREDENTIALS
-#define NXT_CRED_GETPID(u)  (u->pid)
+#define NXT_CRED_USECMSG   1
+#define NXT_CRED_CMSGTYPE  SCM_CREDENTIALS
+#define NXT_CRED_GETPID(u) (u->pid)
 
-typedef struct ucred        nxt_socket_cred_t;
+typedef struct ucred nxt_socket_cred_t;
 
 #elif (NXT_HAVE_MSGHDR_CMSGCRED)
-#define NXT_CRED_USECMSG    1
-#define NXT_CRED_CMSGTYPE   SCM_CREDS
-#define NXT_CRED_GETPID(u)  (u->cmcred_pid)
+#define NXT_CRED_USECMSG   1
+#define NXT_CRED_CMSGTYPE  SCM_CREDS
+#define NXT_CRED_GETPID(u) (u->cmcred_pid)
 
-typedef struct cmsgcred     nxt_socket_cred_t;
+typedef struct cmsgcred nxt_socket_cred_t;
 #endif
 
 #if (NXT_CRED_USECMSG)
-#define NXT_OOB_RECV_SIZE                                                     \
+#define NXT_OOB_RECV_SIZE                                                      \
     (CMSG_SPACE(2 * sizeof(int)) + CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
-#define NXT_OOB_RECV_SIZE                                                     \
-    CMSG_SPACE(2 * sizeof(int))
+#define NXT_OOB_RECV_SIZE CMSG_SPACE(2 * sizeof(int))
 #endif
 
 #if (NXT_HAVE_MSGHDR_CMSGCRED)
-#define NXT_OOB_SEND_SIZE                                                     \
+#define NXT_OOB_SEND_SIZE                                                      \
     (CMSG_SPACE(2 * sizeof(int)) + CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
-#define NXT_OOB_SEND_SIZE                                                     \
-    CMSG_SPACE(2 * sizeof(int))
+#define NXT_OOB_SEND_SIZE CMSG_SPACE(2 * sizeof(int))
 #endif
 
 
 typedef struct {
-    size_t  size;
-    u_char  buf[NXT_OOB_RECV_SIZE];
+    size_t size;
+    u_char buf[NXT_OOB_RECV_SIZE];
 } nxt_recv_oob_t;
 
-
 typedef struct {
-    size_t  size;
-    u_char  buf[NXT_OOB_SEND_SIZE];
+    size_t size;
+    u_char buf[NXT_OOB_SEND_SIZE];
 } nxt_send_oob_t;
-
 
 /**
  * The nxt_sendmsg is a wrapper for sendmsg.
  * The oob struct must be initialized using nxt_socket_msg_oob_init().
  */
-NXT_EXPORT ssize_t nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob,
-    nxt_uint_t niob, const nxt_send_oob_t *oob);
+NXT_EXPORT ssize_t
+nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
+            const nxt_send_oob_t *oob);
 
 /**
  * The nxt_recvmsg is a wrapper for recvmsg.
  * The oob buffer must be consumed by using nxt_socket_msg_oob_get().
  */
-NXT_EXPORT ssize_t nxt_recvmsg(nxt_socket_t s,
-    nxt_iobuf_t *iob, nxt_uint_t niob, nxt_recv_oob_t *oob);
-
+NXT_EXPORT ssize_t
+nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
+            nxt_recv_oob_t *oob);
 
 nxt_inline struct cmsghdr *
 NXT_CMSG_NXTHDR(struct msghdr *msgh, struct cmsghdr *cmsg)
@@ -82,12 +79,11 @@ NXT_CMSG_NXTHDR(struct msghdr *msgh, struct cmsghdr *cmsg)
 #endif
 }
 
-
 nxt_inline void
 nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
 {
     int             nfds;
-    struct cmsghdr  *cmsg;
+    struct cmsghdr *cmsg;
 
 #if (NXT_HAVE_MSGHDR_CMSGCRED)
     cmsg = (struct cmsghdr *) (oob->buf);
@@ -98,11 +94,11 @@ nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
      */
     nxt_memzero(cmsg, sizeof(struct cmsghdr));
 
-    cmsg->cmsg_len = CMSG_LEN(sizeof(nxt_socket_cred_t));
+    cmsg->cmsg_len   = CMSG_LEN(sizeof(nxt_socket_cred_t));
     cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = NXT_CRED_CMSGTYPE;
+    cmsg->cmsg_type  = NXT_CRED_CMSGTYPE;
 
-    oob->size = CMSG_SPACE(sizeof(nxt_socket_cred_t));
+    oob->size        = CMSG_SPACE(sizeof(nxt_socket_cred_t));
 
 #else
     oob->size = 0;
@@ -118,9 +114,9 @@ nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
 
     nxt_memzero(cmsg, sizeof(struct cmsghdr));
 
-    cmsg->cmsg_len = CMSG_LEN(nfds * sizeof(int));
+    cmsg->cmsg_len   = CMSG_LEN(nfds * sizeof(int));
     cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
+    cmsg->cmsg_type  = SCM_RIGHTS;
 
     /*
      * nxt_memcpy() is used instead of simple
@@ -136,21 +132,18 @@ nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
     oob->size += CMSG_SPACE(nfds * sizeof(int));
 }
 
-
 nxt_inline nxt_int_t
 nxt_socket_msg_oob_get_fds(nxt_recv_oob_t *oob, nxt_fd_t *fd)
 {
     size_t          size;
     struct msghdr   msg;
-    struct cmsghdr  *cmsg;
+    struct cmsghdr *cmsg;
 
-    msg.msg_control = oob->buf;
+    msg.msg_control    = oob->buf;
     msg.msg_controllen = oob->size;
 
-    for (cmsg = CMSG_FIRSTHDR(&msg);
-         cmsg != NULL;
-         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg))
-    {
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg)) {
         size = cmsg->cmsg_len - CMSG_LEN(0);
 
         if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
@@ -167,13 +160,12 @@ nxt_socket_msg_oob_get_fds(nxt_recv_oob_t *oob, nxt_fd_t *fd)
     return NXT_OK;
 }
 
-
 nxt_inline nxt_int_t
 nxt_socket_msg_oob_get(nxt_recv_oob_t *oob, nxt_fd_t *fd, nxt_pid_t *pid)
 {
     size_t          size;
     struct msghdr   msg;
-    struct cmsghdr  *cmsg;
+    struct cmsghdr *cmsg;
 
     if (oob->size == 0) {
         return NXT_OK;
@@ -183,13 +175,11 @@ nxt_socket_msg_oob_get(nxt_recv_oob_t *oob, nxt_fd_t *fd, nxt_pid_t *pid)
     *pid = -1;
 #endif
 
-    msg.msg_control = oob->buf;
+    msg.msg_control    = oob->buf;
     msg.msg_controllen = oob->size;
 
-    for (cmsg = CMSG_FIRSTHDR(&msg);
-         cmsg != NULL;
-         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg))
-    {
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg)) {
         size = cmsg->cmsg_len - CMSG_LEN(0);
 
         if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
@@ -203,19 +193,17 @@ nxt_socket_msg_oob_get(nxt_recv_oob_t *oob, nxt_fd_t *fd, nxt_pid_t *pid)
             break;
 #endif
         }
-
 #if (NXT_CRED_USECMSG)
         else if (cmsg->cmsg_level == SOL_SOCKET
-                 && cmsg->cmsg_type == NXT_CRED_CMSGTYPE)
-        {
-            nxt_socket_cred_t  *creds;
+                 && cmsg->cmsg_type == NXT_CRED_CMSGTYPE) {
+            nxt_socket_cred_t *creds;
 
             if (nxt_slow_path(size != sizeof(nxt_socket_cred_t))) {
                 return NXT_ERROR;
             }
 
             creds = (nxt_socket_cred_t *) CMSG_DATA(cmsg);
-            *pid = NXT_CRED_GETPID(creds);
+            *pid  = NXT_CRED_GETPID(creds);
         }
 #endif
     }

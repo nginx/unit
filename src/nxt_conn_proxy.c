@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,61 +6,76 @@
 #include <nxt_main.h>
 
 
-static void nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_peer_connect(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_connected(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_client_read_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_peer_read_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_read_process(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *source, nxt_conn_t *sink);
-static void nxt_conn_proxy_write_add(nxt_conn_t *c, nxt_buf_t *b);
-static void nxt_conn_proxy_read(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_client_write_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_peer_write_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *sink, nxt_conn_t *source);
-static void nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b);
-static void nxt_conn_proxy_close(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_error(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_read_timeout(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_write_timeout(nxt_task_t *task, void *obj,
-    void *data);
-static nxt_msec_t nxt_conn_proxy_timeout_value(nxt_conn_t *c, uintptr_t data);
-static void nxt_conn_proxy_refused(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_reconnect_handler(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *source, nxt_conn_t *sink);
-static void nxt_conn_proxy_read_error(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data);
-static void nxt_conn_proxy_complete(nxt_task_t *task, nxt_conn_proxy_t *p);
-static void nxt_conn_proxy_completion(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_peer_connect(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_connected(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_client_read_ready(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_peer_read_ready(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_read_process(nxt_task_t *task, nxt_conn_proxy_t *p,
+                            nxt_conn_t *source, nxt_conn_t *sink);
+static void
+nxt_conn_proxy_write_add(nxt_conn_t *c, nxt_buf_t *b);
+static void
+nxt_conn_proxy_read(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_client_write_ready(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_peer_write_ready(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
+                             nxt_conn_t *sink, nxt_conn_t *source);
+static void
+nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b);
+static void
+nxt_conn_proxy_close(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_error(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_read_timeout(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_write_timeout(nxt_task_t *task, void *obj, void *data);
+static nxt_msec_t
+nxt_conn_proxy_timeout_value(nxt_conn_t *c, uintptr_t data);
+static void
+nxt_conn_proxy_refused(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_reconnect_handler(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
+                        nxt_conn_t *source, nxt_conn_t *sink);
+static void
+nxt_conn_proxy_read_error(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_conn_proxy_complete(nxt_task_t *task, nxt_conn_proxy_t *p);
+static void
+nxt_conn_proxy_completion(nxt_task_t *task, void *obj, void *data);
 
 
-static const nxt_conn_state_t  nxt_conn_proxy_client_wait_state;
-static const nxt_conn_state_t  nxt_conn_proxy_client_first_read_state;
-static const nxt_conn_state_t  nxt_conn_proxy_peer_connect_state;
-static const nxt_conn_state_t  nxt_conn_proxy_peer_wait_state;
-static const nxt_conn_state_t  nxt_conn_proxy_client_read_state;
-static const nxt_conn_state_t  nxt_conn_proxy_peer_read_state;
-static const nxt_conn_state_t  nxt_conn_proxy_client_write_state;
-static const nxt_conn_state_t  nxt_conn_proxy_peer_write_state;
-
+static const nxt_conn_state_t nxt_conn_proxy_client_wait_state;
+static const nxt_conn_state_t nxt_conn_proxy_client_first_read_state;
+static const nxt_conn_state_t nxt_conn_proxy_peer_connect_state;
+static const nxt_conn_state_t nxt_conn_proxy_peer_wait_state;
+static const nxt_conn_state_t nxt_conn_proxy_client_read_state;
+static const nxt_conn_state_t nxt_conn_proxy_peer_read_state;
+static const nxt_conn_state_t nxt_conn_proxy_client_write_state;
+static const nxt_conn_state_t nxt_conn_proxy_peer_write_state;
 
 nxt_conn_proxy_t *
 nxt_conn_proxy_create(nxt_conn_t *client)
 {
-    nxt_conn_t        *peer;
-    nxt_thread_t      *thr;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *peer;
+    nxt_thread_t     *thr;
+    nxt_conn_proxy_t *p;
 
     p = nxt_mp_zget(client->mem_pool, sizeof(nxt_conn_proxy_t));
     if (nxt_slow_path(p == NULL)) {
@@ -73,33 +87,32 @@ nxt_conn_proxy_create(nxt_conn_t *client)
         return NULL;
     }
 
-    thr = nxt_thread();
+    thr                             = nxt_thread();
 
-    client->read_work_queue = &thr->engine->read_work_queue;
-    client->write_work_queue = &thr->engine->write_work_queue;
-    client->socket.read_work_queue = &thr->engine->read_work_queue;
+    client->read_work_queue         = &thr->engine->read_work_queue;
+    client->write_work_queue        = &thr->engine->write_work_queue;
+    client->socket.read_work_queue  = &thr->engine->read_work_queue;
     client->socket.write_work_queue = &thr->engine->write_work_queue;
-    peer->socket.read_work_queue = &thr->engine->read_work_queue;
-    peer->socket.write_work_queue = &thr->engine->write_work_queue;
+    peer->socket.read_work_queue    = &thr->engine->read_work_queue;
+    peer->socket.write_work_queue   = &thr->engine->write_work_queue;
 
-    peer->socket.data = client->socket.data;
+    peer->socket.data               = client->socket.data;
 
-    peer->read_work_queue = client->read_work_queue;
-    peer->write_work_queue = client->write_work_queue;
-    peer->read_timer.work_queue = client->read_work_queue;
-    peer->write_timer.work_queue = client->write_work_queue;
+    peer->read_work_queue           = client->read_work_queue;
+    peer->write_work_queue          = client->write_work_queue;
+    peer->read_timer.work_queue     = client->read_work_queue;
+    peer->write_timer.work_queue    = client->write_work_queue;
 
-    p->client = client;
-    p->peer = peer;
+    p->client                       = client;
+    p->peer                         = peer;
 
     return p;
 }
 
-
 void
 nxt_conn_proxy(nxt_task_t *task, nxt_conn_proxy_t *p)
 {
-    nxt_conn_t  *peer;
+    nxt_conn_t *peer;
 
     /*
      * Peer read event: not connected, disabled.
@@ -111,7 +124,7 @@ nxt_conn_proxy(nxt_task_t *task, nxt_conn_proxy_t *p)
          * Peer write event: waiting for connection
          * to be established with connect_timeout.
          */
-        peer = p->peer;
+        peer              = p->peer;
         peer->write_state = &nxt_conn_proxy_peer_connect_state;
 
         nxt_conn_connect(task->thread->engine, peer);
@@ -126,29 +139,26 @@ nxt_conn_proxy(nxt_task_t *task, nxt_conn_proxy_t *p)
     nxt_conn_wait(p->client);
 }
 
+static const nxt_conn_state_t nxt_conn_proxy_client_wait_state nxt_aligned(64)
+    = {
+        .ready_handler = nxt_conn_proxy_client_buffer_alloc,
+        .close_handler = nxt_conn_proxy_close,
+        .error_handler = nxt_conn_proxy_error,
 
-static const nxt_conn_state_t  nxt_conn_proxy_client_wait_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_client_buffer_alloc,
-    .close_handler = nxt_conn_proxy_close,
-    .error_handler = nxt_conn_proxy_error,
-
-    .timer_handler = nxt_conn_proxy_read_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, client_wait_timeout),
+        .timer_handler = nxt_conn_proxy_read_timeout,
+        .timer_value   = nxt_conn_proxy_timeout_value,
+        .timer_data    = offsetof(nxt_conn_proxy_t, client_wait_timeout),
 };
-
 
 static void
 nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_conn_t        *client;
-    nxt_conn_proxy_t  *p;
+    nxt_buf_t        *b;
+    nxt_conn_t       *client;
+    nxt_conn_proxy_t *p;
 
     client = obj;
-    p = data;
+    p      = data;
 
     nxt_debug(task, "conn proxy client first read fd:%d", client->socket.fd);
 
@@ -160,7 +170,7 @@ nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj, void *data)
     }
 
     p->client_buffer = b;
-    client->read = b;
+    client->read     = b;
 
     if (p->peer->socket.fd != -1) {
         /*
@@ -186,29 +196,27 @@ nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj, void *data)
     nxt_conn_read(task->thread->engine, client);
 }
 
+static const nxt_conn_state_t
+    nxt_conn_proxy_client_first_read_state nxt_aligned(64)
+    = {
+        .ready_handler   = nxt_conn_proxy_peer_connect,
+        .close_handler   = nxt_conn_proxy_close,
+        .error_handler   = nxt_conn_proxy_error,
 
-static const nxt_conn_state_t  nxt_conn_proxy_client_first_read_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_peer_connect,
-    .close_handler = nxt_conn_proxy_close,
-    .error_handler = nxt_conn_proxy_error,
-
-    .timer_handler = nxt_conn_proxy_read_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, client_wait_timeout),
-    .timer_autoreset = 1,
+        .timer_handler   = nxt_conn_proxy_read_timeout,
+        .timer_value     = nxt_conn_proxy_timeout_value,
+        .timer_data      = offsetof(nxt_conn_proxy_t, client_wait_timeout),
+        .timer_autoreset = 1,
 };
-
 
 static void
 nxt_conn_proxy_peer_connect(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *client;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *client;
+    nxt_conn_proxy_t *p;
 
-    client = obj;
-    p = data;
+    client               = obj;
+    p                    = data;
 
     /*
      * Client read event: waiting, no timeout.
@@ -217,36 +225,33 @@ nxt_conn_proxy_peer_connect(nxt_task_t *task, void *obj, void *data)
      * Peer write event: waiting for connection to be established
      * with connect_timeout.
      */
-    client->read_state = &nxt_conn_proxy_client_read_state;
+    client->read_state   = &nxt_conn_proxy_client_read_state;
 
     p->peer->write_state = &nxt_conn_proxy_peer_connect_state;
 
     nxt_conn_connect(task->thread->engine, p->peer);
 }
 
+static const nxt_conn_state_t nxt_conn_proxy_peer_connect_state nxt_aligned(64)
+    = {
+        .ready_handler   = nxt_conn_proxy_connected,
+        .close_handler   = nxt_conn_proxy_refused,
+        .error_handler   = nxt_conn_proxy_error,
 
-static const nxt_conn_state_t  nxt_conn_proxy_peer_connect_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_connected,
-    .close_handler = nxt_conn_proxy_refused,
-    .error_handler = nxt_conn_proxy_error,
-
-    .timer_handler = nxt_conn_proxy_write_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, connect_timeout),
-    .timer_autoreset = 1,
+        .timer_handler   = nxt_conn_proxy_write_timeout,
+        .timer_value     = nxt_conn_proxy_timeout_value,
+        .timer_data      = offsetof(nxt_conn_proxy_t, connect_timeout),
+        .timer_autoreset = 1,
 };
-
 
 static void
 nxt_conn_proxy_connected(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *client, *peer;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *client, *peer;
+    nxt_conn_proxy_t *p;
 
     peer = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy connected fd:%d", peer->socket.fd);
 
@@ -257,15 +262,15 @@ nxt_conn_proxy_connected(nxt_task_t *task, void *obj, void *data)
 
     /* Peer read event: waiting with peer_wait_timeout.  */
 
-    peer->read_state = &nxt_conn_proxy_peer_wait_state;
+    peer->read_state  = &nxt_conn_proxy_peer_wait_state;
     peer->write_state = &nxt_conn_proxy_peer_write_state;
 
     nxt_conn_wait(peer);
 
     if (p->client_buffer != NULL) {
-        client = p->client;
+        client              = p->client;
 
-        client->read_state = &nxt_conn_proxy_client_read_state;
+        client->read_state  = &nxt_conn_proxy_client_read_state;
         client->write_state = &nxt_conn_proxy_client_write_state;
         /*
          * Send a client read data to the connected peer.
@@ -275,29 +280,25 @@ nxt_conn_proxy_connected(nxt_task_t *task, void *obj, void *data)
     }
 }
 
-
-static const nxt_conn_state_t  nxt_conn_proxy_peer_wait_state
-    nxt_aligned(64) =
-{
+static const nxt_conn_state_t nxt_conn_proxy_peer_wait_state nxt_aligned(64) = {
     .ready_handler = nxt_conn_proxy_peer_read,
     .close_handler = nxt_conn_proxy_close,
     .error_handler = nxt_conn_proxy_error,
 
     .timer_handler = nxt_conn_proxy_read_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, peer_wait_timeout),
+    .timer_value   = nxt_conn_proxy_timeout_value,
+    .timer_data    = offsetof(nxt_conn_proxy_t, peer_wait_timeout),
 };
-
 
 static void
 nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_conn_t        *peer;
-    nxt_conn_proxy_t  *p;
+    nxt_buf_t        *b;
+    nxt_conn_t       *peer;
+    nxt_conn_proxy_t *p;
 
     peer = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy peer read fd:%d", peer->socket.fd);
 
@@ -308,12 +309,12 @@ nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    p->peer_buffer = b;
-    peer->read = b;
+    p->peer_buffer         = b;
+    peer->read             = b;
 
     p->client->write_state = &nxt_conn_proxy_client_write_state;
-    peer->read_state = &nxt_conn_proxy_peer_read_state;
-    peer->write_state = &nxt_conn_proxy_peer_write_state;
+    peer->read_state       = &nxt_conn_proxy_peer_read_state;
+    peer->write_state      = &nxt_conn_proxy_peer_write_state;
 
     /*
      * Client read event: waiting, no timeout.
@@ -324,75 +325,65 @@ nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data)
     nxt_conn_read(task->thread->engine, peer);
 }
 
-
-static const nxt_conn_state_t  nxt_conn_proxy_client_read_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_client_read_ready,
-    .close_handler = nxt_conn_proxy_close,
-    .error_handler = nxt_conn_proxy_read_error,
+static const nxt_conn_state_t nxt_conn_proxy_client_read_state nxt_aligned(64)
+    = {
+        .ready_handler = nxt_conn_proxy_client_read_ready,
+        .close_handler = nxt_conn_proxy_close,
+        .error_handler = nxt_conn_proxy_read_error,
 };
-
 
 static void
 nxt_conn_proxy_client_read_ready(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *client;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *client;
+    nxt_conn_proxy_t *p;
 
     client = obj;
-    p = data;
+    p      = data;
 
     nxt_debug(task, "conn proxy client read ready fd:%d", client->socket.fd);
 
     nxt_conn_proxy_read_process(task, p, client, p->peer);
 }
 
-
-static const nxt_conn_state_t  nxt_conn_proxy_peer_read_state
-    nxt_aligned(64) =
-{
+static const nxt_conn_state_t nxt_conn_proxy_peer_read_state nxt_aligned(64) = {
     .ready_handler = nxt_conn_proxy_peer_read_ready,
     .close_handler = nxt_conn_proxy_close,
     .error_handler = nxt_conn_proxy_read_error,
 };
 
-
 static void
 nxt_conn_proxy_peer_read_ready(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *peer;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *peer;
+    nxt_conn_proxy_t *p;
 
     peer = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy peer read ready fd:%d", peer->socket.fd);
 
     nxt_conn_proxy_read_process(task, p, peer, p->client);
 }
 
-
 static void
 nxt_conn_proxy_read_process(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *source, nxt_conn_t *sink)
+                            nxt_conn_t *source, nxt_conn_t *sink)
 {
-    nxt_buf_t  *rb, *wb;
+    nxt_buf_t *rb, *wb;
 
     if (sink->socket.error != 0) {
-        nxt_debug(task, "conn proxy sink fd:%d error:%d",
-                  sink->socket.fd, sink->socket.error);
+        nxt_debug(task, "conn proxy sink fd:%d error:%d", sink->socket.fd,
+                  sink->socket.error);
 
         nxt_conn_proxy_write_error(task, sink, sink->socket.data);
         return;
     }
 
     while (source->read != NULL) {
-
         rb = source->read;
 
         if (rb->mem.pos != rb->mem.free) {
-
             /* Add a read part to a write chain. */
 
             wb = nxt_buf_mem_alloc(source->mem_pool, 0, 0);
@@ -402,12 +393,12 @@ nxt_conn_proxy_read_process(nxt_task_t *task, nxt_conn_proxy_t *p,
                 return;
             }
 
-            wb->mem.pos = rb->mem.pos;
-            wb->mem.free = rb->mem.free;
+            wb->mem.pos   = rb->mem.pos;
+            wb->mem.free  = rb->mem.free;
             wb->mem.start = rb->mem.pos;
-            wb->mem.end = rb->mem.free;
+            wb->mem.end   = rb->mem.free;
 
-            rb->mem.pos = rb->mem.free;
+            rb->mem.pos   = rb->mem.free;
             rb->mem.start = rb->mem.free;
 
             nxt_conn_proxy_write_add(sink, wb);
@@ -428,11 +419,10 @@ nxt_conn_proxy_read_process(nxt_task_t *task, nxt_conn_proxy_t *p,
     }
 }
 
-
 static void
 nxt_conn_proxy_write_add(nxt_conn_t *c, nxt_buf_t *b)
 {
-    nxt_buf_t  *first, *second, *prev;
+    nxt_buf_t *first, *second, *prev;
 
     first = c->write;
 
@@ -452,7 +442,6 @@ nxt_conn_proxy_write_add(nxt_conn_t *c, nxt_buf_t *b)
     second = first->next;
 
     if (second == NULL) {
-
         if (first->mem.end != b->mem.start) {
             first->next = b;
             return;
@@ -481,20 +470,19 @@ nxt_conn_proxy_write_add(nxt_conn_t *c, nxt_buf_t *b)
     }
 
     prev->mem.free = b->mem.end;
-    prev->mem.end = b->mem.end;
+    prev->mem.end  = b->mem.end;
 
     nxt_buf_free(c->mem_pool, b);
 }
 
-
 static void
 nxt_conn_proxy_read(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *source, *sink;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *source, *sink;
+    nxt_conn_proxy_t *p;
 
     source = obj;
-    p = data;
+    p      = data;
 
     nxt_debug(task, "conn proxy read fd:%d", source->socket.fd);
 
@@ -507,75 +495,66 @@ nxt_conn_proxy_read(nxt_task_t *task, void *obj, void *data)
     }
 }
 
+static const nxt_conn_state_t nxt_conn_proxy_client_write_state nxt_aligned(64)
+    = {
+        .ready_handler   = nxt_conn_proxy_client_write_ready,
+        .error_handler   = nxt_conn_proxy_write_error,
 
-static const nxt_conn_state_t  nxt_conn_proxy_client_write_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_client_write_ready,
-    .error_handler = nxt_conn_proxy_write_error,
-
-    .timer_handler = nxt_conn_proxy_write_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, client_write_timeout),
-    .timer_autoreset = 1,
+        .timer_handler   = nxt_conn_proxy_write_timeout,
+        .timer_value     = nxt_conn_proxy_timeout_value,
+        .timer_data      = offsetof(nxt_conn_proxy_t, client_write_timeout),
+        .timer_autoreset = 1,
 };
-
 
 static void
 nxt_conn_proxy_client_write_ready(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *client;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *client;
+    nxt_conn_proxy_t *p;
 
     client = obj;
-    p = data;
+    p      = data;
 
     nxt_debug(task, "conn proxy client write ready fd:%d", client->socket.fd);
 
     nxt_conn_proxy_write_process(task, p, client, p->peer);
 }
 
+static const nxt_conn_state_t nxt_conn_proxy_peer_write_state nxt_aligned(64)
+    = {
+        .ready_handler   = nxt_conn_proxy_peer_write_ready,
+        .error_handler   = nxt_conn_proxy_write_error,
 
-static const nxt_conn_state_t  nxt_conn_proxy_peer_write_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_conn_proxy_peer_write_ready,
-    .error_handler = nxt_conn_proxy_write_error,
-
-    .timer_handler = nxt_conn_proxy_write_timeout,
-    .timer_value = nxt_conn_proxy_timeout_value,
-    .timer_data = offsetof(nxt_conn_proxy_t, peer_write_timeout),
-    .timer_autoreset = 1,
+        .timer_handler   = nxt_conn_proxy_write_timeout,
+        .timer_value     = nxt_conn_proxy_timeout_value,
+        .timer_data      = offsetof(nxt_conn_proxy_t, peer_write_timeout),
+        .timer_autoreset = 1,
 };
-
 
 static void
 nxt_conn_proxy_peer_write_ready(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *peer;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *peer;
+    nxt_conn_proxy_t *p;
 
     peer = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy peer write ready fd:%d", peer->socket.fd);
 
     nxt_conn_proxy_write_process(task, p, peer, p->client);
 }
 
-
 static void
 nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *sink, nxt_conn_t *source)
+                             nxt_conn_t *sink, nxt_conn_t *source)
 {
-    nxt_buf_t  *rb, *wb;
+    nxt_buf_t *rb, *wb;
 
     while (sink->write != NULL) {
-
         wb = sink->write;
 
         if (nxt_buf_is_sync(wb)) {
-
             /* A sync buffer marks the end of stream. */
 
             sink->write = NULL;
@@ -585,7 +564,6 @@ nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
         }
 
         if (wb->mem.start != wb->mem.pos) {
-
             /* Add a written part to a read chain. */
 
             rb = nxt_buf_mem_alloc(sink->mem_pool, 0, 0);
@@ -595,10 +573,10 @@ nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
                 return;
             }
 
-            rb->mem.pos = wb->mem.start;
-            rb->mem.free = wb->mem.start;
+            rb->mem.pos   = wb->mem.start;
+            rb->mem.free  = wb->mem.start;
             rb->mem.start = wb->mem.start;
-            rb->mem.end = wb->mem.pos;
+            rb->mem.end   = wb->mem.pos;
 
             wb->mem.start = wb->mem.pos;
 
@@ -615,15 +593,14 @@ nxt_conn_proxy_write_process(nxt_task_t *task, nxt_conn_proxy_t *p,
         nxt_buf_free(sink->mem_pool, wb);
     }
 
-    nxt_work_queue_add(source->read_work_queue, nxt_conn_proxy_read,
-                       task, source, source->socket.data);
+    nxt_work_queue_add(source->read_work_queue, nxt_conn_proxy_read, task,
+                       source, source->socket.data);
 }
-
 
 static void
 nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b)
 {
-    nxt_buf_t  *first, *second;
+    nxt_buf_t *first, *second;
 
     first = c->read;
 
@@ -644,14 +621,13 @@ nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b)
     second = first->next;
 
     if (second == NULL) {
-
         if (first->mem.start == b->mem.end) {
             /*
              * The added buffer is just before the first buffer, so expand
              * the first buffer to the beginning of the added buffer.
              */
-            first->mem.pos = b->mem.start;
-            first->mem.free = b->mem.start;
+            first->mem.pos   = b->mem.start;
+            first->mem.free  = b->mem.start;
             first->mem.start = b->mem.start;
 
         } else if (first->mem.end == b->mem.start) {
@@ -685,10 +661,10 @@ nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b)
              * The second buffer is just before the first buffer, so expand
              * the first buffer to the beginning of the second buffer.
              */
-            first->mem.pos = second->mem.start;
-            first->mem.free = second->mem.start;
+            first->mem.pos   = second->mem.start;
+            first->mem.free  = second->mem.start;
             first->mem.start = second->mem.start;
-            first->next = NULL;
+            first->next      = NULL;
 
             nxt_buf_free(c->mem_pool, second);
         }
@@ -697,16 +673,15 @@ nxt_conn_proxy_read_add(nxt_conn_t *c, nxt_buf_t *b)
     nxt_buf_free(c->mem_pool, b);
 }
 
-
 static void
 nxt_conn_proxy_close(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_conn_t        *source, *sink;
-    nxt_conn_proxy_t  *p;
+    nxt_buf_t        *b;
+    nxt_conn_t       *source, *sink;
+    nxt_conn_proxy_t *p;
 
     source = obj;
-    p = data;
+    p      = data;
 
     nxt_debug(task, "conn proxy close fd:%d", source->socket.fd);
 
@@ -727,12 +702,11 @@ nxt_conn_proxy_close(nxt_task_t *task, void *obj, void *data)
     nxt_buf_chain_add(&sink->write, b);
 }
 
-
 static void
 nxt_conn_proxy_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *c;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *c;
+    nxt_conn_proxy_t *p;
 
     c = obj;
     p = data;
@@ -742,42 +716,39 @@ nxt_conn_proxy_error(nxt_task_t *task, void *obj, void *data)
     nxt_conn_proxy_close(task, c, p);
 }
 
-
 static void
 nxt_conn_proxy_read_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t   *c;
-    nxt_timer_t  *timer;
+    nxt_conn_t  *c;
+    nxt_timer_t *timer;
 
-    timer = obj;
+    timer              = obj;
 
-    c = nxt_read_timer_conn(timer);
+    c                  = nxt_read_timer_conn(timer);
     c->socket.timedout = 1;
-    c->socket.closed = 1;
+    c->socket.closed   = 1;
 
     nxt_debug(task, "conn proxy read timeout fd:%d", c->socket.fd);
 
     nxt_conn_proxy_close(task, c, c->socket.data);
 }
 
-
 static void
 nxt_conn_proxy_write_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t   *c;
-    nxt_timer_t  *timer;
+    nxt_conn_t  *c;
+    nxt_timer_t *timer;
 
-    timer = obj;
+    timer              = obj;
 
-    c = nxt_write_timer_conn(timer);
+    c                  = nxt_write_timer_conn(timer);
     c->socket.timedout = 1;
-    c->socket.closed = 1;
+    c->socket.closed   = 1;
 
     nxt_debug(task, "conn proxy write timeout fd:%d", c->socket.fd);
 
     nxt_conn_proxy_close(task, c, c->socket.data);
 }
-
 
 static nxt_msec_t
 nxt_conn_proxy_timeout_value(nxt_conn_t *c, uintptr_t data)
@@ -785,15 +756,14 @@ nxt_conn_proxy_timeout_value(nxt_conn_t *c, uintptr_t data)
     return nxt_value_at(nxt_msec_t, c->socket.data, data);
 }
 
-
 static void
 nxt_conn_proxy_refused(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *peer;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *peer;
+    nxt_conn_proxy_t *p;
 
     peer = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy refused fd:%d", peer->socket.fd);
 
@@ -806,37 +776,36 @@ nxt_conn_proxy_refused(nxt_task_t *task, void *obj, void *data)
     p->retries--;
 
     nxt_socket_close(task, peer->socket.fd);
-    peer->socket.fd = -1;
-    peer->socket.error = 0;
+    peer->socket.fd           = -1;
+    peer->socket.error        = 0;
 
-    p->delayed = 1;
+    p->delayed                = 1;
 
     peer->write_timer.handler = nxt_conn_proxy_reconnect_handler;
     nxt_timer_add(task->thread->engine, &peer->write_timer,
                   p->reconnect_timeout);
 }
 
-
 static void
 nxt_conn_proxy_reconnect_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *peer;
-    nxt_timer_t       *timer;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *peer;
+    nxt_timer_t      *timer;
+    nxt_conn_proxy_t *p;
 
     timer = obj;
 
     nxt_debug(task, "conn proxy reconnect timer");
 
     peer = nxt_write_timer_conn(timer);
-    p = peer->socket.data;
+    p    = peer->socket.data;
 
     if (p->client->socket.closed) {
         nxt_conn_proxy_complete(task, p);
         return;
     }
 
-    p->delayed = 0;
+    p->delayed        = 0;
 
     peer->write_state = &nxt_conn_proxy_peer_connect_state;
     /*
@@ -846,19 +815,17 @@ nxt_conn_proxy_reconnect_handler(nxt_task_t *task, void *obj, void *data)
     nxt_conn_connect(task->thread->engine, peer);
 }
 
-
 static void
 nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
-    nxt_conn_t *source, nxt_conn_t *sink)
+                        nxt_conn_t *source, nxt_conn_t *sink)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
     nxt_debug(source->socket.task,
               "conn proxy shutdown source fd:%d cl:%d err:%d",
               source->socket.fd, source->socket.closed, source->socket.error);
 
-    nxt_debug(sink->socket.task,
-              "conn proxy shutdown sink fd:%d cl:%d err:%d",
+    nxt_debug(sink->socket.task, "conn proxy shutdown sink fd:%d cl:%d err:%d",
               sink->socket.fd, sink->socket.closed, sink->socket.error);
 
     if (!p->connected || p->delayed) {
@@ -872,8 +839,7 @@ nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
     }
 
     if (sink->socket.error != 0
-        || (sink->socket.closed && source->write == NULL))
-    {
+        || (sink->socket.closed && source->write == NULL)) {
         /* The opposite direction also has been already closed. */
         nxt_conn_proxy_complete(task, p);
         return;
@@ -886,12 +852,11 @@ nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
     nxt_mp_free(source->mem_pool, b);
 }
 
-
 static void
 nxt_conn_proxy_read_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *c;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *c;
+    nxt_conn_proxy_t *p;
 
     c = obj;
     p = data;
@@ -901,15 +866,14 @@ nxt_conn_proxy_read_error(nxt_task_t *task, void *obj, void *data)
     nxt_conn_proxy_close(task, c, p);
 }
 
-
 static void
 nxt_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t        *source, *sink;
-    nxt_conn_proxy_t  *p;
+    nxt_conn_t       *source, *sink;
+    nxt_conn_proxy_t *p;
 
     sink = obj;
-    p = data;
+    p    = data;
 
     nxt_debug(task, "conn proxy write error fd:%d", sink->socket.fd);
 
@@ -917,7 +881,7 @@ nxt_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
     sink->write = NULL;
 
     /* Block the direction source. */
-    source = (sink == p->client) ? p->peer : p->client;
+    source      = (sink == p->client) ? p->peer : p->client;
     nxt_fd_event_block_read(task->thread->engine, &source->socket);
 
     if (source->write == NULL) {
@@ -929,18 +893,14 @@ nxt_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
     }
 }
 
-
-static const nxt_conn_state_t  nxt_conn_proxy_close_state
-    nxt_aligned(64) =
-{
+static const nxt_conn_state_t nxt_conn_proxy_close_state nxt_aligned(64) = {
     .ready_handler = nxt_conn_proxy_completion,
 };
-
 
 static void
 nxt_conn_proxy_complete(nxt_task_t *task, nxt_conn_proxy_t *p)
 {
-    nxt_event_engine_t  *engine;
+    nxt_event_engine_t *engine;
 
     engine = task->thread->engine;
 
@@ -953,7 +913,7 @@ nxt_conn_proxy_complete(nxt_task_t *task, nxt_conn_proxy_t *p)
     }
 
     if (p->client->socket.fd != -1) {
-        p->retain = 1;
+        p->retain              = 1;
         p->client->write_state = &nxt_conn_proxy_close_state;
         nxt_conn_close(engine, p->client);
     }
@@ -965,11 +925,10 @@ nxt_conn_proxy_complete(nxt_task_t *task, nxt_conn_proxy_t *p)
     }
 }
 
-
 static void
 nxt_conn_proxy_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_proxy_t  *p;
+    nxt_conn_proxy_t *p;
 
     p = data;
 

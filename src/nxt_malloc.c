@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,15 +6,13 @@
 #include <nxt_main.h>
 
 
-static nxt_log_moderation_t  nxt_malloc_log_moderation = {
-    NXT_LOG_ALERT, 2, "memory allocation failed", NXT_LOG_MODERATION
-};
-
+static nxt_log_moderation_t nxt_malloc_log_moderation
+    = {NXT_LOG_ALERT, 2, "memory allocation failed", NXT_LOG_MODERATION};
 
 static nxt_log_t *
 nxt_malloc_log(void)
 {
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     thr = nxt_thread();
 
@@ -26,11 +23,10 @@ nxt_malloc_log(void)
     return &nxt_main_log;
 }
 
-
 void *
 nxt_malloc(size_t size)
 {
-    void  *p;
+    void *p;
 
     p = malloc(size);
 
@@ -45,11 +41,10 @@ nxt_malloc(size_t size)
     return p;
 }
 
-
 void *
 nxt_zalloc(size_t size)
 {
-    void  *p;
+    void *p;
 
     p = nxt_malloc(size);
 
@@ -60,12 +55,11 @@ nxt_zalloc(size_t size)
     return p;
 }
 
-
 void *
 nxt_realloc(void *p, size_t size)
 {
-    void       *n;
-    uintptr_t  ptr;
+    void     *n;
+    uintptr_t ptr;
 
     /*
      * Workaround for a warning on GCC 12 about using "p" pointer in debug log
@@ -73,20 +67,19 @@ nxt_realloc(void *p, size_t size)
      */
     ptr = (uintptr_t) p;
 
-    n = realloc(p, size);
+    n   = realloc(p, size);
 
     if (nxt_fast_path(n != NULL)) {
         nxt_log_debug(nxt_malloc_log(), "realloc(%p, %uz): %p", ptr, size, n);
 
     } else {
         nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
-                               "realloc(%p, %uz) failed %E",
-                               ptr, size, nxt_errno);
+                               "realloc(%p, %uz) failed %E", ptr, size,
+                               nxt_errno);
     }
 
     return n;
 }
-
 
 /* nxt_lvlhsh_* functions moved here to avoid references from nxt_lvlhsh.c. */
 
@@ -95,7 +88,6 @@ nxt_lvlhsh_alloc(void *data, size_t size)
 {
     return nxt_memalign(size, size);
 }
-
 
 void
 nxt_lvlhsh_free(void *data, void *p)
@@ -128,20 +120,20 @@ nxt_free(void *p)
 void *
 nxt_memalign(size_t alignment, size_t size)
 {
-    void        *p;
-    nxt_err_t   err;
+    void     *p;
+    nxt_err_t err;
 
     err = posix_memalign(&p, alignment, size);
 
     if (nxt_fast_path(err == 0)) {
-        nxt_thread_log_debug("posix_memalign(%uz, %uz): %p",
-                             alignment, size, p);
+        nxt_thread_log_debug("posix_memalign(%uz, %uz): %p", alignment, size,
+                             p);
         return p;
     }
 
     nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
-                           "posix_memalign(%uz, %uz) failed %E",
-                           alignment, size, err);
+                           "posix_memalign(%uz, %uz) failed %E", alignment,
+                           size, err);
     return NULL;
 }
 
@@ -152,19 +144,18 @@ nxt_memalign(size_t alignment, size_t size)
 void *
 nxt_memalign(size_t alignment, size_t size)
 {
-    void  *p;
+    void *p;
 
     p = memalign(alignment, size);
 
     if (nxt_fast_path(p != NULL)) {
-        nxt_thread_log_debug("memalign(%uz, %uz): %p",
-                             alignment, size, p);
+        nxt_thread_log_debug("memalign(%uz, %uz): %p", alignment, size, p);
         return p;
     }
 
     nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
-                           "memalign(%uz, %uz) failed %E",
-                           alignment, size, nxt_errno);
+                           "memalign(%uz, %uz) failed %E", alignment, size,
+                           nxt_errno);
     return NULL;
 }
 
@@ -180,9 +171,9 @@ nxt_memalign(size_t alignment, size_t size)
 void *
 nxt_memalign(size_t alignment, size_t size)
 {
-    size_t     aligned_size;
-    u_char     *p;
-    nxt_err_t  err;
+    size_t    aligned_size;
+    u_char   *p;
+    nxt_err_t err;
 
     if (nxt_slow_path((alignment - 1) & alignment) != 0) {
         /* Alignment must be a power of 2. */
@@ -217,8 +208,8 @@ nxt_memalign(size_t alignment, size_t size)
 
 fail:
 
-    nxt_thread_log_alert("nxt_memalign(%uz, %uz) failed %E",
-                         alignment, size, err);
+    nxt_thread_log_alert("nxt_memalign(%uz, %uz) failed %E", alignment, size,
+                         err);
     return NULL;
 }
 

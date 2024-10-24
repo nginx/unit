@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Max Romanov
  * Copyright (C) NGINX, Inc.
@@ -9,28 +8,21 @@
 #include <nxt_unit.h>
 
 
-static nxt_int_t nxt_external_start(nxt_task_t *task, nxt_process_data_t *data);
+static nxt_int_t
+nxt_external_start(nxt_task_t *task, nxt_process_data_t *data);
 
 
-nxt_app_module_t  nxt_external_module = {
-    0,
-    NULL,
-    nxt_string("external"),
-    "*",
-    NULL,
-    0,
-    NULL,
-    nxt_external_start,
+nxt_app_module_t nxt_external_module = {
+    0, NULL, nxt_string("external"), "*", NULL, 0, NULL, nxt_external_start,
 };
 
 
-extern char  **environ;
-
+extern char **environ;
 
 nxt_inline nxt_int_t
 nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 {
-    int  res, flags;
+    int res, flags;
 
     if (fd == -1) {
         return NXT_OK;
@@ -45,7 +37,7 @@ nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 
     flags &= ~FD_CLOEXEC;
 
-    res = fcntl(fd, F_SETFD, flags);
+    res    = fcntl(fd, F_SETFD, flags);
 
     if (nxt_slow_path(res == -1)) {
         nxt_alert(task, "fcntl(%d, F_SETFD) failed %E", fd, nxt_errno);
@@ -55,34 +47,32 @@ nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
     return NXT_OK;
 }
 
-
 static nxt_int_t
 nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    char                     **argv;
+    char                   **argv;
     u_char                   buf[256];
-    u_char                   *p, *end;
+    u_char                  *p, *end;
     uint32_t                 index;
     size_t                   size;
     nxt_str_t                str;
     nxt_int_t                rc;
     nxt_uint_t               i, argc;
-    nxt_port_t               *my_port, *proto_port, *router_port;
-    nxt_runtime_t            *rt;
-    nxt_conf_value_t         *value;
-    nxt_common_app_conf_t    *conf;
-    nxt_external_app_conf_t  *c;
+    nxt_port_t              *my_port, *proto_port, *router_port;
+    nxt_runtime_t           *rt;
+    nxt_conf_value_t        *value;
+    nxt_common_app_conf_t   *conf;
+    nxt_external_app_conf_t *c;
 
-    rt = task->thread->runtime;
-    conf = data->app;
+    rt          = task->thread->runtime;
+    conf        = data->app;
 
-    proto_port = rt->port_by_type[NXT_PROCESS_PROTOTYPE];
+    proto_port  = rt->port_by_type[NXT_PROCESS_PROTOTYPE];
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
-    my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
+    my_port     = nxt_runtime_port_find(rt, nxt_pid, 0);
 
     if (nxt_slow_path(proto_port == NULL || my_port == NULL
-                      || router_port == NULL))
-    {
+                      || router_port == NULL)) {
         return NXT_ERROR;
     }
 
@@ -118,20 +108,19 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
 
     end = buf + sizeof(buf);
 
-    p = nxt_sprintf(buf, end,
-                    "%s;%uD;"
-                    "%PI,%ud,%d;"
-                    "%PI,%ud,%d;"
-                    "%PI,%ud,%d,%d;"
-                    "%d,%d;"
-                    "%d,%z,%uD,%Z",
-                    NXT_VERSION, my_port->process->stream,
-                    proto_port->pid, proto_port->id, proto_port->pair[1],
-                    router_port->pid, router_port->id, router_port->pair[1],
-                    my_port->pid, my_port->id, my_port->pair[0],
-                                               my_port->pair[1],
-                    conf->shared_port_fd, conf->shared_queue_fd,
-                    2, conf->shm_limit, conf->request_limit);
+    p   = nxt_sprintf(buf, end,
+                      "%s;%uD;"
+                        "%PI,%ud,%d;"
+                        "%PI,%ud,%d;"
+                        "%PI,%ud,%d,%d;"
+                        "%d,%d;"
+                        "%d,%z,%uD,%Z",
+                      NXT_VERSION, my_port->process->stream, proto_port->pid,
+                      proto_port->id, proto_port->pair[1], router_port->pid,
+                      router_port->id, router_port->pair[1], my_port->pid,
+                      my_port->id, my_port->pair[0], my_port->pair[1],
+                      conf->shared_port_fd, conf->shared_queue_fd, 2,
+                      conf->shm_limit, conf->request_limit);
 
     if (nxt_slow_path(p == end)) {
         nxt_alert(task, "internal error: buffer too small for NXT_UNIT_INIT");
@@ -139,24 +128,23 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
         return NXT_ERROR;
     }
 
-    nxt_debug(task, "update "NXT_UNIT_INIT_ENV"=%s", buf);
+    nxt_debug(task, "update " NXT_UNIT_INIT_ENV "=%s", buf);
 
     rc = setenv(NXT_UNIT_INIT_ENV, (char *) buf, 1);
     if (nxt_slow_path(rc == -1)) {
-        nxt_alert(task, "setenv("NXT_UNIT_INIT_ENV", %s) failed %E", buf,
+        nxt_alert(task, "setenv(" NXT_UNIT_INIT_ENV ", %s) failed %E", buf,
                   nxt_errno);
 
         return NXT_ERROR;
     }
 
-    c = &conf->u.external;
+    c    = &conf->u.external;
 
     argc = 2;
     size = 0;
 
     if (c->arguments != NULL) {
-
-        for (index = 0; /* void */ ; index++) {
+        for (index = 0; /* void */; index++) {
             value = nxt_conf_get_array_element(c->arguments, index);
             if (value == NULL) {
                 break;
@@ -176,12 +164,12 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 
     argv[0] = c->executable;
-    i = 1;
+    i       = 1;
 
     if (c->arguments != NULL) {
         p = (u_char *) &argv[argc];
 
-        for (index = 0; /* void */ ; index++) {
+        for (index = 0; /* void */; index++) {
             value = nxt_conf_get_array_element(c->arguments, index);
             if (value == NULL) {
                 break;
@@ -191,7 +179,7 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
 
             nxt_conf_get_string(value, &str);
 
-            p = nxt_cpymem(p, str.start, str.length);
+            p    = nxt_cpymem(p, str.start, str.length);
             *p++ = '\0';
         }
     }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,16 +6,16 @@
 #include <nxt_main.h>
 
 
-static void nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data);
-static void nxt_job_thread_return_handler(nxt_task_t *task, void *obj,
-    void *data);
-
+static void
+nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_job_thread_return_handler(nxt_task_t *task, void *obj, void *data);
 
 void *
 nxt_job_create(nxt_mp_t *mp, size_t size)
 {
     size_t     cache_size;
-    nxt_job_t  *job;
+    nxt_job_t *job;
 
     if (mp == NULL) {
         mp = nxt_mp_create(1024, 128, 256, 32);
@@ -24,11 +23,11 @@ nxt_job_create(nxt_mp_t *mp, size_t size)
             return NULL;
         }
 
-        job = nxt_mp_zget(mp, size);
+        job        = nxt_mp_zget(mp, size);
         cache_size = 0;
 
     } else {
-        job = nxt_mp_zalloc(mp, size);
+        job        = nxt_mp_zalloc(mp, size);
         cache_size = size;
     }
 
@@ -37,7 +36,7 @@ nxt_job_create(nxt_mp_t *mp, size_t size)
     }
 
     job->cache_size = (uint16_t) cache_size;
-    job->mem_pool = mp;
+    job->mem_pool   = mp;
     nxt_job_set_name(job, "job");
 
     /* Allow safe nxt_queue_remove() in nxt_job_destroy(). */
@@ -45,7 +44,6 @@ nxt_job_create(nxt_mp_t *mp, size_t size)
 
     return job;
 }
-
 
 void
 nxt_job_init(nxt_job_t *job, size_t size)
@@ -57,18 +55,16 @@ nxt_job_init(nxt_job_t *job, size_t size)
     nxt_queue_self(&job->link);
 }
 
-
 void
 nxt_job_destroy(nxt_task_t *task, void *data)
 {
-    nxt_job_t  *job;
+    nxt_job_t *job;
 
     job = data;
 
     nxt_queue_remove(&job->link);
 
     if (job->cache_size == 0) {
-
         if (job->mem_pool != NULL) {
             nxt_mp_destroy(job->mem_pool);
         }
@@ -111,12 +107,12 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
     nxt_debug(task, "%s start", job->name);
 
     if (job->thread_pool != NULL) {
-        nxt_int_t  ret;
+        nxt_int_t ret;
 
         job->engine = task->thread->engine;
 
-        nxt_work_set(&job->work, nxt_job_thread_trampoline,
-                     job->task, job, (void *) handler);
+        nxt_work_set(&job->work, nxt_job_thread_trampoline, job->task, job,
+                     (void *) handler);
 
         ret = nxt_thread_pool_post(job->thread_pool, &job->work);
 
@@ -130,16 +126,15 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
     handler(job->task, job, job->data);
 }
 
-
 /* A trampoline function is called by a thread pool thread. */
 
 static void
 nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_job_t           *job;
-    nxt_work_handler_t  handler;
+    nxt_job_t         *job;
+    nxt_work_handler_t handler;
 
-    job = obj;
+    job     = obj;
     handler = (nxt_work_handler_t) data;
 
     nxt_debug(task, "%s thread", job->name);
@@ -152,7 +147,6 @@ nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data)
     }
 }
 
-
 void
 nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 {
@@ -161,8 +155,8 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
     if (job->engine != NULL) {
         /* A return function is called in thread pool thread context. */
 
-        nxt_work_set(&job->work, nxt_job_thread_return_handler,
-                     job->task, job, (void *) handler);
+        nxt_work_set(&job->work, nxt_job_thread_return_handler, job->task, job,
+                     (void *) handler);
 
         nxt_event_engine_post(job->engine, &job->work);
 
@@ -174,19 +168,18 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
         handler = job->abort_handler;
     }
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       handler, job->task, job, job->data);
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue, handler,
+                       job->task, job, job->data);
 }
-
 
 static void
 nxt_job_thread_return_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_job_t           *job;
-    nxt_work_handler_t  handler;
+    nxt_job_t         *job;
+    nxt_work_handler_t handler;
 
-    job = obj;
-    handler = (nxt_work_handler_t) data;
+    job               = obj;
+    handler           = (nxt_work_handler_t) data;
 
     job->task->thread = task->thread;
 

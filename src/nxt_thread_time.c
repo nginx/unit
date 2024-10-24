@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -30,21 +29,24 @@
  */
 
 
-static void nxt_time_thread(void *data);
-static void nxt_thread_time_shared(nxt_monotonic_time_t *now);
-static void nxt_thread_realtime_update(nxt_thread_t *thr,
-    nxt_monotonic_time_t *now);
-static u_char *nxt_thread_time_string_no_cache(nxt_thread_t *thr,
-    nxt_time_string_t *ts, u_char *buf);
-static nxt_atomic_uint_t nxt_thread_time_string_slot(nxt_time_string_t *ts);
-static nxt_time_string_cache_t *nxt_thread_time_string_cache(nxt_thread_t *thr,
-    nxt_atomic_uint_t slot);
+static void
+nxt_time_thread(void *data);
+static void
+nxt_thread_time_shared(nxt_monotonic_time_t *now);
+static void
+nxt_thread_realtime_update(nxt_thread_t *thr, nxt_monotonic_time_t *now);
+static u_char *
+nxt_thread_time_string_no_cache(nxt_thread_t *thr, nxt_time_string_t *ts,
+                                u_char *buf);
+static nxt_atomic_uint_t
+nxt_thread_time_string_slot(nxt_time_string_t *ts);
+static nxt_time_string_cache_t *
+nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot);
 
 
-static nxt_atomic_int_t               nxt_gmtoff;
-static nxt_bool_t                     nxt_use_shared_time = 0;
-static volatile nxt_monotonic_time_t  nxt_shared_time;
-
+static nxt_atomic_int_t              nxt_gmtoff;
+static nxt_bool_t                    nxt_use_shared_time = 0;
+static volatile nxt_monotonic_time_t nxt_shared_time;
 
 void
 nxt_thread_time_update(nxt_thread_t *thr)
@@ -57,12 +59,11 @@ nxt_thread_time_update(nxt_thread_t *thr)
     }
 }
 
-
 void
 nxt_thread_time_free(nxt_thread_t *thr)
 {
     nxt_uint_t               i;
-    nxt_time_string_cache_t  *tsc;
+    nxt_time_string_cache_t *tsc;
 
     tsc = thr->time.strings;
 
@@ -78,40 +79,38 @@ nxt_thread_time_free(nxt_thread_t *thr)
     }
 }
 
-
 void
 nxt_time_thread_start(nxt_msec_t interval)
 {
-    nxt_thread_link_t    *link;
-    nxt_thread_handle_t  handle;
+    nxt_thread_link_t  *link;
+    nxt_thread_handle_t handle;
 
     link = nxt_zalloc(sizeof(nxt_thread_link_t));
 
     if (nxt_fast_path(link != NULL)) {
-        link->start = nxt_time_thread;
+        link->start     = nxt_time_thread;
         link->work.data = (void *) (uintptr_t) interval;
 
         (void) nxt_thread_create(&handle, link);
     }
 }
 
-
 static void
 nxt_time_thread(void *data)
 {
-    nxt_nsec_t            interval, rest;
-    nxt_thread_t          *thr;
-    nxt_monotonic_time_t  now;
+    nxt_nsec_t           interval, rest;
+    nxt_thread_t        *thr;
+    nxt_monotonic_time_t now;
 
-    interval = (uintptr_t) data;
-    interval *= 1000000;
+    interval          = (uintptr_t) data;
+    interval         *= 1000000;
 
-    thr = nxt_thread();
+    thr               = nxt_thread();
     /*
      * The time thread is never preempted by asynchronous signals, since
      * the signals are processed synchronously by dedicated thread.
      */
-    thr->time.signal = -1;
+    thr->time.signal  = -1;
 
     nxt_log_debug(thr->log, "time thread");
 
@@ -120,10 +119,10 @@ nxt_time_thread(void *data)
     nxt_monotonic_time(&now);
     nxt_thread_realtime_update(thr, &now);
 
-    nxt_shared_time = now;
+    nxt_shared_time     = now;
     nxt_use_shared_time = 1;
 
-    for ( ;; ) {
+    for (;;) {
         rest = 1000000000 - now.realtime.nsec;
 
         nxt_nanosleep(nxt_min(interval, rest));
@@ -147,32 +146,29 @@ nxt_time_thread(void *data)
     }
 }
 
-
 static void
 nxt_thread_time_shared(nxt_monotonic_time_t *now)
 {
-    nxt_uint_t  n;
-    nxt_time_t  t;
-    nxt_nsec_t  m, u;
+    nxt_uint_t n;
+    nxt_time_t t;
+    nxt_nsec_t m, u;
 
     /* Lock-free thread time update. */
 
-    for ( ;; ) {
+    for (;;) {
         *now = nxt_shared_time;
 
-        t = nxt_shared_time.realtime.sec;
-        n = nxt_shared_time.realtime.nsec;
-        m = nxt_shared_time.monotonic;
-        u = nxt_shared_time.update;
+        t    = nxt_shared_time.realtime.sec;
+        n    = nxt_shared_time.realtime.nsec;
+        m    = nxt_shared_time.monotonic;
+        u    = nxt_shared_time.update;
 
         if (now->realtime.sec == t && now->realtime.nsec == n
-            && now->monotonic == m && now->update == u)
-        {
+            && now->monotonic == m && now->update == u) {
             return;
         }
     }
 }
-
 
 nxt_time_t
 nxt_thread_time(nxt_thread_t *thr)
@@ -182,7 +178,6 @@ nxt_thread_time(nxt_thread_t *thr)
     return thr->time.now.realtime.sec;
 }
 
-
 nxt_realtime_t *
 nxt_thread_realtime(nxt_thread_t *thr)
 {
@@ -191,20 +186,18 @@ nxt_thread_realtime(nxt_thread_t *thr)
     return &thr->time.now.realtime;
 }
 
-
 static void
 nxt_thread_realtime_update(nxt_thread_t *thr, nxt_monotonic_time_t *now)
 {
-    nxt_nsec_t  delta;
+    nxt_nsec_t delta;
 
 #if (NXT_DEBUG)
 
     if (nxt_slow_path(thr->log->level == NXT_LOG_DEBUG || nxt_debug)) {
-
         if (now->monotonic >= now->update) {
             nxt_realtime(&now->realtime);
 
-            delta = 1000000 - now->realtime.nsec % 1000000;
+            delta       = 1000000 - now->realtime.nsec % 1000000;
             now->update = now->monotonic + delta;
         }
 
@@ -216,21 +209,20 @@ nxt_thread_realtime_update(nxt_thread_t *thr, nxt_monotonic_time_t *now)
     if (now->monotonic >= now->update) {
         nxt_realtime(&now->realtime);
 
-        delta = 1000000000 - now->realtime.nsec;
+        delta       = 1000000000 - now->realtime.nsec;
         now->update = now->monotonic + delta;
     }
 }
 
-
 u_char *
 nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
 {
-    u_char                   *p;
-    struct tm                *tm;
+    u_char                  *p;
+    struct tm               *tm;
     nxt_time_t               s;
     nxt_bool_t               update;
     nxt_atomic_uint_t        slot;
-    nxt_time_string_cache_t  *tsc;
+    nxt_time_string_cache_t *tsc;
 
     if (nxt_slow_path(thr == NULL || thr->time.no_cache)) {
         return nxt_thread_time_string_no_cache(thr, ts, buf);
@@ -238,7 +230,7 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
 
     slot = nxt_thread_time_string_slot(ts);
 
-    tsc = nxt_thread_time_string_cache(thr, slot);
+    tsc  = nxt_thread_time_string_cache(thr, slot);
     if (tsc == NULL) {
         return buf;
     }
@@ -251,32 +243,28 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
         nxt_thread_realtime_update(thr, &thr->time.now);
     }
 
-    s = thr->time.now.realtime.sec;
+    s      = thr->time.now.realtime.sec;
 
     update = (s != tsc->last);
 
 #if (NXT_DEBUG)
 
     if (ts->msec == NXT_THREAD_TIME_MSEC
-        && (nxt_slow_path(thr->log->level == NXT_LOG_DEBUG || nxt_debug)))
-    {
-        nxt_msec_t  ms;
+        && (nxt_slow_path(thr->log->level == NXT_LOG_DEBUG || nxt_debug))) {
+        nxt_msec_t ms;
 
-        ms = thr->time.now.realtime.nsec / 1000000;
-        update |= (ms != tsc->last_msec);
-        tsc->last_msec = ms;
+        ms              = thr->time.now.realtime.nsec / 1000000;
+        update         |= (ms != tsc->last_msec);
+        tsc->last_msec  = ms;
     }
 
 #endif
 
     if (nxt_slow_path(update)) {
-
         if (ts->timezone == NXT_THREAD_TIME_LOCAL) {
-
             tm = &thr->time.localtime;
 
             if (nxt_slow_path(s != thr->time.last_localtime)) {
-
                 if (thr->time.signal < 0) {
                     /*
                      * Lazy local time update:
@@ -314,15 +302,13 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
                 nxt_gmtime(s, tm);
                 thr->time.last_gmtime = s;
             }
-
         }
 
         p = tsc->string.start;
 
         if (nxt_slow_path(p == NULL)) {
-
             thr->time.no_cache = 1;
-            p = nxt_zalloc(ts->size);
+            p                  = nxt_zalloc(ts->size);
             thr->time.no_cache = 0;
 
             if (p == NULL) {
@@ -346,18 +332,16 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
     return nxt_cpymem(buf, tsc->string.start, tsc->string.length);
 }
 
-
 static u_char *
 nxt_thread_time_string_no_cache(nxt_thread_t *thr, nxt_time_string_t *ts,
-    u_char *buf)
+                                u_char *buf)
 {
-    struct tm       tm;
-    nxt_realtime_t  now;
+    struct tm      tm;
+    nxt_realtime_t now;
 
     nxt_realtime(&now);
 
     if (ts->timezone == NXT_THREAD_TIME_LOCAL) {
-
         if (thr == NULL || thr->time.signal <= 0) {
             /* Non-signal context */
             nxt_localtime(now.sec, &tm);
@@ -373,11 +357,10 @@ nxt_thread_time_string_no_cache(nxt_thread_t *thr, nxt_time_string_t *ts,
     return ts->handler(buf, &now, &tm, ts->size, ts->format);
 }
 
-
 static nxt_atomic_uint_t
 nxt_thread_time_string_slot(nxt_time_string_t *ts)
 {
-    static nxt_atomic_t  slot;
+    static nxt_atomic_t slot;
 
     while (nxt_slow_path((nxt_atomic_int_t) ts->slot < 0)) {
         /*
@@ -395,13 +378,12 @@ nxt_thread_time_string_slot(nxt_time_string_t *ts)
     return (nxt_atomic_uint_t) ts->slot;
 }
 
-
 static nxt_time_string_cache_t *
 nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot)
 {
     size_t                   size;
     nxt_atomic_uint_t        i, nstrings;
-    nxt_time_string_cache_t  *tsc;
+    nxt_time_string_cache_t *tsc;
 
     if (nxt_fast_path(slot < thr->time.nstrings)) {
         tsc = &thr->time.strings[slot];
@@ -409,11 +391,11 @@ nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot)
         return tsc;
     }
 
-    nstrings = slot + 1;
-    size = nstrings * sizeof(nxt_time_string_cache_t);
+    nstrings           = slot + 1;
+    size               = nstrings * sizeof(nxt_time_string_cache_t);
 
     thr->time.no_cache = 1;
-    tsc = nxt_realloc(thr->time.strings, size);
+    tsc                = nxt_realloc(thr->time.strings, size);
     thr->time.no_cache = 0;
 
     if (tsc == NULL) {
@@ -421,11 +403,11 @@ nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot)
     }
 
     for (i = thr->time.nstrings; i < nstrings; i++) {
-        tsc[i].last = -1;
+        tsc[i].last         = -1;
         tsc[i].string.start = NULL;
     }
 
-    thr->time.strings = tsc;
+    thr->time.strings  = tsc;
     thr->time.nstrings = nstrings;
 
     return &tsc[slot];

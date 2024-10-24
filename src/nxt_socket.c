@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,15 +6,14 @@
 #include <nxt_main.h>
 
 
-static const char *nxt_socket_sockopt_name(nxt_uint_t level,
-    nxt_uint_t sockopt);
-
+static const char *
+nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt);
 
 nxt_socket_t
 nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
-    nxt_uint_t protocol, nxt_uint_t flags)
+                  nxt_uint_t protocol, nxt_uint_t flags)
 {
-    nxt_socket_t  s;
+    nxt_socket_t s;
 
 #if (NXT_HAVE_SOCK_NONBLOCK)
 
@@ -28,8 +26,8 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
     s = socket(domain, type, protocol);
 
     if (nxt_slow_path(s == -1)) {
-        nxt_alert(task, "socket(%ui, 0x%uXi, %ui) failed %E",
-                  domain, type, protocol, nxt_socket_errno);
+        nxt_alert(task, "socket(%ui, 0x%uXi, %ui) failed %E", domain, type,
+                  protocol, nxt_socket_errno);
         return s;
     }
 
@@ -48,7 +46,6 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
 
     return s;
 }
-
 
 void
 nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
@@ -70,60 +67,53 @@ nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 #endif
 }
 
-
 nxt_int_t
 nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
-    nxt_uint_t sockopt)
+                      nxt_uint_t sockopt)
 {
-    int        val;
-    socklen_t  len;
+    int       val;
+    socklen_t len;
 
     len = sizeof(val);
 
     if (nxt_fast_path(getsockopt(s, level, sockopt, &val, &len) == 0)) {
-        nxt_debug(task, "getsockopt(%d, %ui, %s): %d",
-                  s, level, nxt_socket_sockopt_name(level, sockopt), val);
+        nxt_debug(task, "getsockopt(%d, %ui, %s): %d", s, level,
+                  nxt_socket_sockopt_name(level, sockopt), val);
         return val;
     }
 
-    nxt_alert(task, "getsockopt(%d, %ui, %s) failed %E",
-              s, level, nxt_socket_sockopt_name(level, sockopt),
-              nxt_socket_errno);
+    nxt_alert(task, "getsockopt(%d, %ui, %s) failed %E", s, level,
+              nxt_socket_sockopt_name(level, sockopt), nxt_socket_errno);
 
     return -1;
 }
 
-
 nxt_int_t
 nxt_socket_setsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
-    nxt_uint_t sockopt, int val)
+                      nxt_uint_t sockopt, int val)
 {
-    socklen_t  len;
+    socklen_t len;
 
     len = sizeof(val);
 
     if (nxt_fast_path(setsockopt(s, level, sockopt, &val, len) == 0)) {
-        nxt_debug(task, "setsockopt(%d, %ui, %s): %d",
-                  s, level, nxt_socket_sockopt_name(level, sockopt), val);
+        nxt_debug(task, "setsockopt(%d, %ui, %s): %d", s, level,
+                  nxt_socket_sockopt_name(level, sockopt), val);
         return NXT_OK;
     }
 
-    nxt_alert(task, "setsockopt(%d, %ui, %s, %d) failed %E",
-              s, level, nxt_socket_sockopt_name(level, sockopt), val,
-              nxt_socket_errno);
+    nxt_alert(task, "setsockopt(%d, %ui, %s, %d) failed %E", s, level,
+              nxt_socket_sockopt_name(level, sockopt), val, nxt_socket_errno);
 
     return NXT_ERROR;
 }
-
 
 static const char *
 nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
 {
     switch (level) {
-
     case SOL_SOCKET:
         switch (sockopt) {
-
         case SO_SNDBUF:
             return "SO_SNDBUF";
 
@@ -141,7 +131,6 @@ nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
 
     case IPPROTO_TCP:
         switch (sockopt) {
-
         case TCP_NODELAY:
             return "TCP_NODELAY";
 
@@ -157,19 +146,16 @@ nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
     case IPPROTO_IPV6:
 
         switch (sockopt) {
-
         case IPV6_V6ONLY:
             return "IPV6_V6ONLY";
         }
 
         break;
 #endif
-
     }
 
     return "";
 }
-
 
 nxt_int_t
 nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
@@ -181,22 +167,21 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
         return NXT_OK;
     }
 
-    nxt_alert(task, "bind(%d, %*s) failed %E",
-              s, (size_t) sa->length, nxt_sockaddr_start(sa), nxt_socket_errno);
+    nxt_alert(task, "bind(%d, %*s) failed %E", s, (size_t) sa->length,
+              nxt_sockaddr_start(sa), nxt_socket_errno);
 
     return NXT_ERROR;
 }
 
-
 nxt_int_t
 nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 {
-    nxt_err_t   err;
-    nxt_int_t   ret;
-    nxt_uint_t  level;
+    nxt_err_t  err;
+    nxt_int_t  ret;
+    nxt_uint_t level;
 
-    nxt_debug(task, "connect(%d, %*s)",
-              s, (size_t) sa->length, nxt_sockaddr_start(sa));
+    nxt_debug(task, "connect(%d, %*s)", s, (size_t) sa->length,
+              nxt_sockaddr_start(sa));
 
     if (connect(s, &sa->u.sockaddr, sa->socklen) == 0) {
         return NXT_OK;
@@ -205,10 +190,9 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
     err = nxt_socket_errno;
 
     switch (err) {
-
     case NXT_EINPROGRESS:
-        nxt_debug(task, "connect(%d, %*s) in progress",
-                  s, (size_t) sa->length, nxt_sockaddr_start(sa));
+        nxt_debug(task, "connect(%d, %*s) in progress", s, (size_t) sa->length,
+                  nxt_sockaddr_start(sa));
         return NXT_AGAIN;
 
     case NXT_ECONNREFUSED:
@@ -220,7 +204,7 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
          */
 #endif
         level = NXT_LOG_ERR;
-        ret = NXT_DECLINED;
+        ret   = NXT_DECLINED;
         break;
 
     case NXT_ECONNRESET:
@@ -229,26 +213,25 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
     case NXT_EHOSTDOWN:
     case NXT_EHOSTUNREACH:
         level = NXT_LOG_ERR;
-        ret = NXT_ERROR;
+        ret   = NXT_ERROR;
         break;
 
     default:
         level = NXT_LOG_ALERT;
-        ret = NXT_ERROR;
+        ret   = NXT_ERROR;
     }
 
-    nxt_log(task, level, "connect(%d, %*s) failed %E",
-            s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
+    nxt_log(task, level, "connect(%d, %*s) failed %E", s, (size_t) sa->length,
+            nxt_sockaddr_start(sa), err);
 
     return ret;
 }
 
-
 void
 nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
 {
-    nxt_err_t   err;
-    nxt_uint_t  level;
+    nxt_err_t  err;
+    nxt_uint_t level;
 
     if (nxt_fast_path(shutdown(s, how) == 0)) {
         nxt_debug(task, "shutdown(%d, %ui)", s, how);
@@ -258,7 +241,6 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
     err = nxt_socket_errno;
 
     switch (err) {
-
     case NXT_ENOTCONN:
         level = NXT_LOG_DEBUG;
         break;
@@ -278,12 +260,11 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
     nxt_log(task, level, "shutdown(%d, %ui) failed %E", s, how, err);
 }
 
-
 void
 nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
 {
-    nxt_err_t   err;
-    nxt_uint_t  level;
+    nxt_err_t  err;
+    nxt_uint_t level;
 
     if (nxt_fast_path(close(s) == 0)) {
         nxt_debug(task, "socket close(%d)", s);
@@ -293,7 +274,6 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
     err = nxt_socket_errno;
 
     switch (err) {
-
     case NXT_ENOTCONN:
         level = NXT_LOG_DEBUG;
         break;
@@ -313,12 +293,11 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
     nxt_log(task, level, "socket close(%d) failed %E", s, err);
 }
 
-
 nxt_err_t
 nxt_socket_error(nxt_socket_t s)
 {
-    int        ret, err;
-    socklen_t  len;
+    int       ret, err;
+    socklen_t len;
 
     err = 0;
     len = sizeof(int);
@@ -335,12 +314,10 @@ nxt_socket_error(nxt_socket_t s)
     return err;
 }
 
-
 nxt_uint_t
 nxt_socket_error_level(nxt_err_t err)
 {
     switch (err) {
-
     case NXT_EPIPE:
     case NXT_ECONNRESET:
     case NXT_ENOTCONN:

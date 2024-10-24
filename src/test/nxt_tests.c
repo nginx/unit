@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -8,11 +7,10 @@
 #include "nxt_tests.h"
 
 
-extern char  **environ;
+extern char **environ;
 
-nxt_module_init_t  nxt_init_modules[1];
-nxt_uint_t         nxt_init_modules_n;
-
+nxt_module_init_t nxt_init_modules[1];
+nxt_uint_t        nxt_init_modules_n;
 
 /* The function is defined here to prevent inline optimizations. */
 static nxt_bool_t
@@ -21,28 +19,26 @@ nxt_msec_less(nxt_msec_t first, nxt_msec_t second)
     return (nxt_msec_diff(first, second) < 0);
 }
 
-
 int nxt_cdecl
 main(int argc, char **argv)
 {
     nxt_task_t    task;
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     if (nxt_lib_start("tests", argv, &environ) != NXT_OK) {
         return 1;
     }
 
     nxt_main_log.level = NXT_LOG_INFO;
-    task.log  = &nxt_main_log;
+    task.log           = &nxt_main_log;
 
-    thr = nxt_thread();
-    thr->task = &task;
+    thr                = nxt_thread();
+    thr->task          = &task;
 
 #if (NXT_TEST_RTDTSC)
 
     if (nxt_process_argv[1] != NULL
-        && memcmp(nxt_process_argv[1], "rbm", 3) == 0)
-    {
+        && memcmp(nxt_process_argv[1], "rbm", 3) == 0) {
         if (nxt_rbtree1_mb_start(thr) != NXT_OK) {
             return 1;
         }

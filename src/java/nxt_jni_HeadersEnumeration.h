@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -11,9 +10,11 @@
 #include <nxt_unit_typedefs.h>
 
 
-int nxt_java_initHeadersEnumeration(JNIEnv *env, jobject cl);
+int
+nxt_java_initHeadersEnumeration(JNIEnv *env, jobject cl);
 
-jobject nxt_java_newHeadersEnumeration(JNIEnv *env, nxt_unit_field_t *f,
-    uint32_t fields_count, uint32_t pos);
+jobject
+nxt_java_newHeadersEnumeration(JNIEnv *env, nxt_unit_field_t *f,
+                               uint32_t fields_count, uint32_t pos);
 
-#endif  /* _NXT_JAVA_HEADERSENUMERATION_H_INCLUDED_ */
+#endif /* _NXT_JAVA_HEADERSENUMERATION_H_INCLUDED_ */

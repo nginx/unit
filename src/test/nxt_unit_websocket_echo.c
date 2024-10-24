@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -12,14 +11,13 @@
 #include <nxt_websocket.h>
 #include <nxt_unit_websocket.h>
 
-
 static void
 ws_echo_request_handler(nxt_unit_request_info_t *req)
 {
     int         rc;
-    const char  *target;
+    const char *target;
 
-    rc = NXT_UNIT_OK;
+    rc     = NXT_UNIT_OK;
     target = nxt_unit_sptr_get(&req->request->target);
 
     if (strcmp(target, "/") == 0) {
@@ -47,23 +45,22 @@ fail:
     nxt_unit_request_done(req, rc);
 }
 
-
 static void
 ws_echo_websocket_handler(nxt_unit_websocket_frame_t *ws)
 {
     uint8_t                  opcode;
     ssize_t                  size;
-    nxt_unit_request_info_t  *req;
+    nxt_unit_request_info_t *req;
 
-    static size_t            buf_size = 0;
-    static uint8_t           *buf = NULL;
+    static size_t   buf_size = 0;
+    static uint8_t *buf      = NULL;
 
     if (buf_size < ws->content_length) {
-        buf = realloc(buf, ws->content_length);
+        buf      = realloc(buf, ws->content_length);
         buf_size = ws->content_length;
     }
 
-    req = ws->req;
+    req    = ws->req;
     opcode = ws->header->opcode;
 
     if (opcode == NXT_WEBSOCKET_OP_PONG) {
@@ -81,19 +78,18 @@ ws_echo_websocket_handler(nxt_unit_websocket_frame_t *ws)
     }
 }
 
-
 int
 main(void)
 {
-    nxt_unit_ctx_t   *ctx;
-    nxt_unit_init_t  init;
+    nxt_unit_ctx_t *ctx;
+    nxt_unit_init_t init;
 
     memset(&init, 0, sizeof(nxt_unit_init_t));
 
-    init.callbacks.request_handler = ws_echo_request_handler;
+    init.callbacks.request_handler   = ws_echo_request_handler;
     init.callbacks.websocket_handler = ws_echo_websocket_handler;
 
-    ctx = nxt_unit_init(&init);
+    ctx                              = nxt_unit_init(&init);
     if (ctx == NULL) {
         return 1;
     }

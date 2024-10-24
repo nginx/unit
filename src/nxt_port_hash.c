@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Max Romanov
  * Copyright (C) NGINX, Inc.
@@ -6,40 +5,35 @@
 
 #include <nxt_port_hash.h>
 
-
 // Explicitly using 32 bit types to avoid possible alignment.
 typedef struct {
-    int32_t   pid;
-    uint32_t  port_id;
+    int32_t  pid;
+    uint32_t port_id;
 } nxt_pid_port_id_t;
-
 
 static nxt_int_t
 nxt_port_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
-    nxt_port_t         *port;
-    nxt_pid_port_id_t  *pid_port_id;
+    nxt_port_t        *port;
+    nxt_pid_port_id_t *pid_port_id;
 
-    port = data;
+    port        = data;
     pid_port_id = (nxt_pid_port_id_t *) lhq->key.start;
 
     if (lhq->key.length == sizeof(nxt_pid_port_id_t)
-        && pid_port_id->pid == port->pid
-        && pid_port_id->port_id == port->id)
-    {
+        && pid_port_id->pid == port->pid && pid_port_id->port_id == port->id) {
         return NXT_OK;
     }
 
     return NXT_DECLINED;
 }
 
-static const nxt_lvlhsh_proto_t  lvlhsh_ports_proto  nxt_aligned(64) = {
+static const nxt_lvlhsh_proto_t lvlhsh_ports_proto nxt_aligned(64) = {
     NXT_LVLHSH_DEFAULT,
     nxt_port_hash_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,
 };
-
 
 nxt_port_t *
 nxt_port_hash_retrieve(nxt_lvlhsh_t *port_hash)
@@ -47,36 +41,33 @@ nxt_port_hash_retrieve(nxt_lvlhsh_t *port_hash)
     return nxt_lvlhsh_retrieve(port_hash, &lvlhsh_ports_proto, NULL);
 }
 
-
 nxt_inline void
 nxt_port_hash_lhq(nxt_lvlhsh_query_t *lhq, nxt_pid_port_id_t *pid_port)
 {
-    lhq->key_hash = nxt_murmur_hash2(pid_port, sizeof(nxt_pid_port_id_t));
+    lhq->key_hash   = nxt_murmur_hash2(pid_port, sizeof(nxt_pid_port_id_t));
     lhq->key.length = sizeof(nxt_pid_port_id_t);
-    lhq->key.start = (u_char *) pid_port;
-    lhq->proto = &lvlhsh_ports_proto;
-    lhq->pool = NULL;
+    lhq->key.start  = (u_char *) pid_port;
+    lhq->proto      = &lvlhsh_ports_proto;
+    lhq->pool       = NULL;
 }
-
 
 nxt_int_t
 nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
-    nxt_int_t           res;
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_int_t          res;
+    nxt_pid_port_id_t  pid_port;
+    nxt_lvlhsh_query_t lhq;
 
-    pid_port.pid = port->pid;
+    pid_port.pid     = port->pid;
     pid_port.port_id = port->id;
 
     nxt_port_hash_lhq(&lhq, &pid_port);
     lhq.replace = 0;
-    lhq.value = port;
+    lhq.value   = port;
 
-    res = nxt_lvlhsh_insert(port_hash, &lhq);
+    res         = nxt_lvlhsh_insert(port_hash, &lhq);
 
     switch (res) {
-
     case NXT_OK:
         break;
 
@@ -89,15 +80,14 @@ nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
     return res;
 }
 
-
 nxt_int_t
 nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
-    nxt_int_t           res;
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_int_t          res;
+    nxt_pid_port_id_t  pid_port;
+    nxt_lvlhsh_query_t lhq;
 
-    pid_port.pid = port->pid;
+    pid_port.pid     = port->pid;
     pid_port.port_id = port->id;
 
     nxt_port_hash_lhq(&lhq, &pid_port);
@@ -105,7 +95,6 @@ nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
     res = nxt_lvlhsh_delete(port_hash, &lhq);
 
     switch (res) {
-
     case NXT_OK:
         break;
 
@@ -118,15 +107,14 @@ nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
     return res;
 }
 
-
 nxt_port_t *
 nxt_port_hash_find(nxt_lvlhsh_t *port_hash, nxt_pid_t pid,
-    nxt_port_id_t port_id)
+                   nxt_port_id_t port_id)
 {
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_pid_port_id_t  pid_port;
+    nxt_lvlhsh_query_t lhq;
 
-    pid_port.pid = pid;
+    pid_port.pid     = pid;
     pid_port.port_id = port_id;
 
     nxt_port_hash_lhq(&lhq, &pid_port);

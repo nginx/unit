@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -8,34 +7,35 @@
 #include <nxt_runtime.h>
 
 
-static nxt_time_string_t  nxt_log_error_time_cache;
-static u_char *nxt_log_error_time(u_char *buf, nxt_realtime_t *now,
-    struct tm *tm, size_t size, const char *format);
-static nxt_time_string_t  nxt_log_debug_time_cache;
-static u_char *nxt_log_debug_time(u_char *buf, nxt_realtime_t *now,
-    struct tm *tm, size_t size, const char *format);
-
+static nxt_time_string_t nxt_log_error_time_cache;
+static u_char *
+nxt_log_error_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
+                   const char *format);
+static nxt_time_string_t nxt_log_debug_time_cache;
+static u_char *
+nxt_log_debug_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
+                   const char *format);
 
 void nxt_cdecl
 nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
-    u_char             *p, *end;
+    u_char *p, *end;
 #if 0
     u_char             *syslogmsg;
 #endif
     va_list            args;
-    nxt_thread_t       *thr;
-    nxt_time_string_t  *time_cache;
+    nxt_thread_t      *thr;
+    nxt_time_string_t *time_cache;
     u_char             msg[NXT_MAX_ERROR_STR];
 
-    thr = nxt_thread();
+    thr        = nxt_thread();
 
-    end = msg + NXT_MAX_ERROR_STR;
+    end        = msg + NXT_MAX_ERROR_STR;
 
-    time_cache = (log->level != NXT_LOG_DEBUG) ? &nxt_log_error_time_cache:
-                                                 &nxt_log_debug_time_cache;
+    time_cache = (log->level != NXT_LOG_DEBUG) ? &nxt_log_error_time_cache
+                                               : &nxt_log_debug_time_cache;
 
-    p = nxt_thread_time_string(thr, time_cache, msg);
+    p          = nxt_thread_time_string(thr, time_cache, msg);
 
 #if 0
     syslogmsg = p;
@@ -97,28 +97,22 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 #endif
 }
 
-
-static nxt_time_string_t  nxt_log_error_time_cache = {
-    (nxt_atomic_uint_t) -1,
-    nxt_log_error_time,
-    "%4d/%02d/%02d %02d:%02d:%02d ",
-    nxt_length("1970/09/28 12:00:00 "),
-    NXT_THREAD_TIME_LOCAL,
-    NXT_THREAD_TIME_SEC,
+static nxt_time_string_t nxt_log_error_time_cache = {
+    (nxt_atomic_uint_t) -1,          nxt_log_error_time,
+    "%4d/%02d/%02d %02d:%02d:%02d ", nxt_length("1970/09/28 12:00:00 "),
+    NXT_THREAD_TIME_LOCAL,           NXT_THREAD_TIME_SEC,
 };
-
 
 static u_char *
 nxt_log_error_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
-    const char *format)
+                   const char *format)
 {
-    return nxt_sprintf(buf, buf + size, format,
-                       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+    return nxt_sprintf(buf, buf + size, format, tm->tm_year + 1900,
+                       tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min,
+                       tm->tm_sec);
 }
 
-
-static nxt_time_string_t  nxt_log_debug_time_cache = {
+static nxt_time_string_t nxt_log_debug_time_cache = {
     (nxt_atomic_uint_t) -1,
     nxt_log_debug_time,
     "%4d/%02d/%02d %02d:%02d:%02d.%03d ",
@@ -127,13 +121,11 @@ static nxt_time_string_t  nxt_log_debug_time_cache = {
     NXT_THREAD_TIME_MSEC,
 };
 
-
 static u_char *
 nxt_log_debug_time(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
-    const char *format)
+                   const char *format)
 {
-    return nxt_sprintf(buf, buf + size, format,
-                       tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec,
-                       now->nsec / 1000000);
+    return nxt_sprintf(buf, buf + size, format, tm->tm_year + 1900,
+                       tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min,
+                       tm->tm_sec, now->nsec / 1000000);
 }

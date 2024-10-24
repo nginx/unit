@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -6,7 +5,6 @@
 
 #ifndef _NXT_JOB_H_INCLUDED_
 #define _NXT_JOB_H_INCLUDED_
-
 
 /*
  * A job may run by separate thread, so each job should have its
@@ -31,50 +29,51 @@
 
 
 typedef struct {
-    void                *data;
+    void *data;
 
-    nxt_task_t          *task;
+    nxt_task_t *task;
 
-    nxt_work_handler_t  abort_handler;
+    nxt_work_handler_t abort_handler;
 
-    uint16_t            cache_size;
-    uint8_t             cancel;          /* 1 bit */
+    uint16_t cache_size;
+    uint8_t  cancel; /* 1 bit */
 
-    nxt_mp_t            *mem_pool;
-    nxt_queue_link_t    link;
+    nxt_mp_t        *mem_pool;
+    nxt_queue_link_t link;
 
-    nxt_thread_pool_t   *thread_pool;
-    nxt_event_engine_t  *engine;
-    nxt_log_t           *log;
+    nxt_thread_pool_t  *thread_pool;
+    nxt_event_engine_t *engine;
+    nxt_log_t          *log;
 
-    nxt_work_t          work;
+    nxt_work_t work;
 
 #if (NXT_DEBUG)
-    const char          *name;
+    const char *name;
 #endif
 
 } nxt_job_t;
 
+NXT_EXPORT void *
+nxt_job_create(nxt_mp_t *mp, size_t size);
+NXT_EXPORT void
+nxt_job_init(nxt_job_t *job, size_t size);
+NXT_EXPORT void
+nxt_job_destroy(nxt_task_t *task, void *data);
+NXT_EXPORT nxt_int_t
+nxt_job_cleanup_add(nxt_mp_t *mp, nxt_job_t *job);
 
-NXT_EXPORT void *nxt_job_create(nxt_mp_t *mp, size_t size);
-NXT_EXPORT void nxt_job_init(nxt_job_t *job, size_t size);
-NXT_EXPORT void nxt_job_destroy(nxt_task_t *task, void *data);
-NXT_EXPORT nxt_int_t nxt_job_cleanup_add(nxt_mp_t *mp, nxt_job_t *job);
-
-NXT_EXPORT void nxt_job_start(nxt_task_t *task, nxt_job_t *job,
-    nxt_work_handler_t handler);
-NXT_EXPORT void nxt_job_return(nxt_task_t *task, nxt_job_t *job,
-    nxt_work_handler_t handler);
+NXT_EXPORT void
+nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler);
+NXT_EXPORT void
+nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler);
 
 
-#define nxt_job_cancel(job)                                                   \
-    (job)->cancel = 1
+#define nxt_job_cancel(job) (job)->cancel = 1
 
 
 #if (NXT_DEBUG)
 
-#define nxt_job_set_name(job, text)                                           \
-    (job)->name = text
+#define nxt_job_set_name(job, text) (job)->name = text
 
 #else
 

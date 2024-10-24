@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -14,42 +13,44 @@
 #include <python/nxt_python_asgi.h>
 #include <python/nxt_python_asgi_str.h>
 
-
 typedef struct {
-    PyObject_HEAD
-    nxt_unit_request_info_t  *req;
-    nxt_queue_link_t         link;
-    PyObject                 *receive_future;
-    PyObject                 *send_future;
-    uint64_t                 content_length;
-    uint64_t                 bytes_sent;
-    PyObject                 *send_body;
-    Py_ssize_t               send_body_off;
-    uint8_t                  complete;
-    uint8_t                  closed;
-    uint8_t                  empty_body_received;
+    PyObject_HEAD nxt_unit_request_info_t *req;
+    nxt_queue_link_t                       link;
+    PyObject                              *receive_future;
+    PyObject                              *send_future;
+    uint64_t                               content_length;
+    uint64_t                               bytes_sent;
+    PyObject                              *send_body;
+    Py_ssize_t                             send_body_off;
+    uint8_t                                complete;
+    uint8_t                                closed;
+    uint8_t                                empty_body_received;
 } nxt_py_asgi_http_t;
 
+static PyObject *
+nxt_py_asgi_http_receive(PyObject *self, PyObject *none);
+static PyObject *
+nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http);
+static PyObject *
+nxt_py_asgi_http_send(PyObject *self, PyObject *dict);
+static PyObject *
+nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http, PyObject *dict);
+static PyObject *
+nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict);
+static void
+nxt_py_asgi_http_emit_disconnect(nxt_py_asgi_http_t *http);
+static void
+nxt_py_asgi_http_set_result(nxt_py_asgi_http_t *http, PyObject *future,
+                            PyObject *msg);
+static PyObject *
+nxt_py_asgi_http_done(PyObject *self, PyObject *future);
 
-static PyObject *nxt_py_asgi_http_receive(PyObject *self, PyObject *none);
-static PyObject *nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http);
-static PyObject *nxt_py_asgi_http_send(PyObject *self, PyObject *dict);
-static PyObject *nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http,
-    PyObject *dict);
-static PyObject *nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http,
-    PyObject *dict);
-static void nxt_py_asgi_http_emit_disconnect(nxt_py_asgi_http_t *http);
-static void nxt_py_asgi_http_set_result(nxt_py_asgi_http_t *http,
-    PyObject *future, PyObject *msg);
-static PyObject *nxt_py_asgi_http_done(PyObject *self, PyObject *future);
 
-
-static PyMethodDef nxt_py_asgi_http_methods[] = {
-    { "receive",   nxt_py_asgi_http_receive, METH_NOARGS, 0 },
-    { "send",      nxt_py_asgi_http_send,    METH_O,      0 },
-    { "_done",     nxt_py_asgi_http_done,    METH_O,      0 },
-    { NULL, NULL, 0, 0 }
-};
+static PyMethodDef nxt_py_asgi_http_methods[]
+    = {{"receive", nxt_py_asgi_http_receive, METH_NOARGS, 0},
+       {"send", nxt_py_asgi_http_send, METH_O, 0},
+       {"_done", nxt_py_asgi_http_done, METH_O, 0},
+       {NULL, NULL, 0, 0}};
 
 static PyAsyncMethods nxt_py_asgi_async_methods = {
     .am_await = nxt_py_asgi_await,
@@ -58,7 +59,8 @@ static PyAsyncMethods nxt_py_asgi_async_methods = {
 static PyTypeObject nxt_py_asgi_http_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
 
-    .tp_name      = "unit._asgi_http",
+        .tp_name
+    = "unit._asgi_http",
     .tp_basicsize = sizeof(nxt_py_asgi_http_t),
     .tp_dealloc   = nxt_py_asgi_dealloc,
     .tp_as_async  = &nxt_py_asgi_async_methods,
@@ -69,8 +71,7 @@ static PyTypeObject nxt_py_asgi_http_type = {
     .tp_methods   = nxt_py_asgi_http_methods,
 };
 
-static Py_ssize_t  nxt_py_asgi_http_body_buf_size = 32 * 1024 * 1024;
-
+static Py_ssize_t nxt_py_asgi_http_body_buf_size = 32 * 1024 * 1024;
 
 int
 nxt_py_asgi_http_init(void)
@@ -84,45 +85,43 @@ nxt_py_asgi_http_init(void)
     return NXT_UNIT_OK;
 }
 
-
 PyObject *
 nxt_py_asgi_http_create(nxt_unit_request_info_t *req)
 {
-    nxt_py_asgi_http_t  *http;
+    nxt_py_asgi_http_t *http;
 
     http = PyObject_New(nxt_py_asgi_http_t, &nxt_py_asgi_http_type);
 
     if (nxt_fast_path(http != NULL)) {
-        http->req = req;
-        http->receive_future = NULL;
-        http->send_future = NULL;
-        http->content_length = -1;
-        http->bytes_sent = 0;
-        http->send_body = NULL;
-        http->send_body_off = 0;
-        http->complete = 0;
-        http->closed = 0;
+        http->req                 = req;
+        http->receive_future      = NULL;
+        http->send_future         = NULL;
+        http->content_length      = -1;
+        http->bytes_sent          = 0;
+        http->send_body           = NULL;
+        http->send_body_off       = 0;
+        http->complete            = 0;
+        http->closed              = 0;
         http->empty_body_received = 0;
     }
 
     return (PyObject *) http;
 }
 
-
 static PyObject *
 nxt_py_asgi_http_receive(PyObject *self, PyObject *none)
 {
-    PyObject                 *msg, *future;
-    nxt_py_asgi_http_t       *http;
-    nxt_py_asgi_ctx_data_t   *ctx_data;
-    nxt_unit_request_info_t  *req;
+    PyObject                *msg, *future;
+    nxt_py_asgi_http_t      *http;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
+    nxt_unit_request_info_t *req;
 
     http = (nxt_py_asgi_http_t *) self;
-    req = http->req;
+    req  = http->req;
 
     nxt_unit_req_debug(req, "asgi_http_receive");
 
-    if (nxt_slow_path(http->closed || http->complete )) {
+    if (nxt_slow_path(http->closed || http->complete)) {
         msg = nxt_py_asgi_new_msg(req, nxt_py_http_disconnect_str);
 
     } else {
@@ -135,7 +134,7 @@ nxt_py_asgi_http_receive(PyObject *self, PyObject *none)
 
     ctx_data = req->ctx->data;
 
-    future = PyObject_CallObject(ctx_data->loop_create_future, NULL);
+    future   = PyObject_CallObject(ctx_data->loop_create_future, NULL);
     if (nxt_slow_path(future == NULL)) {
         nxt_unit_req_alert(req, "Python failed to create Future object");
         nxt_python_print_exception();
@@ -158,17 +157,16 @@ nxt_py_asgi_http_receive(PyObject *self, PyObject *none)
     return future;
 }
 
-
 static PyObject *
 nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http)
 {
-    char                     *body_buf;
+    char                    *body_buf;
     ssize_t                  read_res;
-    PyObject                 *msg, *body;
+    PyObject                *msg, *body;
     Py_ssize_t               size;
-    nxt_unit_request_info_t  *req;
+    nxt_unit_request_info_t *req;
 
-    req = http->req;
+    req  = http->req;
 
     size = req->content_length;
 
@@ -199,7 +197,7 @@ nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http)
         read_res = nxt_unit_request_read(req, body_buf, size);
 
     } else {
-        body = NULL;
+        body     = NULL;
         read_res = 0;
     }
 
@@ -211,10 +209,9 @@ nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http)
             return NULL;
         }
 
-#define SET_ITEM(dict, key, value) \
-    if (nxt_slow_path(PyDict_SetItem(dict, nxt_py_ ## key ## _str, value)      \
-                        == -1))                                                \
-    {                                                                          \
+#define SET_ITEM(dict, key, value)                                             \
+    if (nxt_slow_path(PyDict_SetItem(dict, nxt_py_##key##_str, value)          \
+                      == -1)) {                                                \
         nxt_unit_req_alert(req,                                                \
                            "Python failed to set '" #dict "." #key "' item");  \
         PyErr_SetString(PyExc_RuntimeError,                                    \
@@ -249,19 +246,18 @@ fail:
     return NULL;
 }
 
-
 static PyObject *
 nxt_py_asgi_http_send(PyObject *self, PyObject *dict)
 {
-    PyObject            *type;
-    const char          *type_str;
+    PyObject           *type;
+    const char         *type_str;
     Py_ssize_t          type_len;
-    nxt_py_asgi_http_t  *http;
+    nxt_py_asgi_http_t *http;
 
-    static const nxt_str_t  response_start = nxt_string("http.response.start");
-    static const nxt_str_t  response_body = nxt_string("http.response.body");
+    static const nxt_str_t response_start = nxt_string("http.response.start");
+    static const nxt_str_t response_body  = nxt_string("http.response.body");
 
-    http = (nxt_py_asgi_http_t *) self;
+    http                                  = (nxt_py_asgi_http_t *) self;
 
     type = PyDict_GetItem(dict, nxt_py_type_str);
     if (nxt_slow_path(type == NULL || !PyUnicode_Check(type))) {
@@ -282,7 +278,8 @@ nxt_py_asgi_http_send(PyObject *self, PyObject *dict)
 
         return PyErr_Format(PyExc_RuntimeError,
                             "Expected ASGI message 'http.response.body', "
-                            "but got '%U'", type);
+                            "but got '%U'",
+                            type);
     }
 
     if (nxt_str_eq(&response_start, type_str, (size_t) type_len)) {
@@ -291,17 +288,17 @@ nxt_py_asgi_http_send(PyObject *self, PyObject *dict)
 
     return PyErr_Format(PyExc_RuntimeError,
                         "Expected ASGI message 'http.response.start', "
-                        "but got '%U'", type);
+                        "but got '%U'",
+                        type);
 }
-
 
 static PyObject *
 nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http, PyObject *dict)
 {
-    int                          rc;
-    PyObject                     *status, *headers, *res;
-    nxt_py_asgi_calc_size_ctx_t  calc_size_ctx;
-    nxt_py_asgi_add_field_ctx_t  add_field_ctx;
+    int                         rc;
+    PyObject                   *status, *headers, *res;
+    nxt_py_asgi_calc_size_ctx_t calc_size_ctx;
+    nxt_py_asgi_add_field_ctx_t add_field_ctx;
 
     status = PyDict_GetItem(dict, nxt_py_status_str);
     if (nxt_slow_path(status == NULL || !PyLong_Check(status))) {
@@ -310,10 +307,10 @@ nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http, PyObject *dict)
         return PyErr_Format(PyExc_TypeError, "'status' is not an integer");
     }
 
-    calc_size_ctx.fields_size = 0;
+    calc_size_ctx.fields_size  = 0;
     calc_size_ctx.fields_count = 0;
 
-    headers = PyDict_GetItem(dict, nxt_py_headers_str);
+    headers                    = PyDict_GetItem(dict, nxt_py_headers_str);
     if (headers != NULL) {
         res = nxt_py_asgi_enum_headers(headers, nxt_py_asgi_calc_size,
                                        &calc_size_ctx);
@@ -332,7 +329,7 @@ nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http, PyObject *dict)
                             "failed to allocate response object");
     }
 
-    add_field_ctx.req = http->req;
+    add_field_ctx.req            = http->req;
     add_field_ctx.content_length = -1;
 
     if (headers != NULL) {
@@ -351,16 +348,15 @@ nxt_py_asgi_http_response_start(nxt_py_asgi_http_t *http, PyObject *dict)
     return (PyObject *) http;
 }
 
-
 static PyObject *
 nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
 {
     int                     rc;
-    char                    *body_str;
+    char                   *body_str;
     ssize_t                 sent;
-    PyObject                *body, *more_body, *future;
+    PyObject               *body, *more_body, *future;
     Py_ssize_t              body_len, body_off;
-    nxt_py_asgi_ctx_data_t  *ctx_data;
+    nxt_py_asgi_ctx_data_t *ctx_data;
 
     if (nxt_slow_path(http->complete)) {
         return PyErr_Format(PyExc_RuntimeError,
@@ -394,11 +390,9 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
         }
 
         nxt_unit_req_debug(http->req, "asgi_http_response_body: %d, %d",
-                           (int) body_len, (more_body == Py_True) );
+                           (int) body_len, (more_body == Py_True));
 
-        if (nxt_slow_path(http->bytes_sent + body_len
-                              > http->content_length))
-        {
+        if (nxt_slow_path(http->bytes_sent + body_len > http->content_length)) {
             return PyErr_Format(PyExc_RuntimeError,
                                 "Response content longer than Content-Length");
         }
@@ -414,12 +408,13 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
             }
 
             if (nxt_slow_path(sent == 0)) {
-                nxt_unit_req_debug(http->req, "asgi_http_response_body: "
+                nxt_unit_req_debug(http->req,
+                                   "asgi_http_response_body: "
                                    "out of shared memory, %d",
                                    (int) body_len);
 
-                future = PyObject_CallObject(ctx_data->loop_create_future,
-                                             NULL);
+                future
+                    = PyObject_CallObject(ctx_data->loop_create_future, NULL);
                 if (nxt_slow_path(future == NULL)) {
                     nxt_unit_req_alert(http->req,
                                        "Python failed to create Future object");
@@ -441,15 +436,15 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
                 return future;
             }
 
-            body_str += sent;
-            body_len -= sent;
-            body_off += sent;
+            body_str         += sent;
+            body_len         -= sent;
+            body_off         += sent;
             http->bytes_sent += sent;
         }
 
     } else {
         nxt_unit_req_debug(http->req, "asgi_http_response_body: 0, %d",
-                           (more_body == Py_True) );
+                           (more_body == Py_True));
 
         if (!nxt_unit_response_is_sent(http->req)) {
             rc = nxt_unit_response_send(http->req);
@@ -470,11 +465,10 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
     return (PyObject *) http;
 }
 
-
 static void
 nxt_py_asgi_http_emit_disconnect(nxt_py_asgi_http_t *http)
 {
-    PyObject  *msg, *future;
+    PyObject *msg, *future;
 
     if (http->receive_future == NULL) {
         return;
@@ -490,7 +484,7 @@ nxt_py_asgi_http_emit_disconnect(nxt_py_asgi_http_t *http)
         return;
     }
 
-    future = http->receive_future;
+    future               = http->receive_future;
     http->receive_future = NULL;
 
     nxt_py_asgi_http_set_result(http, future, msg);
@@ -498,12 +492,11 @@ nxt_py_asgi_http_emit_disconnect(nxt_py_asgi_http_t *http)
     Py_DECREF(msg);
 }
 
-
 static void
 nxt_py_asgi_http_set_result(nxt_py_asgi_http_t *http, PyObject *future,
-    PyObject *msg)
+                            PyObject *msg)
 {
-    PyObject  *res;
+    PyObject *res;
 
     res = PyObject_CallMethodObjArgs(future, nxt_py_done_str, NULL);
     if (nxt_slow_path(res == NULL)) {
@@ -527,12 +520,11 @@ nxt_py_asgi_http_set_result(nxt_py_asgi_http_t *http, PyObject *future,
     Py_DECREF(future);
 }
 
-
 void
 nxt_py_asgi_http_data_handler(nxt_unit_request_info_t *req)
 {
-    PyObject            *msg, *future;
-    nxt_py_asgi_http_t  *http;
+    PyObject           *msg, *future;
+    nxt_py_asgi_http_t *http;
 
     http = req->data;
 
@@ -552,7 +544,7 @@ nxt_py_asgi_http_data_handler(nxt_unit_request_info_t *req)
         return;
     }
 
-    future = http->receive_future;
+    future               = http->receive_future;
     http->receive_future = NULL;
 
     nxt_py_asgi_http_set_result(http, future, msg);
@@ -560,17 +552,16 @@ nxt_py_asgi_http_data_handler(nxt_unit_request_info_t *req)
     Py_DECREF(msg);
 }
 
-
 int
 nxt_py_asgi_http_drain(nxt_queue_link_t *lnk)
 {
-    char                *body_str;
+    char               *body_str;
     ssize_t             sent;
-    PyObject            *future, *exc, *res;
+    PyObject           *future, *exc, *res;
     Py_ssize_t          body_len;
-    nxt_py_asgi_http_t  *http;
+    nxt_py_asgi_http_t *http;
 
-    http = nxt_container_of(lnk, nxt_py_asgi_http_t, link);
+    http     = nxt_container_of(lnk, nxt_py_asgi_http_t, link);
 
     body_str = PyBytes_AS_STRING(http->send_body) + http->send_body_off;
     body_len = PyBytes_GET_SIZE(http->send_body) - http->send_body_off;
@@ -587,16 +578,16 @@ nxt_py_asgi_http_drain(nxt_queue_link_t *lnk)
             return NXT_UNIT_AGAIN;
         }
 
-        body_str += sent;
-        body_len -= sent;
+        body_str            += sent;
+        body_len            -= sent;
 
         http->send_body_off += sent;
-        http->bytes_sent += sent;
+        http->bytes_sent    += sent;
     }
 
     Py_CLEAR(http->send_body);
 
-    future = http->send_future;
+    future            = http->send_future;
     http->send_future = NULL;
 
     nxt_py_asgi_http_set_result(http, future, Py_None);
@@ -606,8 +597,7 @@ nxt_py_asgi_http_drain(nxt_queue_link_t *lnk)
 fail:
 
     exc = PyObject_CallFunctionObjArgs(PyExc_RuntimeError,
-                                       nxt_py_failed_to_send_body_str,
-                                       NULL);
+                                       nxt_py_failed_to_send_body_str, NULL);
     if (nxt_slow_path(exc == NULL)) {
         nxt_unit_req_alert(http->req, "RuntimeError create failed");
         nxt_python_print_exception();
@@ -616,7 +606,7 @@ fail:
         Py_INCREF(exc);
     }
 
-    future = http->send_future;
+    future            = http->send_future;
     http->send_future = NULL;
 
     res = PyObject_CallMethodObjArgs(future, nxt_py_set_exception_str, exc,
@@ -633,11 +623,10 @@ fail:
     return NXT_UNIT_ERROR;
 }
 
-
 void
 nxt_py_asgi_http_close_handler(nxt_unit_request_info_t *req)
 {
-    nxt_py_asgi_http_t  *http;
+    nxt_py_asgi_http_t *http;
 
     http = req->data;
 
@@ -650,13 +639,12 @@ nxt_py_asgi_http_close_handler(nxt_unit_request_info_t *req)
     }
 }
 
-
 static PyObject *
 nxt_py_asgi_http_done(PyObject *self, PyObject *future)
 {
     int                 rc;
-    PyObject            *res;
-    nxt_py_asgi_http_t  *http;
+    PyObject           *res;
+    nxt_py_asgi_http_t *http;
 
     http = (nxt_py_asgi_http_t *) self;
 

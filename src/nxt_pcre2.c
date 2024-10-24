@@ -10,15 +10,15 @@
 #include <pcre2.h>
 
 
-static void *nxt_pcre2_malloc(PCRE2_SIZE size, void *memory_data);
-static void nxt_pcre2_free(void *p, void *memory_data);
-
+static void *
+nxt_pcre2_malloc(PCRE2_SIZE size, void *memory_data);
+static void
+nxt_pcre2_free(void *p, void *memory_data);
 
 struct nxt_regex_s {
-    pcre2_code  *code;
+    pcre2_code *code;
     nxt_str_t   pattern;
 };
-
 
 nxt_regex_t *
 nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
@@ -26,14 +26,14 @@ nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
     int                    errcode;
     nxt_int_t              ret;
     PCRE2_SIZE             erroffset;
-    nxt_regex_t            *re;
-    pcre2_general_context  *general_ctx;
-    pcre2_compile_context  *compile_ctx;
+    nxt_regex_t           *re;
+    pcre2_general_context *general_ctx;
+    pcre2_compile_context *compile_ctx;
 
-    static const u_char    alloc_error[] = "memory allocation failed";
+    static const u_char alloc_error[] = "memory allocation failed";
 
-    general_ctx = pcre2_general_context_create(nxt_pcre2_malloc,
-                                               nxt_pcre2_free, mp);
+    general_ctx
+        = pcre2_general_context_create(nxt_pcre2_malloc, nxt_pcre2_free, mp);
     if (nxt_slow_path(general_ctx == NULL)) {
         goto alloc_fail;
     }
@@ -57,12 +57,13 @@ nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
     if (nxt_slow_path(re->code == NULL)) {
         err->offset = erroffset;
 
-        ret = pcre2_get_error_message(errcode, (PCRE2_UCHAR *) err->msg,
-                                      ERR_BUF_SIZE);
+        ret         = pcre2_get_error_message(errcode, (PCRE2_UCHAR *) err->msg,
+                                              ERR_BUF_SIZE);
         if (ret < 0) {
             (void) nxt_sprintf(err->msg, err->msg + ERR_BUF_SIZE,
                                "compilation failed with unknown "
-                               "error code: %d%Z", errcode);
+                               "error code: %d%Z",
+                               errcode);
         }
 
         return NULL;
@@ -93,25 +94,22 @@ alloc_fail:
     return NULL;
 }
 
-
 static void *
 nxt_pcre2_malloc(PCRE2_SIZE size, void *mp)
 {
     return nxt_mp_get(mp, size);
 }
 
-
 static void
 nxt_pcre2_free(void *p, void *mp)
 {
 }
 
-
 nxt_regex_match_t *
 nxt_regex_match_create(nxt_mp_t *mp, size_t size)
 {
-    nxt_regex_match_t      *match;
-    pcre2_general_context  *ctx;
+    nxt_regex_match_t     *match;
+    pcre2_general_context *ctx;
 
     ctx = pcre2_general_context_create(nxt_pcre2_malloc, nxt_pcre2_free, mp);
     if (nxt_slow_path(ctx == NULL)) {
@@ -128,30 +126,28 @@ nxt_regex_match_create(nxt_mp_t *mp, size_t size)
     return match;
 }
 
-
 nxt_int_t
 nxt_regex_match(nxt_regex_t *re, u_char *subject, size_t length,
-    nxt_regex_match_t *match)
+                nxt_regex_match_t *match)
 {
-    nxt_int_t    ret;
-    PCRE2_UCHAR  errptr[ERR_BUF_SIZE];
+    nxt_int_t   ret;
+    PCRE2_UCHAR errptr[ERR_BUF_SIZE];
 
     ret = pcre2_match(re->code, (PCRE2_SPTR) subject, length, 0, 0, match,
                       NULL);
 
     if (nxt_slow_path(ret < PCRE2_ERROR_NOMATCH)) {
-
         if (pcre2_get_error_message(ret, errptr, ERR_BUF_SIZE) < 0) {
             nxt_thread_log_error(NXT_LOG_ERR,
                                  "pcre2_match() failed: %d on \"%*s\" "
-                                 "using \"%V\"", ret, length, subject,
-                                 &re->pattern);
+                                 "using \"%V\"",
+                                 ret, length, subject, &re->pattern);
 
         } else {
             nxt_thread_log_error(NXT_LOG_ERR,
                                  "pcre2_match() failed: %s (%d) on \"%*s\" "
-                                 "using \"%V\"", errptr, ret, length, subject,
-                                 &re->pattern);
+                                 "using \"%V\"",
+                                 errptr, ret, length, subject, &re->pattern);
         }
 
         return NXT_ERROR;

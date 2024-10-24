@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -6,7 +5,6 @@
 
 #ifndef _NXT_PROCESS_TYPE_H_INCLUDED_
 #define _NXT_PROCESS_TYPE_H_INCLUDED_
-
 
 typedef enum {
     NXT_PROCESS_MAIN = 0,

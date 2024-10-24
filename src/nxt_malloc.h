@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -8,24 +7,24 @@
 #define _NXT_UNIX_MALLOC_H_INCLUDED_
 
 
-NXT_EXPORT void *nxt_malloc(size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_zalloc(size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_realloc(void *p, size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_memalign(size_t alignment, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT void *
+nxt_malloc(size_t size) NXT_MALLOC_LIKE;
+NXT_EXPORT void *
+nxt_zalloc(size_t size) NXT_MALLOC_LIKE;
+NXT_EXPORT void *
+nxt_realloc(void *p, size_t size) NXT_MALLOC_LIKE;
+NXT_EXPORT void *
+nxt_memalign(size_t alignment, size_t size) NXT_MALLOC_LIKE;
 
 
 #if (NXT_DEBUG)
 
-NXT_EXPORT void nxt_free(void *p);
+NXT_EXPORT void
+nxt_free(void *p);
 
 #else
 
-#define nxt_free(p)                                                           \
-    free(p)
+#define nxt_free(p) free(p)
 
 #endif
 
@@ -53,10 +52,9 @@ NXT_EXPORT void nxt_free(void *p);
  * Glibc malloc_usable_size() is fast operation.
  */
 
-#define nxt_malloc_usable_size(p, size)                                       \
-    size = malloc_usable_size(p)
+#define nxt_malloc_usable_size(p, size) size = malloc_usable_size(p)
 
-#define nxt_malloc_cutback(cutback, size)                                     \
+#define nxt_malloc_cutback(cutback, size)                                      \
     size = ((cutback) && size > 127 * 1024) ? size - 32 : size
 
 #elif (NXT_FREEBSD)
@@ -78,8 +76,7 @@ NXT_EXPORT void nxt_free(void *p);
  * are lesser than 1M.  Larger allocations require mutex acquiring.
  */
 
-#define nxt_malloc_usable_size(p, size)                                       \
-    size = malloc_usable_size(p)
+#define nxt_malloc_usable_size(p, size) size = malloc_usable_size(p)
 
 #define nxt_malloc_cutback(cutback, size)
 
@@ -98,8 +95,7 @@ NXT_EXPORT void nxt_free(void *p);
  * malloc_good_size() is faster than malloc_size()
  */
 
-#define nxt_malloc_usable_size(p, size)                                       \
-    size = malloc_good_size(size)
+#define nxt_malloc_usable_size(p, size) size = malloc_good_size(size)
 
 #define nxt_malloc_cutback(cutback, size)
 
@@ -113,13 +109,13 @@ NXT_EXPORT void nxt_free(void *p);
 
 
 #if (NXT_HAVE_POSIX_MEMALIGN || NXT_HAVE_MEMALIGN)
-#define NXT_MAX_MEMALIGN_SHIFT  32
+#define NXT_MAX_MEMALIGN_SHIFT 32
 
 #elif (NXT_FREEBSD)
-#define NXT_MAX_MEMALIGN_SHIFT  12
+#define NXT_MAX_MEMALIGN_SHIFT 12
 
 #else
-#define NXT_MAX_MEMALIGN_SHIFT  3
+#define NXT_MAX_MEMALIGN_SHIFT 3
 #endif
 
 

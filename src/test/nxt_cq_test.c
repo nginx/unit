@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -8,10 +7,10 @@
 #include <inttypes.h>
 
 #ifndef NXT_NCQ_TEST
-#define NXT_NCQ_TEST          1
+#define NXT_NCQ_TEST 1
 #endif
 
-#define NXT_QTEST_USE_THREAD  0
+#define NXT_QTEST_USE_THREAD 0
 
 #if NXT_NCQ_TEST
 #include <nxt_nncq.h>
@@ -20,12 +19,12 @@
 #endif
 
 
-#define MAX_ITER   20
-#define STAT_ITER  5
-#define MIN_COV    0.02
+#define MAX_ITER  20
+#define STAT_ITER 5
+#define MIN_COV   0.02
 
-extern char  **environ;
-static uintptr_t nops = 10000000;
+extern char    **environ;
+static uintptr_t nops           = 10000000;
 
 static uintptr_t nprocs_enq     = 0;
 static uintptr_t nprocs_deq     = 0;
@@ -35,25 +34,23 @@ static uintptr_t nprocs_enq_deq = 0;
 static uintptr_t nprocs_cas     = 0;
 static uintptr_t nprocs_faa     = 0;
 
-static uintptr_t nprocs = 1;
-
+static uintptr_t nprocs         = 1;
 
 static size_t
 elapsed_time(size_t us)
 {
-  struct timeval t;
+    struct timeval t;
 
-  gettimeofday(&t, NULL);
+    gettimeofday(&t, NULL);
 
-  return t.tv_sec * 1000000 + t.tv_usec - us;
+    return t.tv_sec * 1000000 + t.tv_usec - us;
 }
-
 
 static double
 mean(const double *times, int n)
 {
-    int     i;
-    double  sum;
+    int    i;
+    double sum;
 
     sum = 0;
 
@@ -64,12 +61,11 @@ mean(const double *times, int n)
     return sum / n;
 }
 
-
 static double
 cov(const double *times, double mean, int n)
 {
-    int     i;
-    double  variance;
+    int    i;
+    double variance;
 
     variance = 0;
 
@@ -84,61 +80,59 @@ cov(const double *times, double mean, int n)
 
 typedef struct {
 #if NXT_NCQ_TEST
-    nxt_nncq_t   free_queue;
-    nxt_nncq_t   active_queue;
+    nxt_nncq_t free_queue;
+    nxt_nncq_t active_queue;
 #else
-    nxt_nvbcq_t  free_queue;
-    nxt_nvbcq_t  active_queue;
+    nxt_nvbcq_t free_queue;
+    nxt_nvbcq_t active_queue;
 #endif
-    uint32_t     counter;
+    uint32_t counter;
 } nxt_cq_t;
 
-
-static nxt_cq_t  *pgq;
+static nxt_cq_t *pgq;
 
 
 #if NXT_NCQ_TEST
-#define nxt_cq_enqueue  nxt_nncq_enqueue
-#define nxt_cq_dequeue  nxt_nncq_dequeue
-#define nxt_cq_empty    nxt_nncq_empty
-#define nxt_cq_init     nxt_nncq_init
-#define NXT_CQ_SIZE     NXT_NNCQ_SIZE
+#define nxt_cq_enqueue nxt_nncq_enqueue
+#define nxt_cq_dequeue nxt_nncq_dequeue
+#define nxt_cq_empty   nxt_nncq_empty
+#define nxt_cq_init    nxt_nncq_init
+#define NXT_CQ_SIZE    NXT_NNCQ_SIZE
 #else
-#define nxt_cq_enqueue  nxt_nvbcq_enqueue
-#define nxt_cq_dequeue  nxt_nvbcq_dequeue
-#define nxt_cq_empty    nxt_nvbcq_empty
-#define nxt_cq_init     nxt_nvbcq_init
-#define NXT_CQ_SIZE     NXT_NVBCQ_SIZE
+#define nxt_cq_enqueue nxt_nvbcq_enqueue
+#define nxt_cq_dequeue nxt_nvbcq_dequeue
+#define nxt_cq_empty   nxt_nvbcq_empty
+#define nxt_cq_init    nxt_nvbcq_init
+#define NXT_CQ_SIZE    NXT_NVBCQ_SIZE
 #endif
 
 typedef struct {
-    int                  id;
-    uint64_t             enq;
-    uint64_t             deq;
-    uint64_t             wait_enq;
-    uint64_t             wait_deq;
-    uint64_t             own_res;
-    uint64_t             cas;
-    uint64_t             faa;
+    int      id;
+    uint64_t enq;
+    uint64_t deq;
+    uint64_t wait_enq;
+    uint64_t wait_deq;
+    uint64_t own_res;
+    uint64_t cas;
+    uint64_t faa;
 
 #if NXT_QTEST_USE_THREAD
-    nxt_thread_handle_t  handle;
+    nxt_thread_handle_t handle;
 #else
-    nxt_pid_t            pid;
-    int status;
+    nxt_pid_t pid;
+    int       status;
 #endif
 } nxt_worker_info_t;
-
 
 static void
 cas_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uint32_t           c;
     uintptr_t          i;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_cas; i++) {
@@ -150,15 +144,14 @@ cas_worker(void *p)
     }
 }
 
-
 static void
 faa_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_faa; i++) {
@@ -167,15 +160,14 @@ faa_worker(void *p)
     }
 }
 
-
 static void
 enq_deq_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i, v;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_enq_deq; i++) {
@@ -199,15 +191,14 @@ enq_deq_worker(void *p)
     }
 }
 
-
 static void
 enq_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i, v;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_enq; i++) {
@@ -220,15 +211,14 @@ enq_worker(void *p)
     }
 }
 
-
 static void
 deq_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i, v;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_deq; i++) {
@@ -241,19 +231,17 @@ deq_worker(void *p)
     }
 }
 
-
 static void
 wenq_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i, v;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_wenq; i++) {
-
         do {
             wi->wait_enq++;
             v = nxt_cq_dequeue(&q->free_queue);
@@ -266,19 +254,17 @@ wenq_worker(void *p)
     }
 }
 
-
 static void
 wdeq_worker(void *p)
 {
-    nxt_cq_t           *q;
+    nxt_cq_t          *q;
     uintptr_t          i, v;
-    nxt_worker_info_t  *wi;
+    nxt_worker_info_t *wi;
 
-    q = pgq;
+    q  = pgq;
     wi = p;
 
     for (i = 0; i < nops / nprocs_wdeq; i++) {
-
         do {
             wi->wait_deq++;
             v = nxt_cq_dequeue(&q->active_queue);
@@ -291,18 +277,17 @@ wdeq_worker(void *p)
     }
 }
 
-
 static nxt_int_t
 worker_create(nxt_worker_info_t *wi, int id, nxt_thread_start_t start)
 {
     wi->id = id;
 
 #if NXT_QTEST_USE_THREAD
-    nxt_thread_link_t  *link;
+    nxt_thread_link_t *link;
 
-    link = nxt_zalloc(sizeof(nxt_thread_link_t));
+    link            = nxt_zalloc(sizeof(nxt_thread_link_t));
 
-    link->start = start;
+    link->start     = start;
     link->work.data = wi;
 
     return nxt_thread_create(&wi->handle, link);
@@ -322,7 +307,6 @@ worker_create(nxt_worker_info_t *wi, int id, nxt_thread_start_t start)
 #endif
 }
 
-
 static void
 worker_wait(nxt_worker_info_t *wi)
 {
@@ -334,22 +318,21 @@ worker_wait(nxt_worker_info_t *wi)
 #endif
 }
 
-
 int nxt_cdecl
 main(int argc, char **argv)
 {
     int                i, k, id, verbose, objective, rk;
-    char               *a;
+    char              *a;
     size_t             start, elapsed;
-    double             *stats, m, c;
+    double            *stats, m, c;
     uint64_t           total_ops;
     uintptr_t          j;
     nxt_task_t         task;
-    nxt_thread_t       *thr;
-    nxt_worker_info_t  *wi;
+    nxt_thread_t      *thr;
+    nxt_worker_info_t *wi;
     double             times[MAX_ITER], mopsec[MAX_ITER];
 
-    verbose = 0;
+    verbose   = 0;
     objective = 0;
 
     for (i = 1; i < argc; i++) {
@@ -422,13 +405,13 @@ main(int argc, char **argv)
     }
 
     nxt_main_log.level = NXT_LOG_INFO;
-    task.log  = &nxt_main_log;
+    task.log           = &nxt_main_log;
 
-    thr = nxt_thread();
-    thr->task = &task;
+    thr                = nxt_thread();
+    thr->task          = &task;
 
-    pgq = mmap(NULL, sizeof(nxt_cq_t), PROT_READ | PROT_WRITE,
-               MAP_ANON | MAP_SHARED, -1, 0);
+    pgq                = mmap(NULL, sizeof(nxt_cq_t), PROT_READ | PROT_WRITE,
+                              MAP_ANON | MAP_SHARED, -1, 0);
     if (pgq == MAP_FAILED) {
         return 2;
     }
@@ -436,7 +419,7 @@ main(int argc, char **argv)
     nxt_cq_init(&pgq->free_queue);
     nxt_cq_init(&pgq->active_queue);
 
-    for(i = 0; i < NXT_CQ_SIZE; i++) {
+    for (i = 0; i < NXT_CQ_SIZE; i++) {
         nxt_cq_enqueue(&pgq->free_queue, i);
     }
 
@@ -457,13 +440,13 @@ main(int argc, char **argv)
         nxt_cq_init(&pgq->free_queue);
         nxt_cq_init(&pgq->active_queue);
 
-        for(i = 0; i < NXT_CQ_SIZE; i++) {
+        for (i = 0; i < NXT_CQ_SIZE; i++) {
             nxt_cq_enqueue(&pgq->free_queue, i);
         }
 
         start = elapsed_time(0);
 
-        id = 0;
+        id    = 0;
 
         for (j = 0; j < nprocs_enq; j++, id++) {
             worker_create(wi + id, id, enq_worker);
@@ -500,13 +483,13 @@ main(int argc, char **argv)
         elapsed = elapsed_time(start);
 
         for (j = 1; j < nprocs; j++) {
-            wi[0].enq += wi[j].enq;
-            wi[0].deq += wi[j].deq;
+            wi[0].enq      += wi[j].enq;
+            wi[0].deq      += wi[j].deq;
             wi[0].wait_enq += wi[j].wait_enq;
             wi[0].wait_deq += wi[j].wait_deq;
-            wi[0].own_res += wi[j].own_res;
-            wi[0].cas += wi[j].cas;
-            wi[0].faa += wi[j].faa;
+            wi[0].own_res  += wi[j].own_res;
+            wi[0].cas      += wi[j].cas;
+            wi[0].faa      += wi[j].faa;
         }
 
         total_ops = wi[0].enq + wi[0].deq + wi[0].cas + wi[0].faa;
@@ -515,29 +498,30 @@ main(int argc, char **argv)
             total_ops = nops;
         }
 
-        times[k] = elapsed / 1000.0;
+        times[k]  = elapsed / 1000.0;
         mopsec[k] = (double) total_ops / elapsed;
 
         if (verbose >= 2) {
-            printf("enq        %10"PRIu64"\n", wi[0].enq);
-            printf("deq        %10"PRIu64"\n", wi[0].deq);
-            printf("wait_enq   %10"PRIu64"\n", wi[0].wait_enq);
-            printf("wait_deq   %10"PRIu64"\n", wi[0].wait_deq);
-            printf("own_res    %10"PRIu64"\n", wi[0].own_res);
-            printf("cas        %10"PRIu64"\n", wi[0].cas);
-            printf("faa        %10"PRIu64"\n", wi[0].faa);
-            printf("total ops  %10"PRIu64"\n", total_ops);
+            printf("enq        %10" PRIu64 "\n", wi[0].enq);
+            printf("deq        %10" PRIu64 "\n", wi[0].deq);
+            printf("wait_enq   %10" PRIu64 "\n", wi[0].wait_enq);
+            printf("wait_deq   %10" PRIu64 "\n", wi[0].wait_deq);
+            printf("own_res    %10" PRIu64 "\n", wi[0].own_res);
+            printf("cas        %10" PRIu64 "\n", wi[0].cas);
+            printf("faa        %10" PRIu64 "\n", wi[0].faa);
+            printf("total ops  %10" PRIu64 "\n", total_ops);
             printf("Mops/sec   %13.2f\n", mopsec[k]);
 
             printf("elapsed    %10d us\n", (int) elapsed);
-            printf("per op     %10d ns\n", (int) ((1000 * elapsed) / total_ops));
+            printf("per op     %10d ns\n",
+                   (int) ((1000 * elapsed) / total_ops));
         }
 
         if (k >= STAT_ITER) {
             stats = (objective == 0) ? times : mopsec;
 
-            m = mean(stats + k - STAT_ITER, STAT_ITER);
-            c = cov(stats + k - STAT_ITER, m, STAT_ITER);
+            m     = mean(stats + k - STAT_ITER, STAT_ITER);
+            c     = cov(stats + k - STAT_ITER, m, STAT_ITER);
 
             if (verbose >= 1) {
                 if (objective == 0) {

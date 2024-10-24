@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,21 +6,23 @@
 #include <nxt_main.h>
 
 
-static void *nxt_thread_trampoline(void *data);
-static void nxt_thread_time_cleanup(void *data);
+static void *
+nxt_thread_trampoline(void *data);
+static void
+nxt_thread_time_cleanup(void *data);
 
 
 #if (NXT_HAVE_PTHREAD_SPECIFIC_DATA)
 
-static void nxt_thread_key_dtor(void *data);
-
+static void
+nxt_thread_key_dtor(void *data);
 
 void
 nxt_thread_init_data(nxt_thread_specific_data_t tsd)
 {
-    void           *p;
-    nxt_err_t      err;
-    pthread_key_t  key;
+    void         *p;
+    nxt_err_t     err;
+    pthread_key_t key;
 
     while ((nxt_atomic_int_t) tsd->key < 0) {
         /*
@@ -30,7 +31,6 @@ nxt_thread_init_data(nxt_thread_specific_data_t tsd)
          * -2 is the initializing lock to assure the single value for the key.
          */
         if (nxt_atomic_cmp_set(&tsd->key, -1, -2)) {
-
             err = pthread_key_create(&key, nxt_thread_key_dtor);
             if (err != 0) {
                 nxt_main_log_alert("pthread_key_create() failed %E", err);
@@ -65,7 +65,6 @@ fail:
     nxt_unreachable();
 }
 
-
 static void
 nxt_thread_key_dtor(void *data)
 {
@@ -80,7 +79,7 @@ nxt_thread_key_dtor(void *data)
 nxt_int_t
 nxt_thread_create(nxt_thread_handle_t *handle, nxt_thread_link_t *link)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     err = pthread_create(handle, NULL, nxt_thread_trampoline, link);
 
@@ -97,24 +96,23 @@ nxt_thread_create(nxt_thread_handle_t *handle, nxt_thread_link_t *link)
     return NXT_ERROR;
 }
 
-
 static void *
 nxt_thread_trampoline(void *data)
 {
-    nxt_thread_t        *thr;
-    nxt_thread_link_t   *link;
-    nxt_thread_start_t  start;
+    nxt_thread_t      *thr;
+    nxt_thread_link_t *link;
+    nxt_thread_start_t start;
 
     link = data;
 
-    thr = nxt_thread_init();
+    thr  = nxt_thread_init();
 
     nxt_log_debug(thr->log, "thread trampoline: %PH", thr->handle);
 
     pthread_cleanup_push(nxt_thread_time_cleanup, thr);
 
     start = link->start;
-    data = link->work.data;
+    data  = link->work.data;
 
     if (link->work.handler != NULL) {
         thr->link = link;
@@ -137,19 +135,18 @@ nxt_thread_trampoline(void *data)
     return NULL;
 }
 
-
 nxt_thread_t *
 nxt_thread_init(void)
 {
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     nxt_thread_init_data(nxt_thread_context);
 
     thr = nxt_thread();
 
     if (thr->log == NULL) {
-        thr->log = &nxt_main_log;
-        thr->handle = nxt_thread_handle();
+        thr->log         = &nxt_main_log;
+        thr->handle      = nxt_thread_handle();
 
         /*
          * Threads are never preempted by asynchronous signals, since
@@ -165,11 +162,10 @@ nxt_thread_init(void)
     return thr;
 }
 
-
 static void
 nxt_thread_time_cleanup(void *data)
 {
-    nxt_thread_t  *thr;
+    nxt_thread_t *thr;
 
     thr = data;
 
@@ -178,16 +174,15 @@ nxt_thread_time_cleanup(void *data)
     nxt_thread_time_free(thr);
 }
 
-
 void
 nxt_thread_exit(nxt_thread_t *thr)
 {
-    nxt_thread_link_t   *link;
-    nxt_event_engine_t  *engine;
+    nxt_thread_link_t  *link;
+    nxt_event_engine_t *engine;
 
     nxt_log_debug(thr->log, "thread exit");
 
-    link = thr->link;
+    link      = thr->link;
     thr->link = NULL;
 
     if (link != NULL) {
@@ -208,11 +203,10 @@ nxt_thread_exit(nxt_thread_t *thr)
     nxt_unreachable();
 }
 
-
 void
 nxt_thread_cancel(nxt_thread_handle_t handle)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     nxt_thread_log_debug("thread cancel: %PH", handle);
 
@@ -223,11 +217,10 @@ nxt_thread_cancel(nxt_thread_handle_t handle)
     }
 }
 
-
 void
 nxt_thread_wait(nxt_thread_handle_t handle)
 {
-    nxt_err_t  err;
+    nxt_err_t err;
 
     nxt_thread_log_debug("thread wait: %PH", handle);
 
@@ -237,7 +230,6 @@ nxt_thread_wait(nxt_thread_handle_t handle)
         nxt_main_log_alert("pthread_join(%PH) failed %E", handle, err);
     }
 }
-
 
 nxt_tid_t
 nxt_thread_tid(nxt_thread_t *thr)
@@ -253,7 +245,6 @@ nxt_thread_tid(nxt_thread_t *thr)
 #else
 
     if (nxt_fast_path(thr != NULL)) {
-
         if (nxt_slow_path(thr->tid == 0)) {
             thr->tid = nxt_thread_get_tid();
         }

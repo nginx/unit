@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -22,23 +21,23 @@
  *    causing false bug reports.
  */
 
-static u_char *nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr,
-    size_t size);
-static u_char *nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size);
+static u_char *
+nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size);
+static u_char *
+nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size);
 
 
-nxt_strerror_t     nxt_strerror = nxt_bootstrap_strerror;
-static nxt_str_t   *nxt_sys_errlist;
-static nxt_uint_t  nxt_sys_nerr;
-
+nxt_strerror_t    nxt_strerror = nxt_bootstrap_strerror;
+static nxt_str_t *nxt_sys_errlist;
+static nxt_uint_t nxt_sys_nerr;
 
 nxt_int_t
 nxt_strerror_start(void)
 {
-    char        *msg;
-    u_char      *p;
-    size_t      size, length, n;
-    nxt_uint_t  err, invalid;
+    char      *msg;
+    u_char    *p;
+    size_t     size, length, n;
+    nxt_uint_t err, invalid;
 
     /* The last entry. */
     size = nxt_length("Unknown error");
@@ -49,7 +48,6 @@ nxt_strerror_start(void)
      */
 
     for (invalid = 0; invalid < 100 && nxt_sys_nerr < 65536; nxt_sys_nerr++) {
-
         nxt_set_errno(0);
         msg = strerror((int) nxt_sys_nerr);
 
@@ -73,13 +71,12 @@ nxt_strerror_start(void)
             continue;
         }
 
-        length = nxt_strlen(msg);
-        size += length;
+        length  = nxt_strlen(msg);
+        size   += length;
 
-        if (length == 0  /* HP-UX empty strings. */
+        if (length == 0 /* HP-UX empty strings. */
             || nxt_errno == NXT_EINVAL
-            || memcmp(msg, "Unknown error", 13) == 0)
-        {
+            || memcmp(msg, "Unknown error", 13) == 0) {
             invalid++;
             continue;
         }
@@ -87,8 +84,7 @@ nxt_strerror_start(void)
 #if (NXT_AIX)
 
         if (memcmp(msg, "Error ", 6) == 0
-            && memcmp(msg + length - 10, " occurred.", 9) == 0)
-        {
+            && memcmp(msg + length - 10, " occurred.", 9) == 0) {
             invalid++;
             continue;
         }
@@ -100,7 +96,7 @@ nxt_strerror_start(void)
 
     nxt_main_log_debug("sys_nerr: %d", nxt_sys_nerr);
 
-    n = (nxt_sys_nerr + 1) * sizeof(nxt_str_t);
+    n               = (nxt_sys_nerr + 1) * sizeof(nxt_str_t);
 
     nxt_sys_errlist = nxt_malloc(n + size);
     if (nxt_sys_errlist == NULL) {
@@ -110,17 +106,17 @@ nxt_strerror_start(void)
     p = nxt_pointer_to(nxt_sys_errlist, n);
 
     for (err = 0; err < nxt_sys_nerr; err++) {
-        msg = strerror((int) err);
-        length = nxt_strlen(msg);
+        msg                         = strerror((int) err);
+        length                      = nxt_strlen(msg);
 
         nxt_sys_errlist[err].length = length;
-        nxt_sys_errlist[err].start = p;
+        nxt_sys_errlist[err].start  = p;
 
-        p = nxt_cpymem(p, msg, length);
+        p                           = nxt_cpymem(p, msg, length);
     }
 
     nxt_sys_errlist[err].length = 13;
-    nxt_sys_errlist[err].start = p;
+    nxt_sys_errlist[err].start  = p;
     nxt_memcpy(p, "Unknown error", 13);
 
     nxt_strerror = nxt_runtime_strerror;
@@ -128,23 +124,21 @@ nxt_strerror_start(void)
     return NXT_OK;
 }
 
-
 static u_char *
 nxt_bootstrap_strerror(nxt_err_t err, u_char *errstr, size_t size)
 {
     return nxt_cpystrn(errstr, (u_char *) strerror(err), size);
 }
 
-
 static u_char *
 nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size)
 {
-    nxt_str_t   *msg;
-    nxt_uint_t  n;
+    nxt_str_t *msg;
+    nxt_uint_t n;
 
-    n = nxt_min((nxt_uint_t) err, nxt_sys_nerr);
+    n    = nxt_min((nxt_uint_t) err, nxt_sys_nerr);
 
-    msg = &nxt_sys_errlist[n];
+    msg  = &nxt_sys_errlist[n];
 
     size = nxt_min(size, msg->length);
 

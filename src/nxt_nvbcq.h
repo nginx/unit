@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) NGINX, Inc.
  */
@@ -9,18 +8,17 @@
 
 /* Numeric VBart Circular Queue */
 
-#define NXT_NVBCQ_SIZE  16384
+#define NXT_NVBCQ_SIZE 16384
 
 typedef uint32_t nxt_nvbcq_atomic_t;
 
 struct nxt_nvbcq_s {
-    nxt_nvbcq_atomic_t  head;
-    nxt_nvbcq_atomic_t  entries[NXT_NVBCQ_SIZE];
-    nxt_nvbcq_atomic_t  tail;
+    nxt_nvbcq_atomic_t head;
+    nxt_nvbcq_atomic_t entries[NXT_NVBCQ_SIZE];
+    nxt_nvbcq_atomic_t tail;
 };
 
 typedef struct nxt_nvbcq_s nxt_nvbcq_t;
-
 
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_head(nxt_nvbcq_t const volatile *q)
@@ -28,13 +26,11 @@ nxt_nvbcq_head(nxt_nvbcq_t const volatile *q)
     return q->head;
 }
 
-
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_tail(nxt_nvbcq_t const volatile *q)
 {
     return q->tail;
 }
-
 
 static inline void
 nxt_nvbcq_tail_cmp_inc(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t t)
@@ -42,13 +38,11 @@ nxt_nvbcq_tail_cmp_inc(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t t)
     nxt_atomic_cmp_set(&q->tail, t, t + 1);
 }
 
-
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_index(nxt_nvbcq_t const volatile *q, nxt_nvbcq_atomic_t i)
 {
     return i % NXT_NVBCQ_SIZE;
 }
-
 
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_map(nxt_nvbcq_t const volatile *q, nxt_nvbcq_atomic_t i)
@@ -56,18 +50,16 @@ nxt_nvbcq_map(nxt_nvbcq_t const volatile *q, nxt_nvbcq_atomic_t i)
     return i % NXT_NVBCQ_SIZE;
 }
 
-
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_empty(nxt_nvbcq_t const volatile *q)
 {
     return NXT_NVBCQ_SIZE;
 }
 
-
 static inline void
 nxt_nvbcq_init(nxt_nvbcq_t volatile *q)
 {
-    nxt_nvbcq_atomic_t  i;
+    nxt_nvbcq_atomic_t i;
 
     q->head = 0;
 
@@ -78,21 +70,19 @@ nxt_nvbcq_init(nxt_nvbcq_t volatile *q)
     q->tail = NXT_NVBCQ_SIZE;
 }
 
-
 static inline void
 nxt_nvbcq_enqueue(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t val)
 {
-    nxt_nvbcq_atomic_t  t, h, i;
+    nxt_nvbcq_atomic_t t, h, i;
 
     t = nxt_nvbcq_tail(q);
     h = t - NXT_NVBCQ_SIZE;
 
-    for ( ;; ) {
+    for (;;) {
         i = nxt_nvbcq_map(q, t);
 
         if (q->entries[i] == NXT_NVBCQ_SIZE
-            && nxt_atomic_cmp_set(&q->entries[i], NXT_NVBCQ_SIZE, val))
-        {
+            && nxt_atomic_cmp_set(&q->entries[i], NXT_NVBCQ_SIZE, val)) {
             nxt_nvbcq_tail_cmp_inc(q, t);
             return;
         }
@@ -109,22 +99,20 @@ nxt_nvbcq_enqueue(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t val)
     }
 }
 
-
 static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_dequeue(nxt_nvbcq_t volatile *q)
 {
-    nxt_nvbcq_atomic_t  h, t, i, e;
+    nxt_nvbcq_atomic_t h, t, i, e;
 
     h = nxt_nvbcq_head(q);
     t = h + NXT_NVBCQ_SIZE;
 
-    for ( ;; ) {
+    for (;;) {
         i = nxt_nvbcq_map(q, h);
         e = q->entries[i];
 
         if (e < NXT_NVBCQ_SIZE
-            && nxt_atomic_cmp_set(&q->entries[i], e, NXT_NVBCQ_SIZE))
-        {
+            && nxt_atomic_cmp_set(&q->entries[i], e, NXT_NVBCQ_SIZE)) {
             nxt_atomic_cmp_set(&q->head, h, h + 1);
 
             return e;

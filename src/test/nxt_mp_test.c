@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,26 +6,25 @@
 #include <nxt_main.h>
 #include "nxt_tests.h"
 
-
 nxt_int_t
 nxt_mp_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
-    size_t max_size)
+            size_t max_size)
 {
-    void          **blocks;
-    size_t        total;
-    uint32_t      value, size;
-    nxt_mp_t      *mp;
-    nxt_bool_t    valid;
-    nxt_uint_t    i, n;
+    void     **blocks;
+    size_t     total;
+    uint32_t   value, size;
+    nxt_mp_t  *mp;
+    nxt_bool_t valid;
+    nxt_uint_t i, n;
 
-    const size_t  min_chunk_size = 16;
-    const size_t  page_size = 128;
-    const size_t  page_alignment = 128;
-    const size_t  cluster_size = page_size * 8;
+    const size_t min_chunk_size = 16;
+    const size_t page_size      = 128;
+    const size_t page_alignment = 128;
+    const size_t cluster_size   = page_size * 8;
 
     nxt_thread_time_update(thr);
-    nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "mem pool test started, max:%uz", max_size);
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem pool test started, max:%uz",
+                  max_size);
 
     blocks = nxt_malloc(nblocks * sizeof(void *));
     if (blocks == NULL) {
@@ -47,20 +45,19 @@ nxt_mp_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
     value = 0;
 
     for (i = 0; i < runs; i++) {
-
         total = 0;
 
         for (n = 0; n < nblocks; n++) {
             value = nxt_murmur_hash2(&value, sizeof(uint32_t));
 
-            size = value & max_size;
+            size  = value & max_size;
 
             if (size == 0) {
                 size++;
             }
 
-            total += size;
-            blocks[n] = nxt_mp_alloc(mp, size);
+            total     += size;
+            blocks[n]  = nxt_mp_alloc(mp, size);
 
             if (blocks[n] == NULL) {
                 nxt_log_error(NXT_LOG_NOTICE, thr->log,

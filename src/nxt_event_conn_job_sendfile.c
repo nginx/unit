@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -6,25 +5,23 @@
 
 #include <nxt_main.h>
 
-
 typedef struct {
-    nxt_job_t           job;
-    nxt_buf_t           *out;
-    size_t              sent;
-    size_t              limit;
-    nxt_work_handler_t  ready_handler;
+    nxt_job_t          job;
+    nxt_buf_t         *out;
+    size_t             sent;
+    size_t             limit;
+    nxt_work_handler_t ready_handler;
 } nxt_job_sendfile_t;
 
-
-static void nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj,
-    void *data);
-static nxt_buf_t *nxt_event_conn_job_sendfile_completion(nxt_task_t *task,
-    nxt_conn_t *c, nxt_buf_t *b);
-
+static void
+nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data);
+static nxt_buf_t *
+nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_conn_t *c,
+                                       nxt_buf_t *b);
 
 void
 nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_conn_t *c)
@@ -35,14 +32,13 @@ nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_conn_t *c)
     nxt_event_conn_job_sendfile_start(task, c, NULL);
 }
 
-
 static void
 nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t              *c;
-    nxt_iobuf_t             b;
-    nxt_job_sendfile_t      *jbs;
-    nxt_sendbuf_coalesce_t  sb;
+    nxt_conn_t            *c;
+    nxt_iobuf_t            b;
+    nxt_job_sendfile_t    *jbs;
+    nxt_sendbuf_coalesce_t sb;
 
     c = obj;
 
@@ -58,30 +54,28 @@ nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
     c->socket.write_handler = nxt_event_conn_job_sendfile_start;
     c->socket.error_handler = c->write_state->error_handler;
 
-    jbs->job.data = c;
+    jbs->job.data           = c;
     nxt_job_set_name(&jbs->job, "job sendfile");
 
     jbs->limit = nxt_event_conn_write_limit(c);
 
     if (jbs->limit != 0) {
-
-        sb.buf = c->write;
+        sb.buf   = c->write;
         sb.iobuf = &b;
-        sb.nmax = 1;
-        sb.sync = 0;
-        sb.size = 0;
+        sb.nmax  = 1;
+        sb.sync  = 0;
+        sb.size  = 0;
         sb.limit = jbs->limit;
 
         if (nxt_sendbuf_mem_coalesce(c->socket.task, &sb) != 0 || !sb.sync) {
-
             jbs->job.thread_pool = c->u.thread_pool;
-            jbs->job.log = c->socket.log;
-            jbs->out = c->write;
-            c->write = NULL;
-            jbs->ready_handler = nxt_event_conn_job_sendfile_return;
+            jbs->job.log         = c->socket.log;
+            jbs->out             = c->write;
+            c->write             = NULL;
+            jbs->ready_handler   = nxt_event_conn_job_sendfile_return;
 
-            c->block_read = 1;
-            c->block_write = 1;
+            c->block_read        = 1;
+            c->block_write       = 1;
 
             nxt_job_start(task, &jbs->job, nxt_event_conn_job_sendfile_handler);
             return;
@@ -91,23 +85,22 @@ nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_job_sendfile_return(task, jbs, c);
 }
 
-
 static void
 nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t             ret;
-    nxt_buf_t           *b;
+    nxt_buf_t          *b;
     nxt_bool_t          first;
-    nxt_conn_t          *c;
-    nxt_job_sendfile_t  *jbs;
+    nxt_conn_t         *c;
+    nxt_job_sendfile_t *jbs;
 
     jbs = obj;
-    c = data;
+    c   = data;
 
     nxt_debug(task, "event conn job sendfile fd:%d", c->socket.fd);
 
     first = c->socket.write_ready;
-    b = jbs->out;
+    b     = jbs->out;
 
     do {
         ret = c->io->old_sendbuf(c, b, jbs->limit);
@@ -120,17 +113,16 @@ nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj, void *data)
             goto done;
         }
 
-        jbs->sent += ret;
+        jbs->sent  += ret;
         jbs->limit -= ret;
 
-        b = nxt_sendbuf_update(b, ret);
+        b           = nxt_sendbuf_update(b, ret);
 
         if (b == NULL) {
             goto done;
         }
 
         if (jbs->limit == 0) {
-
             if (c->rate == NULL) {
                 jbs->limit = c->max_chunk;
                 goto fast;
@@ -158,24 +150,23 @@ fast:
     nxt_thread_pool_post(task->thread->thread_pool, &jbs->job.work);
 }
 
-
 static void
 nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
 {
     size_t              sent;
-    nxt_buf_t           *b;
+    nxt_buf_t          *b;
     nxt_bool_t          done;
-    nxt_conn_t          *c;
-    nxt_job_sendfile_t  *jbs;
+    nxt_conn_t         *c;
+    nxt_job_sendfile_t *jbs;
 
-    jbs = obj;
-    c = data;
+    jbs             = obj;
+    c               = data;
 
-    c->block_read = 0;
-    c->block_write = 0;
+    c->block_read   = 0;
+    c->block_write  = 0;
 
-    sent = jbs->sent;
-    c->sent += sent;
+    sent            = jbs->sent;
+    c->sent        += sent;
 
     nxt_debug(task, "event conn sendfile sent:%z", sent);
 
@@ -185,7 +176,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     nxt_job_destroy(task, jbs);
 
     if (0 /* STUB: c->write_state->process_buffers */) {
-        b = nxt_event_conn_job_sendfile_completion(task, c, b);
+        b    = nxt_event_conn_job_sendfile_completion(task, c, b);
 
         done = (b == NULL);
 
@@ -210,8 +201,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     }
 
     if (c->socket.error == 0
-        && !nxt_event_conn_write_delayed(task->thread->engine, c, sent))
-    {
+        && !nxt_event_conn_write_delayed(task->thread->engine, c, sent)) {
         nxt_conn_timer(task->thread->engine, c, c->write_state,
                        &c->write_timer);
 
@@ -233,13 +223,11 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     }
 }
 
-
 static nxt_buf_t *
 nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_conn_t *c,
-    nxt_buf_t *b)
+                                       nxt_buf_t *b)
 {
     while (b != NULL) {
-
         nxt_prefetch(b->next);
 
         if (nxt_buf_is_mem(b) && b->mem.pos != b->mem.free) {
@@ -249,8 +237,8 @@ nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_conn_t *c,
             break;
         }
 
-        nxt_work_queue_add(c->write_work_queue,
-                           b->completion_handler, task, b, b->parent);
+        nxt_work_queue_add(c->write_work_queue, b->completion_handler, task, b,
+                           b->parent);
 
         b = b->next;
     }

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -8,7 +7,7 @@
 
 
 /* The arguments passed to main(). */
-char  **nxt_process_argv;
+char **nxt_process_argv;
 
 /*
  * MacOSX environ(7):
@@ -20,7 +19,7 @@ char  **nxt_process_argv;
  * So nxt_process_environ contains an address of environ to allow
  * change environ[] placement.
  */
-char  ***nxt_process_environ;
+char ***nxt_process_environ;
 
 
 #if (NXT_SETPROCTITLE_ARGV)
@@ -38,18 +37,17 @@ char  ***nxt_process_environ;
  */
 
 
-static u_char  *nxt_process_title_start;
-static u_char  *nxt_process_title_end;
-
+static u_char *nxt_process_title_start;
+static u_char *nxt_process_title_end;
 
 void
 nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 {
-    u_char      *p, *end, *argv_end, **argv, **env;
-    size_t      size, argv_size, environ_size, strings_size;
-    nxt_uint_t  i;
+    u_char    *p, *end, *argv_end, **argv, **env;
+    size_t     size, argv_size, environ_size, strings_size;
+    nxt_uint_t i;
 
-    nxt_process_argv = orig_argv;
+    nxt_process_argv    = orig_argv;
     nxt_process_environ = orig_envp;
 
     if (orig_envp == NULL) {
@@ -60,22 +58,22 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
      * Set a conservative title space for a case if program argument
      * strings and environment strings are not contiguous.
      */
-    argv = (u_char **) orig_argv;
+    argv                    = (u_char **) orig_argv;
     nxt_process_title_start = argv[0];
-    nxt_process_title_end = argv[0] + nxt_strlen(argv[0]);
+    nxt_process_title_end   = argv[0] + nxt_strlen(argv[0]);
 
-    end = argv[0];
-    strings_size = 0;
-    argv_size = sizeof(void *);
+    end                     = argv[0];
+    strings_size            = 0;
+    argv_size               = sizeof(void *);
 
     for (i = 0; argv[i] != NULL; i++) {
         argv_size += sizeof(void *);
 
         if (argv[i] == end) {
             /* Argument strings are contiguous. */
-            size = nxt_strlen(argv[i]) + 1;
+            size          = nxt_strlen(argv[i]) + 1;
             strings_size += size;
-            end = argv[i] + size;
+            end           = argv[i] + size;
         }
     }
 
@@ -97,22 +95,22 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
      * The original argv[] array has always at least two elements so
      * it is safe to set argv[1].
      */
-    orig_argv[1] = NULL;
+    orig_argv[1]     = NULL;
 
     nxt_process_argv = (char **) argv;
 
-    argv_end = end;
-    env = (u_char **) *orig_envp;
-    environ_size = sizeof(void *);
+    argv_end         = end;
+    env              = (u_char **) *orig_envp;
+    environ_size     = sizeof(void *);
 
     for (i = 0; env[i] != NULL; i++) {
         environ_size += sizeof(void *);
 
         if (env[i] == end) {
             /* Environment strings are contiguous. */
-            size = nxt_strlen(env[i]) + 1;
+            size          = nxt_strlen(env[i]) + 1;
             strings_size += size;
-            end = env[i] + size;
+            end           = env[i] + size;
         }
     }
 
@@ -133,7 +131,6 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
     end = argv[0];
 
     for (i = 0; argv[i] != NULL; i++) {
-
         if (argv[i] != end) {
             /* Argument strings are not contiguous. */
             goto done;
@@ -142,9 +139,9 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
         size = nxt_strlen(argv[i]) + 1;
         nxt_memcpy(p, argv[i], size);
 
-        end = argv[i] + size;
-        argv[i] = p;
-        p += size;
+        end      = argv[i] + size;
+        argv[i]  = p;
+        p       += size;
     }
 
     env = nxt_malloc(environ_size);
@@ -163,7 +160,6 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
     *orig_envp = (char **) env;
 
     for (i = 0; env[i] != NULL; i++) {
-
         if (env[i] != end) {
             /* Environment strings are not contiguous. */
             goto done;
@@ -172,9 +168,9 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
         size = nxt_strlen(env[i]) + 1;
         nxt_memcpy(p, env[i], size);
 
-        end = env[i] + size;
-        env[i] = p;
-        p += size;
+        end     = env[i] + size;
+        env[i]  = p;
+        p      += size;
     }
 
 done:
@@ -185,12 +181,11 @@ done:
     nxt_process_title_end = end;
 }
 
-
 void
 nxt_process_title(nxt_task_t *task, const char *fmt, ...)
 {
-    u_char   *p, *start, *end;
-    va_list  args;
+    u_char *p, *start, *end;
+    va_list args;
 
     start = nxt_process_title_start;
 
@@ -211,8 +206,8 @@ nxt_process_title(nxt_task_t *task, const char *fmt, ...)
      * to append the original command line in parenthesis to the title.
      */
     {
-        size_t      size;
-        nxt_uint_t  i;
+        size_t     size;
+        nxt_uint_t i;
 
         size = 0;
 
@@ -221,7 +216,6 @@ nxt_process_title(nxt_task_t *task, const char *fmt, ...)
         }
 
         if (size > (size_t) (p - start)) {
-
             p = nxt_sprintf(p, end, " (");
 
             for (i = 0; nxt_process_argv[i] != NULL; i++) {
@@ -249,7 +243,7 @@ nxt_process_title(nxt_task_t *task, const char *fmt, ...)
 void
 nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 {
-    nxt_process_argv = orig_argv;
+    nxt_process_argv    = orig_argv;
     nxt_process_environ = orig_envp;
 }
 

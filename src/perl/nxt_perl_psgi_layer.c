@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Alexander Borisov
  * Copyright (C) NGINX, Inc.
@@ -6,50 +5,63 @@
 
 #include <perl/nxt_perl_psgi_layer.h>
 
-
 typedef struct {
-    struct _PerlIO  base;
+    struct _PerlIO base;
 
-    SV              *var;
+    SV *var;
 } nxt_perl_psgi_layer_stream_t;
 
+static IV
+nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode, SV *arg,
+                                  PerlIO_funcs *tab);
+static IV
+nxt_perl_psgi_layer_stream_popped(pTHX_ PerlIO *f);
 
-static IV nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode,
-    SV *arg, PerlIO_funcs *tab);
-static IV nxt_perl_psgi_layer_stream_popped(pTHX_ PerlIO *f);
+static PerlIO *
+nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self, PerlIO_list_t *layers,
+                                IV n, const char *mode, int fd, int imode,
+                                int perm, PerlIO *f, int narg, SV **args);
 
-static PerlIO *nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self,
-    PerlIO_list_t *layers, IV n,
-    const char *mode, int fd, int imode, int perm,
-    PerlIO *f, int narg, SV **args);
+static IV
+nxt_perl_psgi_layer_stream_close(pTHX_ PerlIO *f);
 
-static IV nxt_perl_psgi_layer_stream_close(pTHX_ PerlIO *f);
+static SSize_t
+nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f, void *vbuf, Size_t count);
+static SSize_t
+nxt_perl_psgi_layer_stream_write(pTHX_ PerlIO *f, const void *vbuf,
+                                 Size_t count);
 
-static SSize_t nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f,
-    void *vbuf, Size_t count);
-static SSize_t nxt_perl_psgi_layer_stream_write(pTHX_ PerlIO *f,
-    const void *vbuf, Size_t count);
+static IV
+nxt_perl_psgi_layer_stream_fileno(pTHX_ PerlIO *f);
+static IV
+nxt_perl_psgi_layer_stream_seek(pTHX_ PerlIO *f, Off_t offset, int whence);
+static Off_t
+nxt_perl_psgi_layer_stream_tell(pTHX_ PerlIO *f);
+static IV
+nxt_perl_psgi_layer_stream_fill(pTHX_ PerlIO *f);
+static IV
+nxt_perl_psgi_layer_stream_flush(pTHX_ PerlIO *f);
 
-static IV nxt_perl_psgi_layer_stream_fileno(pTHX_ PerlIO *f);
-static IV nxt_perl_psgi_layer_stream_seek(pTHX_ PerlIO *f,
-    Off_t offset, int whence);
-static Off_t nxt_perl_psgi_layer_stream_tell(pTHX_ PerlIO *f);
-static IV nxt_perl_psgi_layer_stream_fill(pTHX_ PerlIO *f);
-static IV nxt_perl_psgi_layer_stream_flush(pTHX_ PerlIO *f);
+static SV *
+nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags);
 
-static SV *nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO *f,
-    CLONE_PARAMS *param, int flags);
+static PerlIO *
+nxt_perl_psgi_layer_stream_dup(pTHX_ PerlIO *f, PerlIO *o, CLONE_PARAMS *param,
+                               int flags);
+static IV
+nxt_perl_psgi_layer_stream_eof(pTHX_ PerlIO *f);
 
-static PerlIO *nxt_perl_psgi_layer_stream_dup(pTHX_ PerlIO *f, PerlIO *o,
-    CLONE_PARAMS *param, int flags);
-static IV nxt_perl_psgi_layer_stream_eof(pTHX_ PerlIO *f);
-
-static STDCHAR *nxt_perl_psgi_layer_stream_get_base(pTHX_ PerlIO *f);
-static STDCHAR *nxt_perl_psgi_layer_stream_get_ptr(pTHX_ PerlIO *f);
-static SSize_t nxt_perl_psgi_layer_stream_get_cnt(pTHX_ PerlIO *f);
-static Size_t nxt_perl_psgi_layer_stream_buffersize(pTHX_ PerlIO *f);
-static void nxt_perl_psgi_layer_stream_set_ptrcnt(pTHX_ PerlIO *f,
-    STDCHAR *ptr, SSize_t cnt);
+static STDCHAR *
+nxt_perl_psgi_layer_stream_get_base(pTHX_ PerlIO *f);
+static STDCHAR *
+nxt_perl_psgi_layer_stream_get_ptr(pTHX_ PerlIO *f);
+static SSize_t
+nxt_perl_psgi_layer_stream_get_cnt(pTHX_ PerlIO *f);
+static Size_t
+nxt_perl_psgi_layer_stream_buffersize(pTHX_ PerlIO *f);
+static void
+nxt_perl_psgi_layer_stream_set_ptrcnt(pTHX_ PerlIO *f, STDCHAR *ptr,
+                                      SSize_t cnt);
 
 
 static PERLIO_FUNCS_DECL(PerlIO_NGINX_Unit) = {
@@ -83,12 +95,11 @@ static PERLIO_FUNCS_DECL(PerlIO_NGINX_Unit) = {
     nxt_perl_psgi_layer_stream_set_ptrcnt,
 };
 
-
 static IV
 nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode, SV *arg,
-    PerlIO_funcs *tab)
+                                  PerlIO_funcs *tab)
 {
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
+    nxt_perl_psgi_layer_stream_t *unit_stream;
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
 
@@ -99,17 +110,16 @@ nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode, SV *arg,
     return PerlIOBase_pushed(aTHX_ f, mode, Nullsv, tab);
 }
 
-
 static IV
 nxt_perl_psgi_layer_stream_popped(pTHX_ PerlIO *f)
 {
-    nxt_perl_psgi_io_arg_t        *arg;
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
+    nxt_perl_psgi_io_arg_t       *arg;
+    nxt_perl_psgi_layer_stream_t *unit_stream;
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
 
     if (unit_stream->var != NULL) {
-        arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
+        arg     = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
 
         arg->io = NULL;
         arg->fp = NULL;
@@ -121,14 +131,12 @@ nxt_perl_psgi_layer_stream_popped(pTHX_ PerlIO *f)
     return 0;
 }
 
-
 static PerlIO *
-nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self,
-    PerlIO_list_t *layers, IV n,
-    const char *mode, int fd, int imode, int perm,
-    PerlIO *f, int narg, SV **args)
+nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self, PerlIO_list_t *layers,
+                                IV n, const char *mode, int fd, int imode,
+                                int perm, PerlIO *f, int narg, SV **args)
 {
-    SV  *arg;
+    SV *arg;
 
     arg = (narg > 0) ? *args : PerlIOArg;
 
@@ -137,7 +145,6 @@ nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self,
     PERL_UNUSED_ARG(perm);
 
     if (SvROK(arg) || SvPOK(arg)) {
-
         if (f == NULL) {
             f = PerlIO_allocate(aTHX);
         }
@@ -154,18 +161,16 @@ nxt_perl_psgi_layer_stream_open(pTHX_ PerlIO_funcs *self,
     return NULL;
 }
 
-
 static IV
 nxt_perl_psgi_layer_stream_close(pTHX_ PerlIO *f)
 {
-    IV  code;
+    IV code;
 
-    code = PerlIOBase_close(aTHX_ f);
+    code                  = PerlIOBase_close(aTHX_ f);
     PerlIOBase(f)->flags &= ~(PERLIO_F_RDBUF | PERLIO_F_WRBUF);
 
     return code;
 }
-
 
 static IV
 nxt_perl_psgi_layer_stream_fileno(pTHX_ PerlIO *f)
@@ -174,12 +179,11 @@ nxt_perl_psgi_layer_stream_fileno(pTHX_ PerlIO *f)
     return -1;
 }
 
-
 static SSize_t
 nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f, void *vbuf, Size_t count)
 {
-    nxt_perl_psgi_io_arg_t        *arg;
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
+    nxt_perl_psgi_io_arg_t       *arg;
+    nxt_perl_psgi_layer_stream_t *unit_stream;
 
     if (f == NULL) {
         return 0;
@@ -194,29 +198,27 @@ nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f, void *vbuf, Size_t count)
     }
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-    arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
+    arg         = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
 
     return arg->io_tab->read(PERL_GET_CONTEXT, arg, vbuf, count);
 }
 
-
 static SSize_t
-nxt_perl_psgi_layer_stream_write(pTHX_ PerlIO *f,
-    const void *vbuf, Size_t count)
+nxt_perl_psgi_layer_stream_write(pTHX_ PerlIO *f, const void *vbuf,
+                                 Size_t count)
 {
-    nxt_perl_psgi_io_arg_t        *arg;
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
+    nxt_perl_psgi_io_arg_t       *arg;
+    nxt_perl_psgi_layer_stream_t *unit_stream;
 
     if (PerlIOBase(f)->flags & PERLIO_F_CANWRITE) {
         unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-        arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
+        arg         = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
 
         return arg->io_tab->write(PERL_GET_CONTEXT, arg, vbuf, count);
     }
 
     return 0;
 }
-
 
 static IV
 nxt_perl_psgi_layer_stream_seek(pTHX_ PerlIO *f, Off_t offset, int whence)
@@ -225,14 +227,12 @@ nxt_perl_psgi_layer_stream_seek(pTHX_ PerlIO *f, Off_t offset, int whence)
     return 0;
 }
 
-
 static Off_t
 nxt_perl_psgi_layer_stream_tell(pTHX_ PerlIO *f)
 {
     PERL_UNUSED_ARG(f);
     return 0;
 }
-
 
 static IV
 nxt_perl_psgi_layer_stream_fill(pTHX_ PerlIO *f)
@@ -241,23 +241,20 @@ nxt_perl_psgi_layer_stream_fill(pTHX_ PerlIO *f)
     return -1;
 }
 
-
 static IV
 nxt_perl_psgi_layer_stream_flush(pTHX_ PerlIO *f)
 {
     return 0;
 }
 
-
 static SV *
-nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO * f,
-    CLONE_PARAMS *param, int flags)
+nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO *f, CLONE_PARAMS *param, int flags)
 {
-    SV                            *var;
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
+    SV                           *var;
+    nxt_perl_psgi_layer_stream_t *unit_stream;
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-    var = unit_stream->var;
+    var         = unit_stream->var;
 
     if (flags & PERLIO_DUP_CLONE) {
         var = PerlIO_sv_dup(aTHX_ var, param);
@@ -272,23 +269,21 @@ nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO * f,
     return var;
 }
 
-
 static PerlIO *
-nxt_perl_psgi_layer_stream_dup(pTHX_ PerlIO *f, PerlIO *o,
-    CLONE_PARAMS *param, int flags)
+nxt_perl_psgi_layer_stream_dup(pTHX_ PerlIO *f, PerlIO *o, CLONE_PARAMS *param,
+                               int flags)
 {
-    nxt_perl_psgi_layer_stream_t  *fs;
+    nxt_perl_psgi_layer_stream_t *fs;
 
     f = PerlIOBase_dup(aTHX_ f, o, param, flags);
 
     if (f != NULL) {
-        fs = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
+        fs      = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
         fs->var = nxt_perl_psgi_layer_stream_arg(aTHX_ o, param, flags);
     }
 
     return f;
 }
-
 
 static IV
 nxt_perl_psgi_layer_stream_eof(pTHX_ PerlIO *f)
@@ -296,13 +291,11 @@ nxt_perl_psgi_layer_stream_eof(pTHX_ PerlIO *f)
     return 1;
 }
 
-
 static STDCHAR *
 nxt_perl_psgi_layer_stream_get_base(pTHX_ PerlIO *f)
 {
     return (STDCHAR *) NULL;
 }
-
 
 static STDCHAR *
 nxt_perl_psgi_layer_stream_get_ptr(pTHX_ PerlIO *f)
@@ -310,13 +303,11 @@ nxt_perl_psgi_layer_stream_get_ptr(pTHX_ PerlIO *f)
     return (STDCHAR *) NULL;
 }
 
-
 static SSize_t
 nxt_perl_psgi_layer_stream_get_cnt(pTHX_ PerlIO *f)
 {
     return 0;
 }
-
 
 static Size_t
 nxt_perl_psgi_layer_stream_buffersize(pTHX_ PerlIO *f)
@@ -324,14 +315,12 @@ nxt_perl_psgi_layer_stream_buffersize(pTHX_ PerlIO *f)
     return 0;
 }
 
-
 static void
-nxt_perl_psgi_layer_stream_set_ptrcnt(pTHX_ PerlIO *f,
-    STDCHAR *ptr, SSize_t cnt)
+nxt_perl_psgi_layer_stream_set_ptrcnt(pTHX_ PerlIO *f, STDCHAR *ptr,
+                                      SSize_t cnt)
 {
     /* Need some code. */
 }
-
 
 void
 nxt_perl_psgi_layer_stream_init(pTHX)
@@ -339,15 +328,12 @@ nxt_perl_psgi_layer_stream_init(pTHX)
     PerlIO_define_layer(aTHX_ PERLIO_FUNCS_CAST(&PerlIO_NGINX_Unit));
 }
 
-
 PerlIO *
-nxt_perl_psgi_layer_stream_fp_create(pTHX_ SV *arg_rv,
-    const char *mode)
+nxt_perl_psgi_layer_stream_fp_create(pTHX_ SV *arg_rv, const char *mode)
 {
-    return PerlIO_openn(aTHX_ "NGINX_Unit_PSGI_Layer_Stream",
-                        mode, 0, 0, 0, NULL, 1, &arg_rv);
+    return PerlIO_openn(aTHX_ "NGINX_Unit_PSGI_Layer_Stream", mode, 0, 0, 0,
+                        NULL, 1, &arg_rv);
 }
-
 
 void
 nxt_perl_psgi_layer_stream_fp_destroy(pTHX_ PerlIO *io)
@@ -355,12 +341,11 @@ nxt_perl_psgi_layer_stream_fp_destroy(pTHX_ PerlIO *io)
     PerlIO_close(io);
 }
 
-
 SV *
 nxt_perl_psgi_layer_stream_io_create(pTHX_ PerlIO *fp)
 {
-    SV  *rvio;
-    IO  *thatio;
+    SV *rvio;
+    IO *thatio;
 
     thatio = newIO();
 
@@ -371,7 +356,7 @@ nxt_perl_psgi_layer_stream_io_create(pTHX_ PerlIO *fp)
     IoOFP(thatio) = fp;
     IoIFP(thatio) = fp;
 
-    rvio = newRV_noinc((SV *) thatio);
+    rvio          = newRV_noinc((SV *) thatio);
 
     if (rvio == NULL) {
         SvREFCNT_dec(thatio);

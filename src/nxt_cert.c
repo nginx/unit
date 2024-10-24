@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Valentin V. Bartenev
  * Copyright (C) NGINX, Inc.
@@ -18,47 +17,47 @@
 #include <openssl/rsa.h>
 #include <openssl/err.h>
 
-
 struct nxt_cert_s {
-    EVP_PKEY          *key;
-    nxt_uint_t        count;
-    X509              *chain[];
+    EVP_PKEY  *key;
+    nxt_uint_t count;
+    X509      *chain[];
 };
 
-
 typedef struct {
     nxt_str_t         name;
-    nxt_conf_value_t  *value;
-    nxt_mp_t          *mp;
+    nxt_conf_value_t *value;
+    nxt_mp_t         *mp;
 } nxt_cert_info_t;
 
-
 typedef struct {
-    nxt_str_t         name;
-    nxt_fd_t          fd;
+    nxt_str_t name;
+    nxt_fd_t  fd;
 } nxt_cert_item_t;
 
+static nxt_cert_t *
+nxt_cert_fd(nxt_task_t *task, nxt_fd_t fd);
+static nxt_cert_t *
+nxt_cert_bio(nxt_task_t *task, BIO *bio);
+static int
+nxt_nxt_cert_pem_suffix(char *pem_str, const char *suffix);
 
-static nxt_cert_t *nxt_cert_fd(nxt_task_t *task, nxt_fd_t fd);
-static nxt_cert_t *nxt_cert_bio(nxt_task_t *task, BIO *bio);
-static int nxt_nxt_cert_pem_suffix(char *pem_str, const char *suffix);
-
-static nxt_conf_value_t *nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert);
-static nxt_conf_value_t *nxt_cert_name_details(nxt_mp_t *mp, X509 *x509,
-    nxt_bool_t issuer);
-static nxt_conf_value_t *nxt_cert_alt_names_details(nxt_mp_t *mp,
-    STACK_OF(GENERAL_NAME) *alt_names);
-static void nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data);
+static nxt_conf_value_t *
+nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert);
+static nxt_conf_value_t *
+nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer);
+static nxt_conf_value_t *
+nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) * alt_names);
+static void
+nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data);
 
 
-static nxt_lvlhsh_t  nxt_cert_info;
-
+static nxt_lvlhsh_t nxt_cert_info;
 
 nxt_cert_t *
 nxt_cert_mem(nxt_task_t *task, nxt_buf_mem_t *mbuf)
 {
-    BIO         *bio;
-    nxt_cert_t  *cert;
+    BIO        *bio;
+    nxt_cert_t *cert;
 
     bio = BIO_new_mem_buf(mbuf->pos, nxt_buf_mem_used_size(mbuf));
     if (nxt_slow_path(bio == NULL)) {
@@ -73,12 +72,11 @@ nxt_cert_mem(nxt_task_t *task, nxt_buf_mem_t *mbuf)
     return cert;
 }
 
-
 static nxt_cert_t *
 nxt_cert_fd(nxt_task_t *task, nxt_fd_t fd)
 {
-    BIO         *bio;
-    nxt_cert_t  *cert;
+    BIO        *bio;
+    nxt_cert_t *cert;
 
     bio = BIO_new_fd(fd, 0);
     if (nxt_slow_path(bio == NULL)) {
@@ -93,30 +91,29 @@ nxt_cert_fd(nxt_task_t *task, nxt_fd_t fd)
     return cert;
 }
 
-
 static nxt_cert_t *
 nxt_cert_bio(nxt_task_t *task, BIO *bio)
 {
     int                         ret, suffix, key_id;
     long                        length, reason;
-    char                        *type, *header;
-    X509                        *x509;
-    EVP_PKEY                    *key;
+    char                       *type, *header;
+    X509                       *x509;
+    EVP_PKEY                   *key;
     nxt_uint_t                  nalloc;
-    nxt_cert_t                  *cert, *new_cert;
-    u_char                      *data;
-    const u_char                *data_copy;
-    PKCS8_PRIV_KEY_INFO         *p8inf;
-    const EVP_PKEY_ASN1_METHOD  *ameth;
+    nxt_cert_t                 *cert, *new_cert;
+    u_char                     *data;
+    const u_char               *data_copy;
+    PKCS8_PRIV_KEY_INFO        *p8inf;
+    const EVP_PKEY_ASN1_METHOD *ameth;
 
     nalloc = 4;
 
-    cert = nxt_zalloc(sizeof(nxt_cert_t) + nalloc * sizeof(X509 *));
+    cert   = nxt_zalloc(sizeof(nxt_cert_t) + nalloc * sizeof(X509 *));
     if (cert == NULL) {
         return NULL;
     }
 
-    for ( ;; ) {
+    for (;;) {
         ret = PEM_read_bio(bio, &type, &header, &data, &length);
 
         if (ret == 0) {
@@ -133,16 +130,16 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
 
         nxt_debug(task, "PEM type: \"%s\"", type);
 
-        key = NULL;
+        key  = NULL;
         x509 = NULL;
-/*
-        EVP_CIPHER_INFO  cipher;
+        /*
+                EVP_CIPHER_INFO  cipher;
 
-        if (PEM_get_EVP_CIPHER_INFO(header, &cipher) != 0) {
-            nxt_alert(task, "encrypted PEM isn't supported");
-            goto done;
-        }
-*/
+                if (PEM_get_EVP_CIPHER_INFO(header, &cipher) != 0) {
+                    nxt_alert(task, "encrypted PEM isn't supported");
+                    goto done;
+                }
+        */
         if (nxt_strcmp(type, PEM_STRING_PKCS8) == 0) {
             nxt_alert(task, "PEM PKCS8 isn't supported");
             goto done;
@@ -151,7 +148,7 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
         if (nxt_strcmp(type, PEM_STRING_PKCS8INF) == 0) {
             data_copy = data;
 
-            p8inf = d2i_PKCS8_PRIV_KEY_INFO(NULL, &data_copy, length);
+            p8inf     = d2i_PKCS8_PRIV_KEY_INFO(NULL, &data_copy, length);
 
             if (p8inf == NULL) {
                 nxt_openssl_log_error(task, NXT_LOG_ALERT,
@@ -168,7 +165,6 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
         suffix = nxt_nxt_cert_pem_suffix(type, PEM_STRING_PKCS8INF);
 
         if (suffix != 0) {
-
             ameth = EVP_PKEY_asn1_find_str(NULL, type, suffix);
             if (ameth == NULL) {
                 nxt_openssl_log_error(task, NXT_LOG_ALERT,
@@ -180,19 +176,17 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
 
             data_copy = data;
 
-            key = d2i_PrivateKey(key_id, NULL, &data_copy, length);
+            key       = d2i_PrivateKey(key_id, NULL, &data_copy, length);
             goto done;
         }
 
         if (nxt_strcmp(type, PEM_STRING_X509) == 0
-            || nxt_strcmp(type, PEM_STRING_X509_OLD) == 0)
-        {
+            || nxt_strcmp(type, PEM_STRING_X509_OLD) == 0) {
             data_copy = data;
 
-            x509 = d2i_X509(NULL, &data_copy, length);
+            x509      = d2i_X509(NULL, &data_copy, length);
             if (x509 == NULL) {
-                nxt_openssl_log_error(task, NXT_LOG_ALERT,
-                                      "d2i_X509() failed");
+                nxt_openssl_log_error(task, NXT_LOG_ALERT, "d2i_X509() failed");
             }
 
             goto done;
@@ -201,7 +195,7 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
         if (nxt_strcmp(type, PEM_STRING_X509_TRUSTED) == 0) {
             data_copy = data;
 
-            x509 = d2i_X509_AUX(NULL, &data_copy, length);
+            x509      = d2i_X509_AUX(NULL, &data_copy, length);
             if (x509 == NULL) {
                 nxt_openssl_log_error(task, NXT_LOG_ALERT,
                                       "d2i_X509_AUX() failed");
@@ -230,12 +224,11 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
         }
 
         if (x509 != NULL) {
-
             if (cert->count == nalloc) {
-                nalloc += 4;
+                nalloc   += 4;
 
-                new_cert = nxt_realloc(cert, sizeof(nxt_cert_t)
-                                             + nalloc * sizeof(X509 *));
+                new_cert  = nxt_realloc(cert, sizeof(nxt_cert_t)
+                                                  + nalloc * sizeof(X509 *));
                 if (new_cert == NULL) {
                     X509_free(x509);
                     goto fail;
@@ -270,14 +263,13 @@ fail:
     return NULL;
 }
 
-
 static int
 nxt_nxt_cert_pem_suffix(char *pem_str, const char *suffix)
 {
-    char        *p;
-    nxt_uint_t  pem_len, suffix_len;
+    char      *p;
+    nxt_uint_t pem_len, suffix_len;
 
-    pem_len = strlen(pem_str);
+    pem_len    = strlen(pem_str);
     suffix_len = strlen(suffix);
 
     if (suffix_len + 1 >= pem_len) {
@@ -299,11 +291,10 @@ nxt_nxt_cert_pem_suffix(char *pem_str, const char *suffix)
     return p - pem_str;
 }
 
-
 void
 nxt_cert_destroy(nxt_cert_t *cert)
 {
-    nxt_uint_t  i;
+    nxt_uint_t i;
 
     EVP_PKEY_free(cert->key);
 
@@ -314,12 +305,10 @@ nxt_cert_destroy(nxt_cert_t *cert)
     nxt_free(cert);
 }
 
-
-
 static nxt_int_t
 nxt_cert_info_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
-    nxt_cert_info_t  *info;
+    nxt_cert_info_t *info;
 
     info = data;
 
@@ -330,23 +319,19 @@ nxt_cert_info_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
     return NXT_DECLINED;
 }
 
-
-static const nxt_lvlhsh_proto_t  nxt_cert_info_hash_proto
-    nxt_aligned(64) =
-{
+static const nxt_lvlhsh_proto_t nxt_cert_info_hash_proto nxt_aligned(64) = {
     NXT_LVLHSH_DEFAULT,
     nxt_cert_info_hash_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,
 };
 
-
 void
 nxt_cert_info_init(nxt_task_t *task, nxt_array_t *certs)
 {
     uint32_t         i;
-    nxt_cert_t       *cert;
-    nxt_cert_item_t  *items;
+    nxt_cert_t      *cert;
+    nxt_cert_item_t *items;
 
     for (items = certs->elts, i = 0; i < certs->nelts; i++) {
         cert = nxt_cert_fd(task, items[i].fd);
@@ -361,15 +346,14 @@ nxt_cert_info_init(nxt_task_t *task, nxt_array_t *certs)
     }
 }
 
-
 nxt_int_t
 nxt_cert_info_save(nxt_str_t *name, nxt_cert_t *cert)
 {
-    nxt_mp_t            *mp;
-    nxt_int_t           ret;
-    nxt_cert_info_t     *info;
-    nxt_conf_value_t    *value;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_mp_t          *mp;
+    nxt_int_t          ret;
+    nxt_cert_info_t   *info;
+    nxt_conf_value_t  *value;
+    nxt_lvlhsh_query_t lhq;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp == NULL)) {
@@ -391,16 +375,16 @@ nxt_cert_info_save(nxt_str_t *name, nxt_cert_t *cert)
         goto fail;
     }
 
-    info->mp = mp;
-    info->value = value;
+    info->mp     = mp;
+    info->value  = value;
 
     lhq.key_hash = nxt_djb_hash(name->start, name->length);
-    lhq.replace = 1;
-    lhq.key = *name;
-    lhq.value = info;
-    lhq.proto = &nxt_cert_info_hash_proto;
+    lhq.replace  = 1;
+    lhq.key      = *name;
+    lhq.value    = info;
+    lhq.proto    = &nxt_cert_info_hash_proto;
 
-    ret = nxt_lvlhsh_insert(&nxt_cert_info, &lhq);
+    ret          = nxt_lvlhsh_insert(&nxt_cert_info, &lhq);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }
@@ -418,19 +402,18 @@ fail:
     return NXT_ERROR;
 }
 
-
 nxt_conf_value_t *
 nxt_cert_info_get(nxt_str_t *name)
 {
-    nxt_int_t           ret;
-    nxt_cert_info_t     *info;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_int_t          ret;
+    nxt_cert_info_t   *info;
+    nxt_lvlhsh_query_t lhq;
 
     lhq.key_hash = nxt_djb_hash(name->start, name->length);
-    lhq.key = *name;
-    lhq.proto = &nxt_cert_info_hash_proto;
+    lhq.key      = *name;
+    lhq.proto    = &nxt_cert_info_hash_proto;
 
-    ret = nxt_lvlhsh_find(&nxt_cert_info, &lhq);
+    ret          = nxt_lvlhsh_find(&nxt_cert_info, &lhq);
     if (ret != NXT_OK) {
         return NULL;
     }
@@ -440,20 +423,19 @@ nxt_cert_info_get(nxt_str_t *name)
     return info->value;
 }
 
-
 nxt_conf_value_t *
 nxt_cert_info_get_all(nxt_mp_t *mp)
 {
-    uint32_t           i;
-    nxt_cert_info_t    *info;
-    nxt_conf_value_t   *all;
-    nxt_lvlhsh_each_t  lhe;
+    uint32_t          i;
+    nxt_cert_info_t  *info;
+    nxt_conf_value_t *all;
+    nxt_lvlhsh_each_t lhe;
 
     nxt_lvlhsh_each_init(&lhe, &nxt_cert_info_hash_proto);
 
     i = 0;
 
-    for ( ;; ) {
+    for (;;) {
         info = nxt_lvlhsh_each(&nxt_cert_info, &lhe);
 
         if (info == NULL) {
@@ -472,7 +454,7 @@ nxt_cert_info_get_all(nxt_mp_t *mp)
 
     i = 0;
 
-    for ( ;; ) {
+    for (;;) {
         info = nxt_lvlhsh_each(&nxt_cert_info, &lhe);
 
         if (info == NULL) {
@@ -487,30 +469,29 @@ nxt_cert_info_get_all(nxt_mp_t *mp)
     return all;
 }
 
-
 static nxt_conf_value_t *
 nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
 {
-    BIO               *bio;
-    X509              *x509;
-    u_char            *end;
-    EVP_PKEY          *key;
-    ASN1_TIME         *asn1_time;
+    BIO              *bio;
+    X509             *x509;
+    u_char           *end;
+    EVP_PKEY         *key;
+    ASN1_TIME        *asn1_time;
     nxt_str_t         str;
     nxt_int_t         ret;
     nxt_uint_t        i;
-    nxt_conf_value_t  *object, *chain, *element, *value;
+    nxt_conf_value_t *object, *chain, *element, *value;
     u_char            buf[256];
 
-    static nxt_str_t key_str = nxt_string("key");
-    static nxt_str_t chain_str = nxt_string("chain");
-    static nxt_str_t since_str = nxt_string("since");
-    static nxt_str_t until_str = nxt_string("until");
-    static nxt_str_t issuer_str = nxt_string("issuer");
-    static nxt_str_t subject_str = nxt_string("subject");
+    static nxt_str_t key_str      = nxt_string("key");
+    static nxt_str_t chain_str    = nxt_string("chain");
+    static nxt_str_t since_str    = nxt_string("since");
+    static nxt_str_t until_str    = nxt_string("until");
+    static nxt_str_t issuer_str   = nxt_string("issuer");
+    static nxt_str_t subject_str  = nxt_string("subject");
     static nxt_str_t validity_str = nxt_string("validity");
 
-    object = nxt_conf_create_object(mp, 2);
+    object                        = nxt_conf_create_object(mp, 2);
     if (nxt_slow_path(object == NULL)) {
         return NULL;
     }
@@ -520,19 +501,19 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
 
         switch (EVP_PKEY_base_id(key)) {
         case EVP_PKEY_RSA:
-            end = nxt_sprintf(buf, buf + sizeof(buf), "RSA (%d bits)",
-                              EVP_PKEY_bits(key));
+            end        = nxt_sprintf(buf, buf + sizeof(buf), "RSA (%d bits)",
+                                     EVP_PKEY_bits(key));
 
             str.length = end - buf;
-            str.start = buf;
+            str.start  = buf;
             break;
 
         case EVP_PKEY_DH:
-            end = nxt_sprintf(buf, buf + sizeof(buf), "DH (%d bits)",
-                              EVP_PKEY_bits(key));
+            end        = nxt_sprintf(buf, buf + sizeof(buf), "DH (%d bits)",
+                                     EVP_PKEY_bits(key));
 
             str.length = end - buf;
-            str.start = buf;
+            str.start  = buf;
             break;
 
         case EVP_PKEY_EC:
@@ -564,7 +545,7 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
             return NULL;
         }
 
-        x509 = cert->chain[i];
+        x509  = cert->chain[i];
 
         value = nxt_cert_name_details(mp, x509, 0);
         if (value == NULL) {
@@ -592,7 +573,7 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
 
         asn1_time = X509_get_notBefore(x509);
 
-        ret = ASN1_TIME_print(bio, asn1_time);
+        ret       = ASN1_TIME_print(bio, asn1_time);
 
         if (nxt_fast_path(ret == 1)) {
             str.length = BIO_get_mem_data(bio, &str.start);
@@ -615,7 +596,7 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
 
         asn1_time = X509_get_notAfter(x509);
 
-        ret = ASN1_TIME_print(bio, asn1_time);
+        ret       = ASN1_TIME_print(bio, asn1_time);
 
         if (nxt_fast_path(ret == 1)) {
             str.length = BIO_get_mem_data(bio, &str.start);
@@ -641,43 +622,40 @@ nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert)
     return object;
 }
 
-
 typedef struct {
-    int        nid;
-    nxt_str_t  name;
+    int       nid;
+    nxt_str_t name;
 } nxt_cert_nid_t;
-
 
 static nxt_conf_value_t *
 nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
 {
-    int                     len;
-    X509_NAME               *x509_name;
-    nxt_str_t               str;
-    nxt_int_t               ret;
-    nxt_uint_t              i, n, count;
-    nxt_conf_value_t        *object, *names;
-    STACK_OF(GENERAL_NAME)  *alt_names;
-    u_char                  buf[256];
+    int               len;
+    X509_NAME        *x509_name;
+    nxt_str_t         str;
+    nxt_int_t         ret;
+    nxt_uint_t        i, n, count;
+    nxt_conf_value_t *object, *names;
+    STACK_OF(GENERAL_NAME) * alt_names;
+    u_char buf[256];
 
-    static nxt_cert_nid_t  nids[] = {
-        { NID_commonName, nxt_string("common_name") },
-        { NID_countryName, nxt_string("country") },
-        { NID_stateOrProvinceName, nxt_string("state_or_province") },
-        { NID_localityName, nxt_string("locality") },
-        { NID_organizationName, nxt_string("organization") },
-        { NID_organizationalUnitName, nxt_string("department") },
+    static nxt_cert_nid_t nids[] = {
+        {NID_commonName, nxt_string("common_name")},
+        {NID_countryName, nxt_string("country")},
+        {NID_stateOrProvinceName, nxt_string("state_or_province")},
+        {NID_localityName, nxt_string("locality")},
+        {NID_organizationName, nxt_string("organization")},
+        {NID_organizationalUnitName, nxt_string("department")},
     };
 
     static nxt_str_t alt_names_str = nxt_string("alt_names");
 
-    count = 0;
+    count                          = 0;
 
-    x509_name = issuer ? X509_get_issuer_name(x509)
-                       : X509_get_subject_name(x509);
+    x509_name
+        = issuer ? X509_get_issuer_name(x509) : X509_get_subject_name(x509);
 
     for (n = 0; n != nxt_nitems(nids); n++) {
-
         if (X509_NAME_get_index_by_NID(x509_name, nids[n].nid, -1) < 0) {
             continue;
         }
@@ -685,9 +663,8 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
         count++;
     }
 
-    alt_names = X509_get_ext_d2i(x509, issuer ? NID_issuer_alt_name
-                                              : NID_subject_alt_name,
-                                 NULL, NULL);
+    alt_names = X509_get_ext_d2i(
+        x509, issuer ? NID_issuer_alt_name : NID_subject_alt_name, NULL, NULL);
 
     if (alt_names != NULL) {
         names = nxt_cert_alt_names_details(mp, alt_names);
@@ -710,9 +687,8 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
     }
 
     for (n = 0, i = 0; n != nxt_nitems(nids) && i != count; n++) {
-
-        len = X509_NAME_get_text_by_NID(x509_name, nids[n].nid,
-                                        (char *) buf, sizeof(buf));
+        len = X509_NAME_get_text_by_NID(x509_name, nids[n].nid, (char *) buf,
+                                        sizeof(buf));
 
         if (n == 1 && names != NULL) {
             nxt_conf_set_member(object, &alt_names_str, names, i++);
@@ -723,10 +699,10 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
         }
 
         str.length = len;
-        str.start = buf;
+        str.start  = buf;
 
-        ret = nxt_conf_set_member_string_dup(object, mp, &nids[n].name,
-                                             &str, i++);
+        ret = nxt_conf_set_member_string_dup(object, mp, &nids[n].name, &str,
+                                             i++);
         if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
         }
@@ -735,18 +711,17 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
     return object;
 }
 
-
 static nxt_conf_value_t *
-nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) *alt_names)
+nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) * alt_names)
 {
     nxt_str_t         str;
     nxt_int_t         ret;
     nxt_uint_t        i, n, count;
-    GENERAL_NAME      *name;
-    nxt_conf_value_t  *array;
+    GENERAL_NAME     *name;
+    nxt_conf_value_t *array;
 
     count = sk_GENERAL_NAME_num(alt_names);
-    n = 0;
+    n     = 0;
 
     for (i = 0; i != count; i++) {
         name = sk_GENERAL_NAME_value(alt_names, i);
@@ -786,19 +761,18 @@ nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) *alt_names)
     return array;
 }
 
-
 nxt_int_t
 nxt_cert_info_delete(nxt_str_t *name)
 {
-    nxt_int_t           ret;
-    nxt_cert_info_t     *info;
-    nxt_lvlhsh_query_t  lhq;
+    nxt_int_t          ret;
+    nxt_cert_info_t   *info;
+    nxt_lvlhsh_query_t lhq;
 
     lhq.key_hash = nxt_djb_hash(name->start, name->length);
-    lhq.key = *name;
-    lhq.proto = &nxt_cert_info_hash_proto;
+    lhq.key      = *name;
+    lhq.proto    = &nxt_cert_info_hash_proto;
 
-    ret = nxt_lvlhsh_delete(&nxt_cert_info, &lhq);
+    ret          = nxt_lvlhsh_delete(&nxt_cert_info, &lhq);
 
     if (ret == NXT_OK) {
         info = lhq.value;
@@ -808,21 +782,19 @@ nxt_cert_info_delete(nxt_str_t *name)
     return ret;
 }
 
-
-
 nxt_array_t *
 nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 {
-    DIR              *dir;
+    DIR             *dir;
     size_t           size, alloc;
-    u_char           *buf, *p;
+    u_char          *buf, *p;
     nxt_str_t        name;
     nxt_int_t        ret;
     nxt_file_t       file;
-    nxt_array_t      *certs;
-    nxt_runtime_t    *rt;
-    struct dirent    *de;
-    nxt_cert_item_t  *item;
+    nxt_array_t     *certs;
+    nxt_runtime_t   *rt;
+    struct dirent   *de;
+    nxt_cert_item_t *item;
 
     rt = task->thread->runtime;
 
@@ -836,17 +808,17 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
         return NULL;
     }
 
-    buf = NULL;
+    buf   = NULL;
     alloc = 0;
 
-    dir = opendir((char *) rt->certs.start);
+    dir   = opendir((char *) rt->certs.start);
     if (nxt_slow_path(dir == NULL)) {
-        nxt_alert(task, "opendir(\"%s\") failed %E",
-                  rt->certs.start, nxt_errno);
+        nxt_alert(task, "opendir(\"%s\") failed %E", rt->certs.start,
+                  nxt_errno);
         goto fail;
     }
 
-    for ( ;; ) {
+    for (;;) {
         de = readdir(dir);
         if (de == NULL) {
             break;
@@ -855,7 +827,7 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
         nxt_debug(task, "readdir(\"%s\"): \"%s\"", rt->certs.start, de->d_name);
 
         name.length = nxt_strlen(de->d_name);
-        name.start = (u_char *) de->d_name;
+        name.start  = (u_char *) de->d_name;
 
         if (nxt_str_eq(&name, ".", 1) || nxt_str_eq(&name, "..", 2)) {
             continue;
@@ -868,18 +840,18 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 
         item->fd = -1;
 
-        size = rt->certs.length + name.length + 1;
+        size     = rt->certs.length + name.length + 1;
 
         if (size > alloc) {
             size += 32;
 
-            p = nxt_realloc(buf, size);
+            p     = nxt_realloc(buf, size);
             if (p == NULL) {
                 goto fail;
             }
 
             alloc = size;
-            buf = p;
+            buf   = p;
         }
 
         p = nxt_cpymem(buf, rt->certs.start, rt->certs.length);
@@ -889,8 +861,8 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 
         file.name = buf;
 
-        ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN,
-                            NXT_FILE_OWNER_ACCESS);
+        ret       = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN,
+                                  NXT_FILE_OWNER_ACCESS);
 
 
         if (nxt_slow_path(ret != NXT_OK)) {
@@ -928,17 +900,13 @@ fail:
     return NULL;
 }
 
-
 void
 nxt_cert_store_release(nxt_array_t *certs)
 {
     uint32_t         i;
-    nxt_cert_item_t  *items;
+    nxt_cert_item_t *items;
 
-    for (items = certs->elts, i = 0;
-         i < certs->nelts;
-         i++)
-    {
+    for (items = certs->elts, i = 0; i < certs->nelts; i++) {
         nxt_fd_close(items[i].fd);
     }
 
@@ -1060,13 +1028,13 @@ fail:
 
 void
 nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,
-    nxt_port_rpc_handler_t handler, void *ctx)
+                   nxt_port_rpc_handler_t handler, void *ctx)
 {
     uint32_t       stream;
     nxt_int_t      ret;
-    nxt_buf_t      *b;
-    nxt_port_t     *main_port, *recv_port;
-    nxt_runtime_t  *rt;
+    nxt_buf_t     *b;
+    nxt_port_t    *main_port, *recv_port;
+    nxt_runtime_t *rt;
 
     b = nxt_buf_mem_alloc(mp, name->length + 1, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -1079,9 +1047,9 @@ nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,
     nxt_buf_cpystr(b, name);
     *b->mem.free++ = '\0';
 
-    rt = task->thread->runtime;
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-    recv_port = rt->port_by_type[rt->type];
+    rt             = task->thread->runtime;
+    main_port      = rt->port_by_type[NXT_PROCESS_MAIN];
+    recv_port      = rt->port_by_type[rt->type];
 
     stream = nxt_port_rpc_register_handler(task, recv_port, handler, handler,
                                            -1, ctx);
@@ -1104,14 +1072,13 @@ fail:
     handler(task, NULL, ctx);
 }
 
-
 static void
 nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b;
+    nxt_mp_t  *mp;
+    nxt_buf_t *b;
 
-    b = obj;
+    b  = obj;
     mp = b->data;
     nxt_assert(b->next == NULL);
 
@@ -1119,17 +1086,16 @@ nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_mp_release(mp);
 }
 
-
 void
 nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char               *p;
-    nxt_int_t            ret;
-    nxt_str_t            name;
-    nxt_file_t           file;
-    nxt_port_t           *port;
-    nxt_runtime_t        *rt;
-    nxt_port_msg_type_t  type;
+    u_char             *p;
+    nxt_int_t           ret;
+    nxt_str_t           name;
+    nxt_file_t          file;
+    nxt_port_t         *port;
+    nxt_runtime_t      *rt;
+    nxt_port_msg_type_t type;
 
     port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
@@ -1141,8 +1107,7 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     if (nxt_slow_path(port->type != NXT_PROCESS_CONTROLLER
-                      && port->type != NXT_PROCESS_ROUTER))
-    {
+                      && port->type != NXT_PROCESS_ROUTER)) {
         nxt_alert(task, "process %PI cannot store certificates",
                   msg->port_msg.pid);
         return;
@@ -1151,26 +1116,26 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_memzero(&file, sizeof(nxt_file_t));
 
     file.fd = -1;
-    type = NXT_PORT_MSG_RPC_ERROR;
+    type    = NXT_PORT_MSG_RPC_ERROR;
 
-    rt = task->thread->runtime;
+    rt      = task->thread->runtime;
 
     if (nxt_slow_path(rt->certs.start == NULL)) {
         nxt_alert(task, "no certificates storage directory");
         goto error;
     }
 
-    name.start = msg->buf->mem.pos;
+    name.start  = msg->buf->mem.pos;
     name.length = nxt_strlen(name.start);
 
-    file.name = nxt_malloc(rt->certs.length + name.length + 1);
+    file.name   = nxt_malloc(rt->certs.length + name.length + 1);
 
     if (nxt_slow_path(file.name == NULL)) {
         goto error;
     }
 
-    p = nxt_cpymem(file.name, rt->certs.start, rt->certs.length);
-    p = nxt_cpymem(p, name.start, name.length + 1);
+    p   = nxt_cpymem(file.name, rt->certs.start, rt->certs.length);
+    p   = nxt_cpymem(p, name.start, name.length + 1);
 
     ret = nxt_file_open(task, &file, NXT_FILE_RDWR, NXT_FILE_CREATE_OR_OPEN,
                         NXT_FILE_OWNER_ACCESS);
@@ -1187,13 +1152,12 @@ error:
                                  msg->port_msg.stream, 0, NULL);
 }
 
-
 void
 nxt_cert_store_delete(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp)
 {
-    nxt_buf_t      *b;
-    nxt_port_t     *main_port;
-    nxt_runtime_t  *rt;
+    nxt_buf_t     *b;
+    nxt_port_t    *main_port;
+    nxt_runtime_t *rt;
 
     b = nxt_buf_mem_alloc(mp, name->length + 1, 0);
 
@@ -1201,25 +1165,24 @@ nxt_cert_store_delete(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp)
         nxt_buf_cpystr(b, name);
         *b->mem.free++ = '\0';
 
-        rt = task->thread->runtime;
-        main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+        rt             = task->thread->runtime;
+        main_port      = rt->port_by_type[NXT_PROCESS_MAIN];
 
         (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_CERT_DELETE,
                                      -1, 0, 0, b);
     }
 }
 
-
 void
 nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char           *p;
+    u_char          *p;
     nxt_str_t        name;
-    nxt_port_t       *ctl_port;
-    nxt_runtime_t    *rt;
-    nxt_file_name_t  *path;
+    nxt_port_t      *ctl_port;
+    nxt_runtime_t   *rt;
+    nxt_file_name_t *path;
 
-    rt = task->thread->runtime;
+    rt       = task->thread->runtime;
     ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
 
     if (nxt_slow_path(ctl_port == NULL)) {
@@ -1238,10 +1201,10 @@ nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    name.start = msg->buf->mem.pos;
+    name.start  = msg->buf->mem.pos;
     name.length = nxt_strlen(name.start);
 
-    path = nxt_malloc(rt->certs.length + name.length + 1);
+    path        = nxt_malloc(rt->certs.length + name.length + 1);
 
     if (nxt_fast_path(path != NULL)) {
         p = nxt_cpymem(path, rt->certs.start, rt->certs.length);

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,30 +6,31 @@
 #include <nxt_main.h>
 
 
-#define NXT_HTTP_CHUNK_MIDDLE         0
-#define NXT_HTTP_CHUNK_END_ON_BORDER  1
-#define NXT_HTTP_CHUNK_END            2
+#define NXT_HTTP_CHUNK_MIDDLE        0
+#define NXT_HTTP_CHUNK_END_ON_BORDER 1
+#define NXT_HTTP_CHUNK_END           2
 
 
-#define nxt_size_is_sufficient(cs)                                            \
+#define nxt_size_is_sufficient(cs)                                             \
     (cs < ((__typeof__(cs)) 1 << (sizeof(cs) * 8 - 4)))
 
 
-static nxt_int_t nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp,
-    nxt_buf_t ***tail, nxt_buf_t *in);
+static nxt_int_t
+nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
+                      nxt_buf_t *in);
 
 
-static void nxt_http_chunk_buf_completion(nxt_task_t *task, void *obj,
-    void *data);
-
+static void
+nxt_http_chunk_buf_completion(nxt_task_t *task, void *obj, void *data);
 
 nxt_buf_t *
 nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
-    nxt_buf_t *in)
+                     nxt_buf_t *in)
 {
-    u_char        c, ch;
-    nxt_int_t     ret;
-    nxt_buf_t     *b, *out, *next, **tail;
+    u_char     c, ch;
+    nxt_int_t  ret;
+    nxt_buf_t *b, *out, *next, **tail;
+
     enum {
         sw_start = 0,
         sw_chunk_size,
@@ -40,14 +40,13 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
         sw_chunk,
     } state;
 
-    next = NULL;
-    out = NULL;
-    tail = &out;
+    next  = NULL;
+    out   = NULL;
+    tail  = &out;
 
     state = hcp->state;
 
     for (b = in; b != NULL; b = next) {
-
         while (b->mem.pos < b->mem.free) {
             /*
              * The sw_chunk state is tested outside the switch
@@ -77,11 +76,10 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
             ch = *b->mem.pos++;
 
             switch (state) {
-
             case sw_start:
                 state = sw_chunk_size;
 
-                c = ch - '0';
+                c     = ch - '0';
 
                 if (c <= 9) {
                     hcp->chunk_size = c;
@@ -125,14 +123,13 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
 
             case sw_chunk_size_linefeed:
                 if (nxt_fast_path(ch == '\n')) {
-
                     if (hcp->chunk_size != 0) {
                         state = sw_chunk;
                         continue;
                     }
 
                     hcp->last = 1;
-                    state = sw_chunk_end_newline;
+                    state     = sw_chunk_end_newline;
                     continue;
                 }
 
@@ -148,7 +145,6 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
 
             case sw_chunk_end_linefeed:
                 if (nxt_fast_path(ch == '\n')) {
-
                     if (!hcp->last) {
                         state = sw_start;
                         continue;
@@ -172,12 +168,11 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
             /* No chunk data was found in a buffer. */
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);
-
         }
 
     next:
 
-        next = b->next;
+        next    = b->next;
         b->next = NULL;
     }
 
@@ -192,46 +187,45 @@ chunk_error:
     return out;
 }
 
-
 static nxt_int_t
 nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
-    nxt_buf_t *in)
+                      nxt_buf_t *in)
 {
-    u_char     *p;
+    u_char    *p;
     size_t     size;
-    nxt_buf_t  *b;
+    nxt_buf_t *b;
 
-    p = in->mem.pos;
+    p    = in->mem.pos;
     size = in->mem.free - p;
 
-    b = nxt_buf_mem_alloc(hcp->mem_pool, 0, 0);
+    b    = nxt_buf_mem_alloc(hcp->mem_pool, 0, 0);
     if (nxt_slow_path(b == NULL)) {
         return NXT_ERROR;
     }
 
     **tail = b;
-    *tail = &b->next;
+    *tail  = &b->next;
 
     nxt_mp_retain(hcp->mem_pool);
     b->completion_handler = nxt_http_chunk_buf_completion;
 
-    b->parent = in;
+    b->parent             = in;
     in->retain++;
-    b->mem.pos = p;
+    b->mem.pos   = p;
     b->mem.start = p;
 
     if (hcp->chunk_size < size) {
-        p += hcp->chunk_size;
-        in->mem.pos = p;
+        p           += hcp->chunk_size;
+        in->mem.pos  = p;
 
-        b->mem.free = p;
-        b->mem.end = p;
+        b->mem.free  = p;
+        b->mem.end   = p;
 
         return NXT_HTTP_CHUNK_END;
     }
 
-    b->mem.free = in->mem.free;
-    b->mem.end = in->mem.free;
+    b->mem.free      = in->mem.free;
+    b->mem.end       = in->mem.free;
 
     hcp->chunk_size -= size;
 
@@ -242,12 +236,11 @@ nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp, nxt_buf_t ***tail,
     return NXT_HTTP_CHUNK_MIDDLE;
 }
 
-
 static void
 nxt_http_chunk_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b, *next, *parent;
+    nxt_mp_t  *mp;
+    nxt_buf_t *b, *next, *parent;
 
     b = obj;
 
@@ -256,9 +249,9 @@ nxt_http_chunk_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_assert(data == b->parent);
 
     do {
-        next = b->next;
+        next   = b->next;
         parent = b->parent;
-        mp = b->data;
+        mp     = b->data;
 
         nxt_mp_free(mp, b);
         nxt_mp_release(mp);

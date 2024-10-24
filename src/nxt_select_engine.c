@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -7,34 +6,40 @@
 #include <nxt_main.h>
 
 
-static nxt_int_t nxt_select_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents);
-static void nxt_select_free(nxt_event_engine_t *engine);
-static void nxt_select_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
-static void nxt_select_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
-static nxt_bool_t nxt_select_close(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_enable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_enable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_error_handler(nxt_task_t *task, void *obj, void *data);
-static void nxt_select_disable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_disable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_block_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_block_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_oneshot_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_oneshot_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
+static nxt_int_t
+nxt_select_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
+                  nxt_uint_t mevents);
+static void
+nxt_select_free(nxt_event_engine_t *engine);
+static void
+nxt_select_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static nxt_bool_t
+nxt_select_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_error_handler(nxt_task_t *task, void *obj, void *data);
+static void
+nxt_select_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
 
 
-const nxt_event_interface_t  nxt_select_engine = {
+const nxt_event_interface_t nxt_select_engine = {
     "select",
     nxt_select_create,
     nxt_select_free,
@@ -63,12 +68,11 @@ const nxt_event_interface_t  nxt_select_engine = {
     NXT_NO_SIGNAL_EVENTS,
 };
 
-
 static nxt_int_t
 nxt_select_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents)
+                  nxt_uint_t mevents)
 {
-    engine->u.select.nfds = -1;
+    engine->u.select.nfds        = -1;
     engine->u.select.update_nfds = 0;
 
     engine->u.select.events = nxt_zalloc(FD_SETSIZE * sizeof(nxt_fd_event_t *));
@@ -82,7 +86,6 @@ nxt_select_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
     return NXT_ERROR;
 }
 
-
 static void
 nxt_select_free(nxt_event_engine_t *engine)
 {
@@ -93,14 +96,12 @@ nxt_select_free(nxt_event_engine_t *engine)
     nxt_memzero(&engine->u.select, sizeof(nxt_select_engine_t));
 }
 
-
 static void
 nxt_select_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
     nxt_select_enable_read(engine, ev);
     nxt_select_enable_write(engine, ev);
 }
-
 
 static void
 nxt_select_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
@@ -114,7 +115,6 @@ nxt_select_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     }
 }
 
-
 static nxt_bool_t
 nxt_select_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
@@ -123,11 +123,10 @@ nxt_select_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     return 0;
 }
 
-
 static void
 nxt_select_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_fd_t  fd;
+    nxt_fd_t fd;
 
     fd = ev->fd;
 
@@ -145,16 +144,15 @@ nxt_select_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     engine->u.select.events[fd] = ev;
 
     if (engine->u.select.nfds < fd) {
-        engine->u.select.nfds = fd;
+        engine->u.select.nfds        = fd;
         engine->u.select.update_nfds = 0;
     }
 }
 
-
 static void
 nxt_select_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_fd_t  fd;
+    nxt_fd_t fd;
 
     fd = ev->fd;
 
@@ -172,30 +170,28 @@ nxt_select_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     engine->u.select.events[fd] = ev;
 
     if (engine->u.select.nfds < fd) {
-        engine->u.select.nfds = fd;
+        engine->u.select.nfds        = fd;
         engine->u.select.update_nfds = 0;
     }
 }
 
-
 static void
 nxt_select_error_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_fd_event_t  *ev;
+    nxt_fd_event_t *ev;
 
-    ev = obj;
+    ev        = obj;
 
-    ev->read = NXT_EVENT_INACTIVE;
+    ev->read  = NXT_EVENT_INACTIVE;
     ev->write = NXT_EVENT_INACTIVE;
 
     ev->error_handler(task, ev, data);
 }
 
-
 static void
 nxt_select_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_fd_t  fd;
+    nxt_fd_t fd;
 
     fd = ev->fd;
 
@@ -210,16 +206,15 @@ nxt_select_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->read = NXT_EVENT_INACTIVE;
 
     if (ev->write == NXT_EVENT_INACTIVE) {
-        engine->u.select.events[fd] = NULL;
+        engine->u.select.events[fd]  = NULL;
         engine->u.select.update_nfds = 1;
     }
 }
 
-
 static void
 nxt_select_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_fd_t  fd;
+    nxt_fd_t fd;
 
     fd = ev->fd;
 
@@ -234,11 +229,10 @@ nxt_select_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_INACTIVE;
 
     if (ev->read == NXT_EVENT_INACTIVE) {
-        engine->u.select.events[fd] = NULL;
+        engine->u.select.events[fd]  = NULL;
         engine->u.select.update_nfds = 1;
     }
 }
-
 
 static void
 nxt_select_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
@@ -248,7 +242,6 @@ nxt_select_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     }
 }
 
-
 static void
 nxt_select_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
@@ -256,7 +249,6 @@ nxt_select_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
         nxt_select_disable_write(engine, ev);
     }
 }
-
 
 static void
 nxt_select_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
@@ -266,7 +258,6 @@ nxt_select_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->read = NXT_EVENT_ONESHOT;
 }
 
-
 static void
 nxt_select_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
@@ -275,7 +266,6 @@ nxt_select_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_ONESHOT;
 }
 
-
 static void
 nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 {
@@ -283,39 +273,39 @@ nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_err_t       err;
     nxt_int_t       i;
     nxt_uint_t      fd, level;
-    nxt_fd_event_t  *ev;
+    nxt_fd_event_t *ev;
     struct timeval  tv, *tp;
 
     if (timeout == NXT_INFINITE_MSEC) {
         tp = NULL;
 
     } else {
-        tv.tv_sec = (long) (timeout / 1000);
+        tv.tv_sec  = (long) (timeout / 1000);
         tv.tv_usec = (long) ((timeout % 1000) * 1000);
-        tp = &tv;
+        tp         = &tv;
     }
 
     if (engine->u.select.update_nfds) {
         for (i = engine->u.select.nfds; i >= 0; i--) {
             if (engine->u.select.events[i] != NULL) {
-                engine->u.select.nfds = i;
+                engine->u.select.nfds        = i;
                 engine->u.select.update_nfds = 0;
                 break;
             }
         }
     }
 
-    engine->u.select.work_read_fd_set = engine->u.select.main_read_fd_set;
+    engine->u.select.work_read_fd_set  = engine->u.select.main_read_fd_set;
     engine->u.select.work_write_fd_set = engine->u.select.main_write_fd_set;
 
-    nfds = engine->u.select.nfds + 1;
+    nfds                               = engine->u.select.nfds + 1;
 
     nxt_debug(&engine->task, "select() nfds:%d timeout:%M", nfds, timeout);
 
     nevents = select(nfds, &engine->u.select.work_read_fd_set,
                      &engine->u.select.work_write_fd_set, NULL, tp);
 
-    err = (nevents == -1) ? nxt_errno : 0;
+    err     = (nevents == -1) ? nxt_errno : 0;
 
     nxt_thread_time_update(engine->task.thread);
 
@@ -328,14 +318,13 @@ nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     }
 
     for (fd = 0; fd < (nxt_uint_t) nfds && nevents != 0; fd++) {
-
         found = 0;
 
         if (FD_ISSET(fd, &engine->u.select.work_read_fd_set)) {
             ev = engine->u.select.events[fd];
 
-            nxt_debug(ev->task, "select() fd:%ui read rd:%d wr:%d",
-                      fd, ev->read, ev->write);
+            nxt_debug(ev->task, "select() fd:%ui read rd:%d wr:%d", fd,
+                      ev->read, ev->write);
 
             ev->read_ready = 1;
 
@@ -343,16 +332,16 @@ nxt_select_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 nxt_select_disable_read(engine, ev);
             }
 
-            nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
-                               ev->task, ev, ev->data);
+            nxt_work_queue_add(ev->read_work_queue, ev->read_handler, ev->task,
+                               ev, ev->data);
             found = 1;
         }
 
         if (FD_ISSET(fd, &engine->u.select.work_write_fd_set)) {
             ev = engine->u.select.events[fd];
 
-            nxt_debug(ev->task, "select() fd:%ui write rd:%d wr:%d",
-                      fd, ev->read, ev->write);
+            nxt_debug(ev->task, "select() fd:%ui write rd:%d wr:%d", fd,
+                      ev->read, ev->write);
 
             ev->write_ready = 1;
 

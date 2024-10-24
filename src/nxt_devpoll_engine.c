@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -21,48 +20,55 @@
  */
 
 
-#define NXT_DEVPOLL_ADD     0
-#define NXT_DEVPOLL_UPDATE  1
-#define NXT_DEVPOLL_CHANGE  2
-#define NXT_DEVPOLL_DELETE  3
+#define NXT_DEVPOLL_ADD    0
+#define NXT_DEVPOLL_UPDATE 1
+#define NXT_DEVPOLL_CHANGE 2
+#define NXT_DEVPOLL_DELETE 3
 
 
-static nxt_int_t nxt_devpoll_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents);
-static void nxt_devpoll_free(nxt_event_engine_t *engine);
-static void nxt_devpoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
-static void nxt_devpoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
-static nxt_bool_t nxt_devpoll_close(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_enable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_enable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_disable_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_disable_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_block_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_block_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_oneshot_read(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_oneshot_write(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
-    nxt_uint_t op, nxt_uint_t events);
-static nxt_int_t nxt_devpoll_commit_changes(nxt_event_engine_t *engine);
-static void nxt_devpoll_change_error(nxt_event_engine_t *engine,
-    nxt_fd_event_t *ev);
-static void nxt_devpoll_remove(nxt_event_engine_t *engine, nxt_fd_t fd);
-static nxt_int_t nxt_devpoll_write(nxt_event_engine_t *engine,
-    struct pollfd *pfd, size_t n);
-static void nxt_devpoll_poll(nxt_event_engine_t *engine,
-    nxt_msec_t timeout);
+static nxt_int_t
+nxt_devpoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
+                   nxt_uint_t mevents);
+static void
+nxt_devpoll_free(nxt_event_engine_t *engine);
+static void
+nxt_devpoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static nxt_bool_t
+nxt_devpoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
+                   nxt_uint_t op, nxt_uint_t events);
+static nxt_int_t
+nxt_devpoll_commit_changes(nxt_event_engine_t *engine);
+static void
+nxt_devpoll_change_error(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
+static void
+nxt_devpoll_remove(nxt_event_engine_t *engine, nxt_fd_t fd);
+static nxt_int_t
+nxt_devpoll_write(nxt_event_engine_t *engine, struct pollfd *pfd, size_t n);
+static void
+nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
 
 
-const nxt_event_interface_t  nxt_devpoll_engine = {
+const nxt_event_interface_t nxt_devpoll_engine = {
     "devpoll",
     nxt_devpoll_create,
     nxt_devpoll_free,
@@ -91,16 +97,15 @@ const nxt_event_interface_t  nxt_devpoll_engine = {
     NXT_NO_SIGNAL_EVENTS,
 };
 
-
 static nxt_int_t
 nxt_devpoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents)
+                   nxt_uint_t mevents)
 {
-    void  *changes;
+    void *changes;
 
-    engine->u.devpoll.fd = -1;
+    engine->u.devpoll.fd       = -1;
     engine->u.devpoll.mchanges = mchanges;
-    engine->u.devpoll.mevents = mevents;
+    engine->u.devpoll.mevents  = mevents;
 
     changes = nxt_malloc(sizeof(nxt_devpoll_change_t) * mchanges);
     if (changes == NULL) {
@@ -143,11 +148,10 @@ fail:
     return NXT_ERROR;
 }
 
-
 static void
 nxt_devpoll_free(nxt_event_engine_t *engine)
 {
-    nxt_fd_t  fd;
+    nxt_fd_t fd;
 
     fd = engine->u.devpoll.fd;
 
@@ -165,29 +169,25 @@ nxt_devpoll_free(nxt_event_engine_t *engine)
     nxt_memzero(&engine->u.devpoll, sizeof(nxt_devpoll_engine_t));
 }
 
-
 static void
 nxt_devpoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    ev->read = NXT_EVENT_ACTIVE;
+    ev->read  = NXT_EVENT_ACTIVE;
     ev->write = NXT_EVENT_ACTIVE;
 
     nxt_devpoll_change(engine, ev, NXT_DEVPOLL_ADD, POLLIN | POLLOUT);
 }
 
-
 static void
 nxt_devpoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
     if (ev->read != NXT_EVENT_INACTIVE || ev->write != NXT_EVENT_INACTIVE) {
-
-        ev->read = NXT_EVENT_INACTIVE;
+        ev->read  = NXT_EVENT_INACTIVE;
         ev->write = NXT_EVENT_INACTIVE;
 
         nxt_devpoll_change(engine, ev, NXT_DEVPOLL_DELETE, POLLREMOVE);
     }
 }
-
 
 /*
  * Solaris does not automatically remove a closed file descriptor from
@@ -222,7 +222,6 @@ nxt_devpoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     return ev->changing;
 }
 
-
 /*
  * Solaris poll(7d):
  *
@@ -237,10 +236,9 @@ nxt_devpoll_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 static void
 nxt_devpoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_uint_t  op, events;
+    nxt_uint_t op, events;
 
     if (ev->read != NXT_EVENT_BLOCKED) {
-
         events = POLLIN;
 
         if (ev->write == NXT_EVENT_INACTIVE) {
@@ -248,10 +246,10 @@ nxt_devpoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 
         } else if (ev->write == NXT_EVENT_BLOCKED) {
             ev->write = NXT_EVENT_INACTIVE;
-            op = NXT_DEVPOLL_CHANGE;
+            op        = NXT_DEVPOLL_CHANGE;
 
         } else {
-            op = NXT_DEVPOLL_UPDATE;
+            op     = NXT_DEVPOLL_UPDATE;
             events = POLLIN | POLLOUT;
         }
 
@@ -261,14 +259,12 @@ nxt_devpoll_enable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->read = NXT_EVENT_ACTIVE;
 }
 
-
 static void
 nxt_devpoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_uint_t  op, events;
+    nxt_uint_t op, events;
 
     if (ev->write != NXT_EVENT_BLOCKED) {
-
         events = POLLOUT;
 
         if (ev->read == NXT_EVENT_INACTIVE) {
@@ -276,10 +272,10 @@ nxt_devpoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 
         } else if (ev->read == NXT_EVENT_BLOCKED) {
             ev->read = NXT_EVENT_INACTIVE;
-            op = NXT_DEVPOLL_CHANGE;
+            op       = NXT_DEVPOLL_CHANGE;
 
         } else {
-            op = NXT_DEVPOLL_UPDATE;
+            op     = NXT_DEVPOLL_UPDATE;
             events = POLLIN | POLLOUT;
         }
 
@@ -289,48 +285,45 @@ nxt_devpoll_enable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_ACTIVE;
 }
 
-
 static void
 nxt_devpoll_disable_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_uint_t  op, events;
+    nxt_uint_t op, events;
 
     ev->read = NXT_EVENT_INACTIVE;
 
     if (ev->write <= NXT_EVENT_BLOCKED) {
         ev->write = NXT_EVENT_INACTIVE;
-        op = NXT_DEVPOLL_DELETE;
-        events = POLLREMOVE;
+        op        = NXT_DEVPOLL_DELETE;
+        events    = POLLREMOVE;
 
     } else {
-        op = NXT_DEVPOLL_CHANGE;
+        op     = NXT_DEVPOLL_CHANGE;
         events = POLLOUT;
     }
 
     nxt_devpoll_change(engine, ev, op, events);
 }
 
-
 static void
 nxt_devpoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    nxt_uint_t  op, events;
+    nxt_uint_t op, events;
 
     ev->write = NXT_EVENT_INACTIVE;
 
     if (ev->read <= NXT_EVENT_BLOCKED) {
         ev->read = NXT_EVENT_INACTIVE;
-        op = NXT_DEVPOLL_DELETE;
-        events = POLLREMOVE;
+        op       = NXT_DEVPOLL_DELETE;
+        events   = POLLREMOVE;
 
     } else {
-        op = NXT_DEVPOLL_CHANGE;
+        op     = NXT_DEVPOLL_CHANGE;
         events = POLLIN;
     }
 
     nxt_devpoll_change(engine, ev, op, events);
 }
-
 
 static void
 nxt_devpoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
@@ -340,7 +333,6 @@ nxt_devpoll_block_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     }
 }
 
-
 static void
 nxt_devpoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
@@ -348,7 +340,6 @@ nxt_devpoll_block_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
         ev->write = NXT_EVENT_BLOCKED;
     }
 }
-
 
 static void
 nxt_devpoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
@@ -358,7 +349,6 @@ nxt_devpoll_oneshot_read(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->read = NXT_EVENT_ONESHOT;
 }
 
-
 static void
 nxt_devpoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
@@ -367,12 +357,11 @@ nxt_devpoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_ONESHOT;
 }
 
-
 static void
 nxt_devpoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
-    nxt_uint_t op, nxt_uint_t events)
+                   nxt_uint_t op, nxt_uint_t events)
 {
-    nxt_devpoll_change_t  *change;
+    nxt_devpoll_change_t *change;
 
     nxt_debug(ev->task, "devpoll %d change fd:%d op:%ui ev:%04Xi",
               engine->u.devpoll.fd, ev->fd, op, events);
@@ -381,49 +370,48 @@ nxt_devpoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
         (void) nxt_devpoll_commit_changes(engine);
     }
 
-    ev->changing = 1;
+    ev->changing   = 1;
 
-    change = &engine->u.devpoll.changes[engine->u.devpoll.nchanges++];
-    change->op = op;
+    change         = &engine->u.devpoll.changes[engine->u.devpoll.nchanges++];
+    change->op     = op;
     change->events = events;
-    change->event = ev;
+    change->event  = ev;
 }
-
 
 static nxt_int_t
 nxt_devpoll_commit_changes(nxt_event_engine_t *engine)
 {
     size_t                n;
     nxt_int_t             ret, retval;
-    struct pollfd         *pfd, *write_changes;
-    nxt_fd_event_t        *ev;
-    nxt_devpoll_change_t  *change, *end;
+    struct pollfd        *pfd, *write_changes;
+    nxt_fd_event_t       *ev;
+    nxt_devpoll_change_t *change, *end;
 
-    nxt_debug(&engine->task, "devpoll %d changes:%ui",
-              engine->u.devpoll.fd, engine->u.devpoll.nchanges);
+    nxt_debug(&engine->task, "devpoll %d changes:%ui", engine->u.devpoll.fd,
+              engine->u.devpoll.nchanges);
 
-    retval = NXT_OK;
-    n = 0;
+    retval        = NXT_OK;
+    n             = 0;
     write_changes = engine->u.devpoll.write_changes;
-    change = engine->u.devpoll.changes;
-    end = change + engine->u.devpoll.nchanges;
+    change        = engine->u.devpoll.changes;
+    end           = change + engine->u.devpoll.nchanges;
 
     do {
         ev = change->event;
 
-        nxt_debug(&engine->task, "devpoll fd:%d op:%d ev:%04Xd",
-                  ev->fd, change->op, change->events);
+        nxt_debug(&engine->task, "devpoll fd:%d op:%d ev:%04Xd", ev->fd,
+                  change->op, change->events);
 
         if (change->op == NXT_DEVPOLL_CHANGE) {
-            pfd = &write_changes[n++];
-            pfd->fd = ev->fd;
-            pfd->events = POLLREMOVE;
+            pfd          = &write_changes[n++];
+            pfd->fd      = ev->fd;
+            pfd->events  = POLLREMOVE;
             pfd->revents = 0;
         }
 
-        pfd = &write_changes[n++];
-        pfd->fd = ev->fd;
-        pfd->events = change->events;
+        pfd          = &write_changes[n++];
+        pfd->fd      = ev->fd;
+        pfd->events  = change->events;
         pfd->revents = 0;
 
         ev->changing = 0;
@@ -433,12 +421,11 @@ nxt_devpoll_commit_changes(nxt_event_engine_t *engine)
     } while (change < end);
 
     change = engine->u.devpoll.changes;
-    end = change + engine->u.devpoll.nchanges;
+    end    = change + engine->u.devpoll.nchanges;
 
-    ret = nxt_devpoll_write(engine, write_changes, n);
+    ret    = nxt_devpoll_write(engine, write_changes, n);
 
     if (nxt_slow_path(ret != NXT_OK)) {
-
         do {
             nxt_devpoll_change_error(engine, change->event);
             change++;
@@ -476,33 +463,31 @@ nxt_devpoll_commit_changes(nxt_event_engine_t *engine)
     return retval;
 }
 
-
 static void
 nxt_devpoll_change_error(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
-    ev->read = NXT_EVENT_INACTIVE;
+    ev->read  = NXT_EVENT_INACTIVE;
     ev->write = NXT_EVENT_INACTIVE;
 
-    nxt_work_queue_add(&engine->fast_work_queue, ev->error_handler,
-                       ev->task, ev, ev->data);
+    nxt_work_queue_add(&engine->fast_work_queue, ev->error_handler, ev->task,
+                       ev, ev->data);
 
     nxt_fd_event_hash_delete(ev->task, &engine->u.devpoll.fd_hash, ev->fd, 1);
 
     nxt_devpoll_remove(engine, ev->fd);
 }
 
-
 static void
 nxt_devpoll_remove(nxt_event_engine_t *engine, nxt_fd_t fd)
 {
-    int            n;
-    struct pollfd  pfd;
+    int           n;
+    struct pollfd pfd;
 
-    pfd.fd = fd;
-    pfd.events = 0;
+    pfd.fd      = fd;
+    pfd.events  = 0;
     pfd.revents = 0;
 
-    n = ioctl(engine->u.devpoll.fd, DP_ISPOLLED, &pfd);
+    n           = ioctl(engine->u.devpoll.fd, DP_ISPOLLED, &pfd);
 
     nxt_debug(&engine->task, "ioctl(%d, DP_ISPOLLED, %d): %d",
               engine->u.devpoll.fd, fd, n);
@@ -520,21 +505,20 @@ nxt_devpoll_remove(nxt_event_engine_t *engine, nxt_fd_t fd)
 
     /* n == 1: the file descriptor is in the set. */
 
-    nxt_debug(&engine->task, "devpoll %d remove fd:%d",
-              engine->u.devpoll.fd, fd);
+    nxt_debug(&engine->task, "devpoll %d remove fd:%d", engine->u.devpoll.fd,
+              fd);
 
-    pfd.fd = fd;
-    pfd.events = POLLREMOVE;
+    pfd.fd      = fd;
+    pfd.events  = POLLREMOVE;
     pfd.revents = 0;
 
     nxt_devpoll_write(engine, &pfd, 1);
 }
 
-
 static nxt_int_t
 nxt_devpoll_write(nxt_event_engine_t *engine, struct pollfd *pfd, size_t n)
 {
-    int  fd;
+    int fd;
 
     fd = engine->u.devpoll.fd;
 
@@ -551,7 +535,6 @@ nxt_devpoll_write(nxt_event_engine_t *engine, struct pollfd *pfd, size_t n)
     return NXT_ERROR;
 }
 
-
 static void
 nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 {
@@ -561,8 +544,8 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_err_t       err;
     nxt_uint_t      events, level;
     struct dvpoll   dvp;
-    struct pollfd   *pfd;
-    nxt_fd_event_t  *ev;
+    struct pollfd  *pfd;
+    nxt_fd_event_t *ev;
 
     if (engine->u.devpoll.nchanges != 0) {
         if (nxt_devpoll_commit_changes(engine) != NXT_OK) {
@@ -574,18 +557,18 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_debug(&engine->task, "ioctl(%d, DP_POLL) timeout:%M",
               engine->u.devpoll.fd, timeout);
 
-    dvp.dp_fds = engine->u.devpoll.events;
-    dvp.dp_nfds = engine->u.devpoll.mevents;
+    dvp.dp_fds     = engine->u.devpoll.events;
+    dvp.dp_nfds    = engine->u.devpoll.mevents;
     dvp.dp_timeout = timeout;
 
-    nevents = ioctl(engine->u.devpoll.fd, DP_POLL, &dvp);
+    nevents        = ioctl(engine->u.devpoll.fd, DP_POLL, &dvp);
 
-    err = (nevents == -1) ? nxt_errno : 0;
+    err            = (nevents == -1) ? nxt_errno : 0;
 
     nxt_thread_time_update(engine->task.thread);
 
-    nxt_debug(&engine->task, "ioctl(%d, DP_POLL): %d",
-              engine->u.devpoll.fd, nevents);
+    nxt_debug(&engine->task, "ioctl(%d, DP_POLL): %d", engine->u.devpoll.fd,
+              nevents);
 
     if (nevents == -1) {
         level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
@@ -597,9 +580,8 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     }
 
     for (i = 0; i < nevents; i++) {
-
-        pfd = &engine->u.devpoll.events[i];
-        fd = pfd->fd;
+        pfd    = &engine->u.devpoll.events[i];
+        fd     = pfd->fd;
         events = pfd->revents;
 
         ev = nxt_fd_event_hash_get(&engine->task, &engine->u.devpoll.fd_hash,
@@ -615,8 +597,8 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             continue;
         }
 
-        nxt_debug(ev->task, "devpoll: fd:%d ev:%04uXi rd:%d wr:%d",
-                  fd, events, ev->read, ev->write);
+        nxt_debug(ev->task, "devpoll: fd:%d ev:%04uXi rd:%d wr:%d", fd, events,
+                  ev->read, ev->write);
 
         if (nxt_slow_path(events & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
             nxt_alert(ev->task,
@@ -637,8 +619,7 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             }
 
             if (ev->read == NXT_EVENT_BLOCKED
-                || ev->read == NXT_EVENT_ONESHOT)
-            {
+                || ev->read == NXT_EVENT_ONESHOT) {
                 nxt_devpoll_disable_read(engine, ev);
             }
         }
@@ -652,8 +633,7 @@ nxt_devpoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             }
 
             if (ev->write == NXT_EVENT_BLOCKED
-                || ev->write == NXT_EVENT_ONESHOT)
-            {
+                || ev->write == NXT_EVENT_ONESHOT) {
                 nxt_devpoll_disable_write(engine, ev);
             }
         }

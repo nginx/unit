@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
@@ -11,41 +10,43 @@
 
 #ifdef NXT_TEST_BUILD_MACOSX_SENDFILE
 
-ssize_t nxt_macosx_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
-    size_t limit);
+ssize_t
+nxt_macosx_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
+                                  size_t limit);
 
-static int nxt_sys_sendfile(int fd, int s, off_t offset, off_t *len,
-    struct sf_hdtr *hdtr, int flags)
+static int
+nxt_sys_sendfile(int fd, int s, off_t offset, off_t *len, struct sf_hdtr *hdtr,
+                 int flags)
 {
     return -1;
 }
 
 #else
-#define nxt_sys_sendfile  sendfile
+#define nxt_sys_sendfile sendfile
 #endif
 
 
 ssize_t
 nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
 {
-    size_t                  hd_size, file_size;
-    ssize_t                 n;
-    nxt_buf_t               *fb;
-    nxt_err_t               err;
-    nxt_off_t               sent;
-    nxt_uint_t              nhd, ntr;
-    struct iovec            hd[NXT_IOBUF_MAX], tr[NXT_IOBUF_MAX];
-    struct sf_hdtr          hdtr, *ht;
-    nxt_sendbuf_coalesce_t  sb;
+    size_t                 hd_size, file_size;
+    ssize_t                n;
+    nxt_buf_t             *fb;
+    nxt_err_t              err;
+    nxt_off_t              sent;
+    nxt_uint_t             nhd, ntr;
+    struct iovec           hd[NXT_IOBUF_MAX], tr[NXT_IOBUF_MAX];
+    struct sf_hdtr         hdtr, *ht;
+    nxt_sendbuf_coalesce_t sb;
 
-    sb.buf = b;
+    sb.buf   = b;
     sb.iobuf = hd;
-    sb.nmax = NXT_IOBUF_MAX;
-    sb.sync = 0;
-    sb.size = 0;
+    sb.nmax  = NXT_IOBUF_MAX;
+    sb.sync  = 0;
+    sb.size  = 0;
     sb.limit = limit;
 
-    nhd = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
+    nhd      = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     if (nhd == 0 && sb.sync) {
         return 0;
@@ -55,8 +56,8 @@ nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
         return nxt_event_conn_io_writev(c, hd, nhd);
     }
 
-    hd_size = sb.size;
-    fb = sb.buf;
+    hd_size   = sb.size;
+    fb        = sb.buf;
 
     file_size = nxt_sendbuf_file_coalesce(&sb);
 
@@ -66,7 +67,7 @@ nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
 
     sb.iobuf = tr;
 
-    ntr = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
+    ntr      = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     /*
      * Disposal of surplus kernel operations if there are no headers
@@ -78,15 +79,15 @@ nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
     ht = NULL;
 
     if (nhd != 0) {
-        ht = &hdtr;
+        ht           = &hdtr;
         hdtr.headers = hd;
         hdtr.hdr_cnt = nhd;
     }
 
     if (ntr != 0) {
-        ht = &hdtr;
+        ht            = &hdtr;
         hdtr.trailers = tr;
-        hdtr.trl_cnt = ntr;
+        hdtr.trl_cnt  = ntr;
     }
 
     /*
@@ -101,13 +102,12 @@ nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
      */
     sent = hd_size + file_size;
 
-    nxt_log_debug(c->socket.log,
-                  "sendfile(%FD, %d, @%O, %O) hd:%ui tr:%ui hs:%uz",
-                  fb->file->fd, c->socket.fd, fb->file_pos, sent,
-                  nhd, ntr, hd_size);
+    nxt_log_debug(
+        c->socket.log, "sendfile(%FD, %d, @%O, %O) hd:%ui tr:%ui hs:%uz",
+        fb->file->fd, c->socket.fd, fb->file_pos, sent, nhd, ntr, hd_size);
 
-    n = nxt_sys_sendfile(fb->file->fd, c->socket.fd,
-                         fb->file_pos, &sent, ht, 0);
+    n   = nxt_sys_sendfile(fb->file->fd, c->socket.fd, fb->file_pos, &sent, ht,
+                           0);
 
     err = (n == -1) ? nxt_errno : 0;
 
@@ -115,7 +115,6 @@ nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
 
     if (n == -1) {
         switch (err) {
-
         case NXT_EAGAIN:
             c->socket.write_ready = 0;
             break;
