@@ -1,0 +1,50 @@
+
+# Copyright (C) NGINX, Inc.
+
+if [ $NXT_OTEL = YES ]; then
+
+    $echo -n "looking for rust compiler ... "
+    if [ -z `which rustc 2>/dev/null` ]; then
+        $echo "not found."
+        exit 1;
+    fi
+    $echo "found."
+
+    $echo -n "looking for cargo ... "
+    if [ -z `which cargo 2>/dev/null` ]; then
+        $echo "not found."
+        exit 1;
+    fi
+    $echo "found."
+
+    nxt_feature="OpenSSL library"
+    nxt_feature_run=yes
+    nxt_feature_incs=
+    nxt_feature_libs="-lssl -lcrypto"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main(void) {
+                          SSL_library_init();
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ ! $nxt_found = yes ]; then
+        $echo
+        $echo $0: error: OpenTelemetry support requires OpenSSL.
+        $echo
+        exit 1;
+    fi
+
+    NXT_OTEL_LIBS="-lssl -lcrypto"
+    if [ $(which pkg-config) ]; then
+        NXT_OTEL_LIBS="$(pkg-config openssl --cflags --libs)"
+    fi
+    cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_HAVE_OTEL
+#define NXT_HAVE_OTEL 1
+#endif
+
+END
+fi

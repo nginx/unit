@@ -3090,6 +3090,68 @@ paths:
         "404":
           $ref: "#/components/responses/responseNotFound"
 
+  /config/settings/telemetry:
+    summary: "Endpoint for the `telemetry` object in `settings`"
+    get:
+      operationId: getSettingsTelemetry
+      summary: "Retrieve the `telemetry` object from settings"
+      description: "Retrieves the `telemetry` object that represents Unit's
+        [Telemetry settings](https://unit.nginx.org/configuration/#settings)."
+      tags:
+        - settings
+        - config
+      responses:
+        "200":
+          description: "Ok; the `telemetry` object exists in the configuration."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsTelemetry"
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: putSettingsTelemetry
+      summary: "Create or update the `telemetry` object in settings"
+      description: "Creates or updates the `telemetry` object that represents Unit's
+        [Telemetry settings](https://unit.nginx.org/configuration/#settings)."
+      tags:
+        - settings
+        - config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsTelemetry"
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsTelemetry
+      summary: "Delete the telemetry object"
+      description: "Deletes the `telemetry` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
   /config/settings/http:
     summary: "Endpoint for the `http` object in `settings`"
 
@@ -6545,9 +6607,32 @@ components:
         Unit settings."
 
       properties:
+        telemetry:
+          description: "Represents global telemetry settings in Unit."
+          $ref: "#/components/schemas/configSettingsTelemetry"
+
         http:
           description: "Represents global HTTP settings in Unit."
           $ref: "#/components/schemas/configSettingsHttp"
+
+    # /config/settings/telemetry
+    configSettingsTelemetry:
+      type: object
+      description: "An object whose options represent global telemetry settings in Unit."
+      required: ["endpoint"]
+      properties:
+        batch_size:
+          type: integer
+          description: "Number of spans to cache before sending to telemetry collector."
+          default: 128
+
+        endpoint:
+          type: string
+          description: "A valid endpoint to which Unit can send OpenTelemetry spans."
+
+        protocol:
+          type: string
+          description: "Protocol to use when communicating with the aforementioned endpoint."
 
     # /config/settings/http
     configSettingsHttp:

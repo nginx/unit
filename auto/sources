@@ -127,6 +127,10 @@ if [ "$NXT_NJS" != "NO" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c src/nxt_script.c"
 fi
 
+if [ "$NXT_OTEL" != "NO" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_otel.c"
+fi
+
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
 NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
 NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport_engine.c"

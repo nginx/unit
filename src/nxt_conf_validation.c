@@ -241,6 +241,21 @@ static nxt_int_t nxt_conf_vldt_js_module_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 #endif
 
+#if (NXT_HAVE_OTEL)
+nxt_inline nxt_int_t nxt_otel_validate_endpoint(nxt_conf_validation_t *vldt,
+                                                nxt_conf_value_t *value,
+                                                void *data);
+nxt_int_t nxt_otel_validate_batch_size(nxt_conf_validation_t *vldt,
+                                       nxt_conf_value_t *value,
+                                       void *data);
+nxt_int_t nxt_otel_validate_sample_ratio(nxt_conf_validation_t *vldt,
+                                         nxt_conf_value_t *value,
+                                         void *data);
+nxt_int_t nxt_otel_validate_protocol(nxt_conf_validation_t *vldt,
+                                     nxt_conf_value_t *value,
+                                     void *data);
+#endif
+
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
@@ -307,6 +322,34 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 };
 
 
+
+#if (NXT_HAVE_OTEL)
+static nxt_conf_vldt_object_t nxt_conf_vldt_otel_members[] = {
+    {
+        .name      = nxt_string("endpoint"),
+        .type      = NXT_CONF_VLDT_STRING,
+        .validator = nxt_otel_validate_endpoint,
+        .flags     = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name      = nxt_string("batch_size"),
+        .type      = NXT_CONF_VLDT_INTEGER,
+        .validator = nxt_otel_validate_batch_size,
+    }, {
+        .name      = nxt_string("protocol"),
+        .type      = NXT_CONF_VLDT_STRING,
+        .validator = nxt_otel_validate_protocol,
+        .flags     = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name      = nxt_string("sampling_ratio"),
+        .type      = NXT_CONF_VLDT_NUMBER,
+        .validator = nxt_otel_validate_sample_ratio,
+    },
+
+    NXT_CONF_VLDT_END
+};
+#endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
     {
         .name       = nxt_string("listen_threads"),
@@ -317,6 +360,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_http_members,
+#if (NXT_HAVE_OTEL)
+    }, {
+        .name       = nxt_string("telemetry"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_otel_members,
+#endif
 #if (NXT_HAVE_NJS)
     }, {
         .name       = nxt_string("js_module"),
@@ -1463,6 +1513,73 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 #define NXT_CONF_VLDT_ANY_TYPE_STR                                            \
     "either a null, a boolean, an integer, "                                  \
     "a number, a string, an array, or an object"
+
+
+
+#if (NXT_HAVE_OTEL)
+inline nxt_int_t
+nxt_otel_validate_endpoint(nxt_conf_validation_t *vldt,
+                           nxt_conf_value_t *value,
+                           void *data)
+{
+    // This function is a stub for now
+    return NXT_OK;
+}
+
+
+nxt_int_t
+nxt_otel_validate_batch_size(nxt_conf_validation_t *vldt,
+                             nxt_conf_value_t *value,
+                             void *data)
+{
+    double batch_size;
+    batch_size = nxt_conf_get_number(value);
+    if (batch_size <= 0) {
+      return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+nxt_int_t
+nxt_otel_validate_sample_ratio(nxt_conf_validation_t *vldt,
+                               nxt_conf_value_t *value,
+                               void *data)
+{
+    double sample_ratio;
+
+    sample_ratio = nxt_conf_get_number(value);
+    if (sample_ratio < 0 || sample_ratio > 1) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+nxt_int_t
+nxt_otel_validate_protocol(nxt_conf_validation_t *vldt,
+                           nxt_conf_value_t *value,
+                           void *data)
+{
+    nxt_str_t proto;
+
+    nxt_conf_get_string(value, &proto);
+    if (nxt_str_eq(&proto, "HTTP", 4) ||
+        nxt_str_eq(&proto, "http", 4)) {
+          goto happy;
+    }
+
+    if (nxt_str_eq(&proto, "GRPC", 4) ||
+        nxt_str_eq(&proto, "grpc", 4)) {
+        goto happy;
+    }
+
+    return NXT_ERROR;
+
+ happy:
+    return NXT_OK;
+}
+#endif
 
 
 static nxt_int_t

@@ -7,6 +7,10 @@
 #include <nxt_router.h>
 #include <nxt_http.h>
 
+#if(NXT_HAVE_OTEL)
+#include <nxt_otel.h>
+#endif
+
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
@@ -283,7 +287,15 @@ nxt_http_request_create(nxt_task_t *task)
     task->thread->engine->requests_cnt++;
 
     r->tstr_cache.var.pool = mp;
-
+#if (NXT_HAVE_OTEL)
+    if (nxt_otel_rs_is_init()) {
+        r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
+        if (r->otel == NULL) {
+            goto fail;
+        }
+        r->otel->status = NXT_OTEL_INIT_STATE;
+    }
+#endif
     return r;
 
 fail:
@@ -310,6 +322,10 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
     nxt_http_request_t  *r;
 
     r = obj;
+
+#if (NXT_HAVE_OTEL)
+    nxt_otel_test_and_call_state(task, r);
+#endif
 
     r->state = &nxt_http_request_body_state;
 
@@ -581,6 +597,10 @@ nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+#if (NXT_HAVE_OTEL)
+    nxt_otel_test_and_call_state(task, r);
+#endif
 
     if (r->chunked) {
         ret = nxt_http_request_chunked_transform(r);
