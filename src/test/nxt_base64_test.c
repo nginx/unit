@@ -87,7 +87,8 @@ nxt_base64_test(nxt_thread_t *thr)
         ret = nxt_base64_decode(buf, tests[i].enc.start, tests[i].enc.length);
 
         if (!nxt_str_eq(&tests[i].dec, buf, (size_t) ret)) {
-            nxt_log_alert(thr->log, "nxt_base64_decode() test \"%V\" failed");
+            nxt_log_alert(thr->log, "nxt_base64_decode() test \"%V\" failed",
+                          &tests[i].enc);
             return NXT_ERROR;
         }
     }
