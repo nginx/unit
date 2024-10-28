@@ -216,6 +216,11 @@ static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_access_log_format(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_access_log_format_field(
+    nxt_conf_validation_t *vldt, const nxt_str_t *name,
+    nxt_conf_value_t *value);
 
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -1465,7 +1470,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
     }, {
         .name       = nxt_string("format"),
-        .type       = NXT_CONF_VLDT_STRING,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_access_log_format,
     }, {
         .name       = nxt_string("if"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -3620,6 +3626,49 @@ nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (nxt_is_tstr(&conf.format)) {
         return nxt_conf_vldt_var(vldt, &format_str, &conf.format);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_access_log_format(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    static const nxt_str_t  format = nxt_string("format");
+
+    if (nxt_conf_type(value) == NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_object_iterator(vldt, value,
+                                         nxt_conf_vldt_access_log_format_field);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_access_log_format_field(vldt, &format, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_access_log_format_field(nxt_conf_validation_t *vldt,
+    const nxt_str_t *name, nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    if (name->length == 0) {
+        return nxt_conf_vldt_error(vldt, "In the access log format, the name "
+                                         "must not be empty.");
+    }
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "In the access log format, the value "
+                                         "must be a string.");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_is_tstr(&str)) {
+        return nxt_conf_vldt_var(vldt, name, &str);
     }
 
     return NXT_OK;
