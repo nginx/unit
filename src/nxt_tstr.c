@@ -41,10 +41,6 @@ struct nxt_tstr_query_s {
 };
 
 
-#define nxt_tstr_is_js(str)                                         \
-    nxt_strchr_start(str, '`')
-
-
 nxt_tstr_state_t *
 nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test)
 {

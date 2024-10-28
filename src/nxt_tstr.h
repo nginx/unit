@@ -64,6 +64,10 @@ nxt_int_t nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query,
 void nxt_tstr_query_release(nxt_tstr_query_t *query);
 
 
+#define nxt_tstr_is_js(str)                                         \
+    nxt_strchr_start(str, '`')
+
+
 nxt_inline nxt_bool_t
 nxt_is_tstr(nxt_str_t *str)
 {
