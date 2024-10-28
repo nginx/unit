@@ -23,9 +23,16 @@ typedef struct {
 } nxt_router_access_log_ctx_t;
 
 
+struct nxt_router_access_log_format_s {
+    nxt_tstr_t                *tstr;
+};
+
+
+static nxt_router_access_log_format_t *nxt_router_access_log_format_create(
+    nxt_task_t *task, nxt_router_conf_t *rtcf, nxt_conf_value_t *value);
 static void nxt_router_access_log_writer(nxt_task_t *task,
     nxt_http_request_t *r, nxt_router_access_log_t *access_log,
-    nxt_tstr_t *format);
+    nxt_router_access_log_format_t *format);
 static void nxt_router_access_log_write(nxt_task_t *task, nxt_http_request_t *r,
     nxt_router_access_log_ctx_t *ctx);
 static void nxt_router_access_log_ready(nxt_task_t *task,
@@ -71,10 +78,6 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_router_access_log_t       *access_log;
     nxt_router_access_log_conf_t  alcf;
 
-    static const nxt_str_t  default_format = nxt_string("$remote_addr - - "
-        "[$time_local] \"$request_line\" $status $body_bytes_sent "
-        "\"$header_referer\" \"$header_user_agent\"");
-
     nxt_memzero(&alcf, sizeof(nxt_router_access_log_conf_t));
 
     if (nxt_conf_type(value) == NXT_CONF_STRING) {
@@ -119,15 +122,8 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
     rtcf->access_log = access_log;
 
-    if (alcf.format != NULL) {
-        nxt_conf_get_string(alcf.format, &str);
-
-    } else {
-        str = default_format;
-    }
-
-    rtcf->log_format = nxt_tstr_compile(rtcf->tstr_state, &str,
-                                        NXT_TSTR_LOGGING | NXT_TSTR_NEWLINE);
+    rtcf->log_format = nxt_router_access_log_format_create(task, rtcf,
+                                                           alcf.format);
     if (nxt_slow_path(rtcf->log_format == NULL)) {
         return NXT_ERROR;
     }
@@ -145,9 +141,43 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
 }
 
 
+static nxt_router_access_log_format_t *
+nxt_router_access_log_format_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t                       str;
+    nxt_router_access_log_format_t  *format;
+
+    static const nxt_str_t  default_format = nxt_string("$remote_addr - - "
+        "[$time_local] \"$request_line\" $status $body_bytes_sent "
+        "\"$header_referer\" \"$header_user_agent\"");
+
+    format = nxt_mp_zalloc(rtcf->mem_pool,
+                           sizeof(nxt_router_access_log_format_t));
+    if (nxt_slow_path(format == NULL)) {
+        return NULL;
+    }
+
+    if (value != NULL) {
+        nxt_conf_get_string(value, &str);
+
+    } else {
+        str = default_format;
+    }
+
+    format->tstr = nxt_tstr_compile(rtcf->tstr_state, &str,
+                                    NXT_TSTR_LOGGING | NXT_TSTR_NEWLINE);
+    if (nxt_slow_path(format->tstr == NULL)) {
+        return NULL;
+    }
+
+    return format;
+}
+
+
 static void
 nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_router_access_log_t *access_log, nxt_tstr_t *format)
+    nxt_router_access_log_t *access_log, nxt_router_access_log_format_t *format)
 {
     nxt_int_t                    ret;
     nxt_router_conf_t            *rtcf;
@@ -160,8 +190,8 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
 
     ctx->access_log = access_log;
 
-    if (nxt_tstr_is_const(format)) {
-        nxt_tstr_str(format, &ctx->text);
+    if (nxt_tstr_is_const(format->tstr)) {
+        nxt_tstr_str(format->tstr, &ctx->text);
 
     } else {
         rtcf = r->conf->socket_conf->router_conf;
@@ -172,7 +202,7 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
             return;
         }
 
-        ret = nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
+        ret = nxt_tstr_query(task, r->tstr_query, format->tstr, &ctx->text);
         if (nxt_slow_path(ret != NXT_OK)) {
             return;
         }
