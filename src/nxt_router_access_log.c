@@ -12,7 +12,7 @@
 
 typedef struct {
     nxt_str_t                 path;
-    nxt_str_t                 format;
+    nxt_conf_value_t          *format;
     nxt_conf_value_t          *expr;
 } nxt_router_access_log_conf_t;
 
@@ -49,7 +49,7 @@ static nxt_conf_map_t  nxt_router_access_log_conf[] = {
 
     {
         nxt_string("format"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_PTR,
         offsetof(nxt_router_access_log_conf_t, format),
     },
 
@@ -67,18 +67,15 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
 {
     nxt_int_t                     ret;
     nxt_str_t                     str;
-    nxt_tstr_t                    *format;
     nxt_router_t                  *router;
     nxt_router_access_log_t       *access_log;
     nxt_router_access_log_conf_t  alcf;
 
-    static const nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
+    static const nxt_str_t  default_format = nxt_string("$remote_addr - - "
         "[$time_local] \"$request_line\" $status $body_bytes_sent "
         "\"$header_referer\" \"$header_user_agent\"");
 
     nxt_memzero(&alcf, sizeof(nxt_router_access_log_conf_t));
-
-    alcf.format = log_format_str;
 
     if (nxt_conf_type(value) == NXT_CONF_STRING) {
         nxt_conf_get_string(value, &alcf.path);
@@ -120,14 +117,20 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
         nxt_memcpy(access_log->path.start, alcf.path.start, alcf.path.length);
     }
 
-    format = nxt_tstr_compile(rtcf->tstr_state, &alcf.format,
-                              NXT_TSTR_LOGGING | NXT_TSTR_NEWLINE);
-    if (nxt_slow_path(format == NULL)) {
-        return NXT_ERROR;
+    rtcf->access_log = access_log;
+
+    if (alcf.format != NULL) {
+        nxt_conf_get_string(alcf.format, &str);
+
+    } else {
+        str = default_format;
     }
 
-    rtcf->access_log = access_log;
-    rtcf->log_format = format;
+    rtcf->log_format = nxt_tstr_compile(rtcf->tstr_state, &str,
+                                        NXT_TSTR_LOGGING | NXT_TSTR_NEWLINE);
+    if (nxt_slow_path(rtcf->log_format == NULL)) {
+        return NXT_ERROR;
+    }
 
     if (alcf.expr != NULL) {
         nxt_conf_get_string(alcf.expr, &str);
