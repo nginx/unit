@@ -107,8 +107,10 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**delete_settings_http_static**](docs/ConfigApi.md#delete_settings_http_static) | **Delete** /config/settings/http/static | Delete the static object
 *ConfigApi* | [**delete_settings_http_static_mime_type**](docs/ConfigApi.md#delete_settings_http_static_mime_type) | **Delete** /config/settings/http/static/mime_types/{mimeType} | Delete the MIME type option
 *ConfigApi* | [**delete_settings_http_static_mime_types**](docs/ConfigApi.md#delete_settings_http_static_mime_types) | **Delete** /config/settings/http/static/mime_types | Delete the mime_types object
+*ConfigApi* | [**delete_settings_listen_threads**](docs/ConfigApi.md#delete_settings_listen_threads) | **Delete** /config/settings/listen_threads | Delete the listen_threads option
 *ConfigApi* | [**delete_settings_log_route**](docs/ConfigApi.md#delete_settings_log_route) | **Delete** /config/settings/http/log_route | Delete the log_route option
 *ConfigApi* | [**delete_settings_server_version**](docs/ConfigApi.md#delete_settings_server_version) | **Delete** /config/settings/http/server_version | Delete the server_version option
+*ConfigApi* | [**delete_settings_telemetry**](docs/ConfigApi.md#delete_settings_telemetry) | **Delete** /config/settings/telemetry | Delete the telemetry object
 *ConfigApi* | [**get_access_log**](docs/ConfigApi.md#get_access_log) | **Get** /config/access_log | Retrieve the access log
 *ConfigApi* | [**get_access_log_format**](docs/ConfigApi.md#get_access_log_format) | **Get** /config/access_log/format | Retrieve the access log format option
 *ConfigApi* | [**get_access_log_path**](docs/ConfigApi.md#get_access_log_path) | **Get** /config/access_log/path | Retrieve the access log path option
@@ -116,6 +118,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**get_applications**](docs/ConfigApi.md#get_applications) | **Get** /config/applications | Retrieve the applications object
 *ConfigApi* | [**get_config**](docs/ConfigApi.md#get_config) | **Get** /config | Retrieve the config
 *ConfigApi* | [**get_listener**](docs/ConfigApi.md#get_listener) | **Get** /config/listeners/{listenerName} | Retrieve a listener object
+*ConfigApi* | [**get_listener_backlog**](docs/ConfigApi.md#get_listener_backlog) | **Get** /config/listeners/{listenerName}/backlog | Retrieve the backlog option in a listener
 *ConfigApi* | [**get_listener_forwarded**](docs/ConfigApi.md#get_listener_forwarded) | **Get** /config/listeners/{listenerName}/forwarded | Retrieve the forwarded object in a listener
 *ConfigApi* | [**get_listener_forwarded_client_ip**](docs/ConfigApi.md#get_listener_forwarded_client_ip) | **Get** /config/listeners/{listenerName}/forwarded/client_ip | Retrieve the client_ip option in a listener
 *ConfigApi* | [**get_listener_forwarded_protocol**](docs/ConfigApi.md#get_listener_forwarded_protocol) | **Get** /config/listeners/{listenerName}/forwarded/protocol | Retrieve the protocol option in a listener
@@ -139,8 +142,10 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**get_settings_http_static**](docs/ConfigApi.md#get_settings_http_static) | **Get** /config/settings/http/static | Retrieve the static object from http settings
 *ConfigApi* | [**get_settings_http_static_mime_type**](docs/ConfigApi.md#get_settings_http_static_mime_type) | **Get** /config/settings/http/static/mime_types/{mimeType} | Retrieve the MIME type option from MIME type settings
 *ConfigApi* | [**get_settings_http_static_mime_types**](docs/ConfigApi.md#get_settings_http_static_mime_types) | **Get** /config/settings/http/static/mime_types | Retrieve the mime_types object from static settings
+*ConfigApi* | [**get_settings_listen_threads**](docs/ConfigApi.md#get_settings_listen_threads) | **Get** /config/settings/listen_threads | Retrieve the listen_threads option from settings
 *ConfigApi* | [**get_settings_log_route**](docs/ConfigApi.md#get_settings_log_route) | **Get** /config/settings/http/log_route | Retrieve the log_route option from http settings
 *ConfigApi* | [**get_settings_server_version**](docs/ConfigApi.md#get_settings_server_version) | **Get** /config/settings/http/server_version | Retrieve the server_version option from http settings
+*ConfigApi* | [**get_settings_telemetry**](docs/ConfigApi.md#get_settings_telemetry) | **Get** /config/settings/telemetry | Retrieve the `telemetry` object from settings
 *ConfigApi* | [**insert_listener_forwarded_source**](docs/ConfigApi.md#insert_listener_forwarded_source) | **Post** /config/listeners/{listenerName}/forwarded/source | Add a new source array item in a listener
 *ConfigApi* | [**insert_listener_tls_certificate**](docs/ConfigApi.md#insert_listener_tls_certificate) | **Post** /config/listeners/{listenerName}/tls/certificate | Add a new certificate array item in a listener
 *ConfigApi* | [**insert_listener_tls_session_ticket**](docs/ConfigApi.md#insert_listener_tls_session_ticket) | **Post** /config/listeners/{listenerName}/tls/session/tickets | Add a new tickets array item in a listener
@@ -148,6 +153,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**list_listener_tls_certificates**](docs/ConfigApi.md#list_listener_tls_certificates) | **Get** /config/listeners/{listenerName}/tls/certificate | Retrieve the certificate option in a listener
 *ConfigApi* | [**list_listener_tls_conf_commands**](docs/ConfigApi.md#list_listener_tls_conf_commands) | **Get** /config/listeners/{listenerName}/tls/conf_commands | Retrieve the conf_commands object in a listener
 *ConfigApi* | [**list_listener_tls_session_tickets**](docs/ConfigApi.md#list_listener_tls_session_tickets) | **Get** /config/listeners/{listenerName}/tls/session/tickets | Retrieve the tickets option in a listener
+*ConfigApi* | [**put_settings_telemetry**](docs/ConfigApi.md#put_settings_telemetry) | **Put** /config/settings/telemetry | Create or update the `telemetry` object in settings
 *ConfigApi* | [**update_access_log**](docs/ConfigApi.md#update_access_log) | **Put** /config/access_log | Create or overwrite the access log
 *ConfigApi* | [**update_access_log_format**](docs/ConfigApi.md#update_access_log_format) | **Put** /config/access_log/format | Create or overwrite the access log format
 *ConfigApi* | [**update_access_log_path**](docs/ConfigApi.md#update_access_log_path) | **Put** /config/access_log/path | Create or overwrite the access log path
@@ -155,6 +161,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**update_applications**](docs/ConfigApi.md#update_applications) | **Put** /config/applications | Overwrite the applications object
 *ConfigApi* | [**update_config**](docs/ConfigApi.md#update_config) | **Put** /config | Create or overwrite the config
 *ConfigApi* | [**update_listener**](docs/ConfigApi.md#update_listener) | **Put** /config/listeners/{listenerName} | Create or overwrite a listener object
+*ConfigApi* | [**update_listener_backlog**](docs/ConfigApi.md#update_listener_backlog) | **Put** /config/listeners/{listenerName}/backlog | Update the backlog option in a listener
 *ConfigApi* | [**update_listener_forwarded**](docs/ConfigApi.md#update_listener_forwarded) | **Put** /config/listeners/{listenerName}/forwarded | Create or overwrite the forwarded object in a listener
 *ConfigApi* | [**update_listener_forwarded_client_ip**](docs/ConfigApi.md#update_listener_forwarded_client_ip) | **Put** /config/listeners/{listenerName}/forwarded/client_ip | Create or overwrite the client_ip option in a listener
 *ConfigApi* | [**update_listener_forwarded_protocol**](docs/ConfigApi.md#update_listener_forwarded_protocol) | **Put** /config/listeners/{listenerName}/forwarded/protocol | Create or overwrite the protocol option in a listener
@@ -182,6 +189,7 @@ Class | Method | HTTP request | Description
 *ConfigApi* | [**update_settings_http_static**](docs/ConfigApi.md#update_settings_http_static) | **Put** /config/settings/http/static | Create or overwrite the static object
 *ConfigApi* | [**update_settings_http_static_mime_type**](docs/ConfigApi.md#update_settings_http_static_mime_type) | **Put** /config/settings/http/static/mime_types/{mimeType} | Create or overwrite the MIME type option
 *ConfigApi* | [**update_settings_http_static_mime_types**](docs/ConfigApi.md#update_settings_http_static_mime_types) | **Put** /config/settings/http/static/mime_types | Create or overwrite the mime_types object
+*ConfigApi* | [**update_settings_listen_threads**](docs/ConfigApi.md#update_settings_listen_threads) | **Put** /config/settings/listen_threads | Create or overwrite the listen_threads option
 *ConfigApi* | [**update_settings_log_route**](docs/ConfigApi.md#update_settings_log_route) | **Put** /config/settings/http/log_route | Create or overwrite the log_route option
 *ConfigApi* | [**update_settings_server_version**](docs/ConfigApi.md#update_settings_server_version) | **Put** /config/settings/http/server_version | Create or overwrite the server_version option
 *ControlApi* | [**get_app_restart**](docs/ControlApi.md#get_app_restart) | **Get** /control/applications/{appName}/restart | Restart the {appName} application
@@ -199,6 +207,7 @@ Class | Method | HTTP request | Description
 *ListenersApi* | [**delete_listener_tls_session_tickets**](docs/ListenersApi.md#delete_listener_tls_session_tickets) | **Delete** /config/listeners/{listenerName}/tls/session/tickets | Delete the tickets option in a listener
 *ListenersApi* | [**delete_listeners**](docs/ListenersApi.md#delete_listeners) | **Delete** /config/listeners | Delete all the listeners
 *ListenersApi* | [**get_listener**](docs/ListenersApi.md#get_listener) | **Get** /config/listeners/{listenerName} | Retrieve a listener object
+*ListenersApi* | [**get_listener_backlog**](docs/ListenersApi.md#get_listener_backlog) | **Get** /config/listeners/{listenerName}/backlog | Retrieve the backlog option in a listener
 *ListenersApi* | [**get_listener_forwarded**](docs/ListenersApi.md#get_listener_forwarded) | **Get** /config/listeners/{listenerName}/forwarded | Retrieve the forwarded object in a listener
 *ListenersApi* | [**get_listener_forwarded_client_ip**](docs/ListenersApi.md#get_listener_forwarded_client_ip) | **Get** /config/listeners/{listenerName}/forwarded/client_ip | Retrieve the client_ip option in a listener
 *ListenersApi* | [**get_listener_forwarded_protocol**](docs/ListenersApi.md#get_listener_forwarded_protocol) | **Get** /config/listeners/{listenerName}/forwarded/protocol | Retrieve the protocol option in a listener
@@ -218,6 +227,7 @@ Class | Method | HTTP request | Description
 *ListenersApi* | [**list_listener_tls_conf_commands**](docs/ListenersApi.md#list_listener_tls_conf_commands) | **Get** /config/listeners/{listenerName}/tls/conf_commands | Retrieve the conf_commands object in a listener
 *ListenersApi* | [**list_listener_tls_session_tickets**](docs/ListenersApi.md#list_listener_tls_session_tickets) | **Get** /config/listeners/{listenerName}/tls/session/tickets | Retrieve the tickets option in a listener
 *ListenersApi* | [**update_listener**](docs/ListenersApi.md#update_listener) | **Put** /config/listeners/{listenerName} | Create or overwrite a listener object
+*ListenersApi* | [**update_listener_backlog**](docs/ListenersApi.md#update_listener_backlog) | **Put** /config/listeners/{listenerName}/backlog | Update the backlog option in a listener
 *ListenersApi* | [**update_listener_forwarded**](docs/ListenersApi.md#update_listener_forwarded) | **Put** /config/listeners/{listenerName}/forwarded | Create or overwrite the forwarded object in a listener
 *ListenersApi* | [**update_listener_forwarded_client_ip**](docs/ListenersApi.md#update_listener_forwarded_client_ip) | **Put** /config/listeners/{listenerName}/forwarded/client_ip | Create or overwrite the client_ip option in a listener
 *ListenersApi* | [**update_listener_forwarded_protocol**](docs/ListenersApi.md#update_listener_forwarded_protocol) | **Put** /config/listeners/{listenerName}/forwarded/protocol | Create or overwrite the protocol option in a listener
@@ -247,8 +257,10 @@ Class | Method | HTTP request | Description
 *SettingsApi* | [**delete_settings_http_static**](docs/SettingsApi.md#delete_settings_http_static) | **Delete** /config/settings/http/static | Delete the static object
 *SettingsApi* | [**delete_settings_http_static_mime_type**](docs/SettingsApi.md#delete_settings_http_static_mime_type) | **Delete** /config/settings/http/static/mime_types/{mimeType} | Delete the MIME type option
 *SettingsApi* | [**delete_settings_http_static_mime_types**](docs/SettingsApi.md#delete_settings_http_static_mime_types) | **Delete** /config/settings/http/static/mime_types | Delete the mime_types object
+*SettingsApi* | [**delete_settings_listen_threads**](docs/SettingsApi.md#delete_settings_listen_threads) | **Delete** /config/settings/listen_threads | Delete the listen_threads option
 *SettingsApi* | [**delete_settings_log_route**](docs/SettingsApi.md#delete_settings_log_route) | **Delete** /config/settings/http/log_route | Delete the log_route option
 *SettingsApi* | [**delete_settings_server_version**](docs/SettingsApi.md#delete_settings_server_version) | **Delete** /config/settings/http/server_version | Delete the server_version option
+*SettingsApi* | [**delete_settings_telemetry**](docs/SettingsApi.md#delete_settings_telemetry) | **Delete** /config/settings/telemetry | Delete the telemetry object
 *SettingsApi* | [**get_settings**](docs/SettingsApi.md#get_settings) | **Get** /config/settings | Retrieve the settings object
 *SettingsApi* | [**get_settings_discard_unsafe_fields**](docs/SettingsApi.md#get_settings_discard_unsafe_fields) | **Get** /config/settings/http/discard_unsafe_fields | Retrieve the discard_unsafe_fields option from http settings
 *SettingsApi* | [**get_settings_http**](docs/SettingsApi.md#get_settings_http) | **Get** /config/settings/http | Retrieve the http object from settings
@@ -260,8 +272,11 @@ Class | Method | HTTP request | Description
 *SettingsApi* | [**get_settings_http_static**](docs/SettingsApi.md#get_settings_http_static) | **Get** /config/settings/http/static | Retrieve the static object from http settings
 *SettingsApi* | [**get_settings_http_static_mime_type**](docs/SettingsApi.md#get_settings_http_static_mime_type) | **Get** /config/settings/http/static/mime_types/{mimeType} | Retrieve the MIME type option from MIME type settings
 *SettingsApi* | [**get_settings_http_static_mime_types**](docs/SettingsApi.md#get_settings_http_static_mime_types) | **Get** /config/settings/http/static/mime_types | Retrieve the mime_types object from static settings
+*SettingsApi* | [**get_settings_listen_threads**](docs/SettingsApi.md#get_settings_listen_threads) | **Get** /config/settings/listen_threads | Retrieve the listen_threads option from settings
 *SettingsApi* | [**get_settings_log_route**](docs/SettingsApi.md#get_settings_log_route) | **Get** /config/settings/http/log_route | Retrieve the log_route option from http settings
 *SettingsApi* | [**get_settings_server_version**](docs/SettingsApi.md#get_settings_server_version) | **Get** /config/settings/http/server_version | Retrieve the server_version option from http settings
+*SettingsApi* | [**get_settings_telemetry**](docs/SettingsApi.md#get_settings_telemetry) | **Get** /config/settings/telemetry | Retrieve the `telemetry` object from settings
+*SettingsApi* | [**put_settings_telemetry**](docs/SettingsApi.md#put_settings_telemetry) | **Put** /config/settings/telemetry | Create or update the `telemetry` object in settings
 *SettingsApi* | [**update_settings**](docs/SettingsApi.md#update_settings) | **Put** /config/settings | Create or overwrite the settings object
 *SettingsApi* | [**update_settings_discard_unsafe_fields**](docs/SettingsApi.md#update_settings_discard_unsafe_fields) | **Put** /config/settings/http/discard_unsafe_fields | Create or overwrite the discard_unsafe_fields option
 *SettingsApi* | [**update_settings_http**](docs/SettingsApi.md#update_settings_http) | **Put** /config/settings/http | Create or overwrite the http object
@@ -273,6 +288,7 @@ Class | Method | HTTP request | Description
 *SettingsApi* | [**update_settings_http_static**](docs/SettingsApi.md#update_settings_http_static) | **Put** /config/settings/http/static | Create or overwrite the static object
 *SettingsApi* | [**update_settings_http_static_mime_type**](docs/SettingsApi.md#update_settings_http_static_mime_type) | **Put** /config/settings/http/static/mime_types/{mimeType} | Create or overwrite the MIME type option
 *SettingsApi* | [**update_settings_http_static_mime_types**](docs/SettingsApi.md#update_settings_http_static_mime_types) | **Put** /config/settings/http/static/mime_types | Create or overwrite the mime_types object
+*SettingsApi* | [**update_settings_listen_threads**](docs/SettingsApi.md#update_settings_listen_threads) | **Put** /config/settings/listen_threads | Create or overwrite the listen_threads option
 *SettingsApi* | [**update_settings_log_route**](docs/SettingsApi.md#update_settings_log_route) | **Put** /config/settings/http/log_route | Create or overwrite the log_route option
 *SettingsApi* | [**update_settings_server_version**](docs/SettingsApi.md#update_settings_server_version) | **Put** /config/settings/http/server_version | Create or overwrite the server_version option
 *StatusApi* | [**get_status**](docs/StatusApi.md#get_status) | **Get** /status | Retrieve the status object
@@ -289,6 +305,10 @@ Class | Method | HTTP request | Description
 *StatusApi* | [**get_status_connections_active**](docs/StatusApi.md#get_status_connections_active) | **Get** /status/connections/active | Retrieve the active connections number
 *StatusApi* | [**get_status_connections_closed**](docs/StatusApi.md#get_status_connections_closed) | **Get** /status/connections/closed | Retrieve the closed connections number
 *StatusApi* | [**get_status_connections_idle**](docs/StatusApi.md#get_status_connections_idle) | **Get** /status/connections/idle | Retrieve the idle connections number
+*StatusApi* | [**get_status_modules**](docs/StatusApi.md#get_status_modules) | **Get** /status/modules | Retrieve the modules status object
+*StatusApi* | [**get_status_modules_lang**](docs/StatusApi.md#get_status_modules_lang) | **Get** /status/modules/{langMod} | Retrieve the language module object
+*StatusApi* | [**get_status_modules_lang_lib**](docs/StatusApi.md#get_status_modules_lang_lib) | **Get** /status/modules/{langMod}/lib | Retrieves the language module lib object
+*StatusApi* | [**get_status_modules_lang_version**](docs/StatusApi.md#get_status_modules_lang_version) | **Get** /status/modules/{langMod}/version | Retrieve the language module version object
 *StatusApi* | [**get_status_requests**](docs/StatusApi.md#get_status_requests) | **Get** /status/requests | Retrieve the requests status object
 *StatusApi* | [**get_status_requests_total**](docs/StatusApi.md#get_status_requests_total) | **Get** /status/requests/total | Retrieve the total requests number
 *TlsApi* | [**delete_listener_tls**](docs/TlsApi.md#delete_listener_tls) | **Delete** /config/listeners/{listenerName}/tls | Delete the tls object in a listener
@@ -389,11 +409,13 @@ Class | Method | HTTP request | Description
  - [ConfigSettingsHttp](docs/ConfigSettingsHttp.md)
  - [ConfigSettingsHttpStatic](docs/ConfigSettingsHttpStatic.md)
  - [ConfigSettingsHttpStaticMimeType](docs/ConfigSettingsHttpStaticMimeType.md)
+ - [ConfigSettingsTelemetry](docs/ConfigSettingsTelemetry.md)
  - [Status](docs/Status.md)
  - [StatusApplicationsApp](docs/StatusApplicationsApp.md)
  - [StatusApplicationsAppProcesses](docs/StatusApplicationsAppProcesses.md)
  - [StatusApplicationsAppRequests](docs/StatusApplicationsAppRequests.md)
  - [StatusConnections](docs/StatusConnections.md)
+ - [StatusModulesLang](docs/StatusModulesLang.md)
  - [StatusRequests](docs/StatusRequests.md)
  - [StringOrStringArray](docs/StringOrStringArray.md)
 
