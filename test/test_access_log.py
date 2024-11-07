@@ -298,6 +298,12 @@ def test_access_log_format(wait_for_record):
     check_format(log_format, log_format)
     check_format('$uri $status $uri $status', '/ 200 / 200')
 
+    log_format = {
+        'status': '$status',
+        'uri': '$uri'
+    }
+    check_format(log_format, '{"status":"200","uri":"/"}')
+
 
 def test_access_log_variables(wait_for_record):
     load('mirror')
@@ -366,6 +372,24 @@ def test_access_log_if_njs(require, search_in_file, wait_for_record):
 
     assert wait_for_record(r'^/foo_1$', 'access.log') is not None
     assert search_in_file(r'^/foo_2$', 'access.log') is None
+
+
+def test_access_log_format_njs(require, search_in_file, wait_for_record):
+    require({'modules': {'njs': 'any'}})
+
+    load('empty')
+
+    def check_format(log_format, expect, url='/'):
+        set_format(log_format)
+
+        assert client.get(url=url)['status'] == 200
+        assert wait_for_record(expect, 'access.log') is not None, 'found'
+
+    log_format = {
+        'status': '$status',
+        'uri': '`${vars.uri}`'
+    }
+    check_format(log_format, '{"status":"200","uri":"/"}')
 
 
 def test_access_log_incorrect(temp_dir, skip_alert):
