@@ -30,6 +30,7 @@ Unit configuration summary:
   TLS support: ............... $NXT_OPENSSL
   Regex support: ............. $NXT_REGEX
   njs support: ............... $NXT_NJS
+  otel support: .............. $NXT_OTEL
 
   process isolation: ......... $NXT_ISOLATION
   cgroupv2: .................. $NXT_HAVE_CGROUP

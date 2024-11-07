@@ -179,6 +179,12 @@ if [ $NXT_NJS != NO ]; then
     . auto/njs
 fi
 
+NXT_OTEL_LIB_DIR=src/otel
+if [ $NXT_OTEL != NO ]; then
+    . auto/otel
+    NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS $NXT_OTEL_LIBS"
+fi
+
 . auto/make
 . auto/fuzzing
 . auto/summary
