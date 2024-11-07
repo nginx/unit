@@ -6,6 +6,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_otel.h>
 
 
 static void nxt_http_request_send_error_body(nxt_task_t *task, void *r,
@@ -54,6 +55,10 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
 
     r->resp.content_length = NULL;
     r->resp.content_length_n = NXT_HTTP_ERROR_LEN;
+
+#if (NXT_HAVE_OTEL)
+    nxt_otel_request_error_path(task, r);
+#endif
 
     r->state = &nxt_http_request_send_error_body_state;
 
