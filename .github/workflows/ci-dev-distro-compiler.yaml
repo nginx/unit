@@ -39,7 +39,8 @@ jobs:
               which wget git gcc make pcre2-devel openssl-devel \
               python-unversioned-command python3 python3-devel \
               php-devel php-embedded perl-devel perl-ExtUtils-Embed \
-              ruby-devel java-devel nodejs-devel nodejs-npm golang
+              ruby-devel java-devel nodejs-devel nodejs-npm golang \
+              cargo rust
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             dnf -y install --setopt=install_weak_deps=False clang
           fi
@@ -50,9 +51,9 @@ jobs:
       - name: configure unit CC=${{ matrix.compiler }}
         run: |
           if [ "${{ matrix.compiler }}" = "clang" ]; then
-            ./configure --openssl --cc=clang
+            ./configure --openssl --otel --cc=clang
           else
-            ./configure --openssl
+            ./configure --openssl --otel
           fi
 
       - name: make unit
@@ -128,7 +129,8 @@ jobs:
         run: |
           apk update && apk upgrade
           apk add gcc make musl-dev openssl-dev pcre2-dev curl \
-              php83-dev php83-embed python3-dev perl-dev ruby-dev openjdk21-jdk
+              php83-dev php83-embed python3-dev perl-dev ruby-dev \
+              openjdk21-jdk cargo rust
           if [ "${{ matrix.compiler }}" = "clang" ]; then
             apk add clang
           fi
@@ -138,9 +140,9 @@ jobs:
       - name: configure unit CC=${{ matrix.compiler }}
         run: |
           if [ "${{ matrix.compiler }}" = "clang" ]; then
-            ./configure --openssl --cc=clang
+            ./configure --openssl --otel --cc=clang
           else
-            ./configure --openssl
+            ./configure --openssl --otel
           fi
 
       - name: make unit
