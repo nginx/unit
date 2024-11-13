@@ -58,7 +58,7 @@ NXT_EXPORT void nxt_memcpy_upcase(u_char *dst, const u_char *src,
 nxt_inline void *
 nxt_cpymem(void *dst, const void *src, size_t length)
 {
-    return ((u_char *) memcpy(dst, src, length)) + length;
+    return memcpy(dst, src, length) + length;
 }
 
 
