@@ -21,6 +21,7 @@
 #include <nxt_router_request.h>
 #include <nxt_app_queue.h>
 #include <nxt_port_queue.h>
+#include <nxt_http_compression.h>
 
 #define NXT_SHARED_PORT_ID  0xFFFFu
 
@@ -1680,6 +1681,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static const nxt_str_t  static_path = nxt_string("/settings/http/static");
     static const nxt_str_t  websocket_path =
                                 nxt_string("/settings/http/websocket");
+    static const nxt_str_t  compression_path =
+                                nxt_string("/settings/http/compression");
     static const nxt_str_t  forwarded_path = nxt_string("/forwarded");
     static const nxt_str_t  client_ip_path = nxt_string("/client_ip");
 #if (NXT_HAVE_OTEL)
@@ -2044,12 +2047,19 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             nxt_str_null(&skcf->body_temp_path);
 
             if (http != NULL) {
+                nxt_conf_value_t  *comp;
+
                 ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
                                           nxt_nitems(nxt_router_http_conf),
                                           skcf);
                 if (ret != NXT_OK) {
                     nxt_alert(task, "http map error");
                     goto fail;
+                }
+
+                comp = nxt_conf_get_path(root, &compression_path);
+                if (comp != NULL) {
+                    nxt_http_comp_compression_init(task, rtcf, comp);
                 }
             }
 
