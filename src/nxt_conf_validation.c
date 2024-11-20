@@ -13,6 +13,7 @@
 #include <nxt_http.h>
 #include <nxt_sockaddr.h>
 #include <nxt_http_route_addr.h>
+#include <nxt_http_compression.h>
 #include <nxt_regex.h>
 
 
@@ -140,6 +141,12 @@ static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_compressors(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_compression(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_compression_encoding(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes_member(nxt_conf_validation_t *vldt,
@@ -263,6 +270,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_otel_members[];
 #endif
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compression_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compressor_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[];
 #if (NXT_TLS)
@@ -403,6 +412,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     }, {
         .name       = nxt_string("chunked_transform"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("compression"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_compression_members,
     },
 
     NXT_CONF_VLDT_END
@@ -459,6 +473,39 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
         .name       = nxt_string("mime_types"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_mtypes,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compression_members[] = {
+    {
+        .name       = nxt_string("types"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_patterns,
+    }, {
+        .name       = nxt_string("compressors"),
+        .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_compressors,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compressor_members[] = {
+    {
+        .name       = nxt_string("encoding"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+        .validator  = nxt_conf_vldt_compression_encoding,
+    }, {
+        .name       = nxt_string("level"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("min_length"),
+        .type       = NXT_CONF_VLDT_INTEGER,
     },
 
     NXT_CONF_VLDT_END
@@ -2267,6 +2314,52 @@ nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
     }
 
     return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_compressors(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_compression);
+    }
+
+    /* NXT_CONF_OBJECT */
+
+    return nxt_conf_vldt_object_iterator(vldt, value,
+                                         &nxt_conf_vldt_compressor_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_compression(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The \"compressors\" array must contain "
+                                   "only object values.");
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_compressor_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_compression_encoding(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    nxt_str_t  token;
+
+    nxt_conf_get_string(value, &token);
+
+    if (nxt_http_comp_compressor_is_valid(&token)) {
+        return NXT_OK;
+    }
+
+    return nxt_conf_vldt_error(vldt, "\"%V\" is not a supported compressor.",
+                               &token);
 }
 
 
