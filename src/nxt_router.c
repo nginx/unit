@@ -4136,6 +4136,8 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_unit_response_t     *resp;
     nxt_request_rpc_data_t  *req_rpc_data;
 
+    printf("%s: \n", __func__);
+
     req_rpc_data = data;
 
     r = req_rpc_data->request;

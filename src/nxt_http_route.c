@@ -688,6 +688,8 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_conf_t       *rtcf;
     nxt_http_action_conf_t  acf;
 
+    printf("%s: \n", __func__);
+
     nxt_memzero(&acf, sizeof(acf));
 
     ret = nxt_conf_map_object(tmcf->mem_pool, cv, nxt_http_route_action_conf,

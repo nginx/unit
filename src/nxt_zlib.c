@@ -58,11 +58,14 @@ nxt_zlib_deflate(nxt_http_comp_compressor_ctx_t *ctx, const uint8_t *in_buf,
     z->avail_out = out_len;
     z->next_out = out_buf;
 
+    printf("%s: in_len [%lu], out_len [%lu]\n", __func__, in_len, out_len);
+
     compressed_bytes = z->total_out;
 
     ret = deflate(z, last ? Z_FINISH : Z_SYNC_FLUSH);
     if (ret == Z_STREAM_ERROR || ret == Z_BUF_ERROR) {
         deflateEnd(z);
+        printf("%s: ret = %d\n", __func__, ret);
         return -1;
     }
 

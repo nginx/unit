@@ -327,6 +327,8 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t      body_handler;
     nxt_http_static_conf_t  *conf;
 
+    printf("%s: \n", __func__);
+
     action = ctx->action;
     conf = action->u.conf;
     rtcf = r->conf->socket_conf->router_conf;
@@ -824,6 +826,8 @@ nxt_http_static_body_handler(nxt_task_t *task, void *obj, void *data)
     nxt_work_queue_t    *wq;
     nxt_http_request_t  *r;
 
+    printf("%s: \n", __func__);
+
     r = obj;
     fb = r->out;
 
@@ -883,6 +887,8 @@ nxt_http_static_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t           *b, *fb, *next;
     nxt_off_t           rest;
     nxt_http_request_t  *r;
+
+    printf("%s: \n", __func__);
 
     b = obj;
     r = data;

@@ -137,6 +137,26 @@ static const nxt_http_comp_type_t  nxt_http_comp_compressors[] = {
 };
 
 
+static void print_compressor(const nxt_http_comp_compressor_t *c)
+{
+    printf("token    : %s\n", c->type->token.start);
+    printf("scheme   : %d\n", c->type->scheme);
+    printf("level    : %d\n", c->opts.level);
+    printf("min_len  : %ld\n", c->opts.min_len);
+}
+
+static void print_comp_config(size_t n)
+{
+    for (size_t i = 0; i < n; i++) {
+        nxt_http_comp_compressor_t *compr =
+                            nxt_http_comp_enabled_compressors + i;
+
+        print_compressor(compr);
+        printf("\n");
+    }
+}
+
+
 static ssize_t
 nxt_http_comp_compress(uint8_t *dst, size_t dst_size, const uint8_t *src,
                        size_t src_size, bool last)
@@ -176,7 +196,11 @@ nxt_http_comp_compress_app_response(nxt_http_request_t *r, nxt_buf_t **b)
 //    nxt_buf_t            *buf;
     nxt_http_comp_ctx_t  *ctx = nxt_http_comp_ctx();
 
+    printf("%s: \n", __func__);
+
     if (ctx->idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        printf("%s: NXT_HTTP_COMP_SCHEME_IDENTITY [skipping/identity]\n",
+               __func__);
         return NXT_OK;
     }
 
@@ -189,14 +213,19 @@ nxt_http_comp_compress_app_response(nxt_http_request_t *r, nxt_buf_t **b)
     in_len = (*b)->mem.free - (*b)->mem.pos;
     buf_len = nxt_http_comp_bound(in_len);
 
+    printf("%s: in_len [%lu] buf_len [%lu] last [%s]\n", __func__,
+           in_len, buf_len, last ? "true" : "false");
+
 #if 1
     if (buf_len > (size_t)nxt_buf_mem_size(&(*b)->mem)) {
+        /* XXX Un-skip Content-Length header, or not...  */
         return NXT_OK;
     }
 
     uint8_t *buf = nxt_malloc(buf_len);
 
     cbytes = nxt_http_comp_compress(buf, buf_len, (*b)->mem.pos, in_len, last);
+    printf("%s: cbytes = %ld\n", __func__, cbytes);
     if (cbytes == -1) {
         nxt_free(buf);
         return NXT_ERROR;
@@ -311,8 +340,12 @@ nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
 
         last = n == rest;
 
+        printf("%s: out_off [%ld] in_off [%ld] last [%s]\n",
+               __func__, *out_total, in_size - rest, last ? "true" : "false");
+
         cbytes = nxt_http_comp_compress(out + *out_total, out_size - *out_total,
                                         in + in_size - rest, n, last);
+        printf("%s: cbytes [%ld]\n", __func__, cbytes);
 
         *out_total += cbytes;
         rest -= n;
@@ -343,6 +376,7 @@ nxt_http_comp_wants_compression(void)
 {
     nxt_http_comp_ctx_t  *ctx = nxt_http_comp_ctx();
 
+    printf("%s: compression [%s]\n", __func__, ctx->idx > 0 ? "true" : "false");
     return ctx->idx;
 }
 
@@ -437,6 +471,9 @@ nxt_http_comp_select_compressor(nxt_http_request_t *r, const nxt_str_t *token)
 
         scheme = nxt_http_comp_enabled_compressors[ecidx].type->scheme;
 
+        printf("%s: %.*s [%f] [%d:%d]\n", __func__, (int)enc.length, enc.start,
+                qval, ecidx, scheme);
+
         if (qval == 0.0 && scheme == NXT_HTTP_COMP_SCHEME_IDENTITY) {
             identity_allowed = false;
         }
@@ -448,6 +485,12 @@ nxt_http_comp_select_compressor(nxt_http_request_t *r, const nxt_str_t *token)
         idx = ecidx;
         weight = qval;
     }
+
+    printf("%s: Selected compressor : %s\n", __func__,
+           nxt_http_comp_enabled_compressors[idx].type->token.start);
+
+    printf("%s: idx [%u], identity_allowed [%s]\n", __func__, idx,
+           identity_allowed ? "true" : "false");
 
     if (idx == NXT_HTTP_COMP_SCHEME_IDENTITY && !identity_allowed) {
         return -1;
@@ -465,6 +508,14 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
 
     static const nxt_str_t  content_encoding_str =
                                     nxt_string("Content-Encoding");
+
+    printf("%s: \n", __func__);
+
+#if 0
+    if (comp_idx == NXT_HTTP_COMP_SCHEME_IDENTITY) {
+        return NXT_OK;
+    }
+#endif
 
     f = nxt_list_add(r->resp.fields);
     if (nxt_slow_path(f == NULL)) {
@@ -494,6 +545,8 @@ nxt_http_comp_set_header(nxt_http_request_t *r, nxt_uint_t comp_idx)
             if (nxt_strcasecmp(f->name,
                                (const u_char *)"Content-Length") == 0)
             {
+                printf("%s: Found (%s: %s), marking as 'skip'\n", __func__,
+                       f->name, f->value);
                 f->skip = true;
                 break;
             }
@@ -509,7 +562,11 @@ nxt_http_comp_is_resp_content_encoded(const nxt_http_request_t *r)
 {
     nxt_http_field_t  *f;
 
+    printf("%s: \n", __func__);
+
     nxt_list_each(f, r->resp.fields) {
+        printf("%s: %.*s: %.*s\n", __func__, f->name_length, f->name,
+               f->value_length, f->value);
         if (nxt_strcasecmp(f->name, (const u_char *)"Content-Encoding") == 0) {
             return true;
         }
@@ -529,6 +586,8 @@ nxt_http_comp_check_compression(nxt_task_t *task, nxt_http_request_t *r)
     nxt_router_conf_t           *rtcf;
     nxt_http_comp_ctx_t         *ctx = nxt_http_comp_ctx();
     nxt_http_comp_compressor_t  *compressor;
+
+    printf("%s: \n", __func__);
 
     *ctx = (nxt_http_comp_ctx_t){ .resp_clen = -1 };
 
@@ -551,10 +610,15 @@ nxt_http_comp_check_compression(nxt_task_t *task, nxt_http_request_t *r)
         return NXT_OK;
     }
 
+    printf("%s: Response Content-Type [%.*s]\n", __func__,
+           (int)mime_type.length, mime_type.start);
+
     if (nxt_http_comp_mime_types_rule != NULL) {
         ret = nxt_http_route_test_rule(r, nxt_http_comp_mime_types_rule,
                                        mime_type.start,
                                        mime_type.length);
+        printf("%s: mime_type : %d (%.*s)\n", __func__, ret,
+               (int)mime_type.length, mime_type.start);
         if (ret == 0) {
             return NXT_OK;
         }
@@ -599,7 +663,11 @@ nxt_http_comp_check_compression(nxt_task_t *task, nxt_http_request_t *r)
 
     min_len = compressor->opts.min_len;
 
+    printf("%s: content_length [%ld] min_len [%ld]\n", __func__,
+           ctx->resp_clen, min_len);
     if (ctx->resp_clen > -1 && ctx->resp_clen < min_len) {
+        printf("%s: %ld < %ld [skipping/clen]\n", __func__,
+               ctx->resp_clen, min_len);
         return NXT_OK;
     }
 
@@ -656,6 +724,8 @@ nxt_http_comp_set_compressor(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
     static const nxt_str_t  token_str = nxt_string("encoding");
 
+    printf("%s: \n", __func__);
+
     obj = nxt_conf_get_object_member(comp, &token_str, NULL);
     if (obj == NULL) {
         return NXT_ERROR;
@@ -669,6 +739,7 @@ nxt_http_comp_set_compressor(nxt_task_t *task, nxt_router_conf_t *rtcf,
     compr->type = &nxt_http_comp_compressors[cidx];
     compr->opts.level = compr->type->def_compr;
     compr->opts.min_len = -1;
+    printf("%s: %s\n", __func__, compr->type->token.start);
 
     ret = nxt_conf_map_object(rtcf->mem_pool, comp,
                               nxt_http_comp_compressors_opts_map,
@@ -704,6 +775,8 @@ nxt_http_comp_compression_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
                                     nxt_string("$header_accept_encoding");
     static const nxt_str_t  comps_str = nxt_string("compressors");
     static const nxt_str_t  mimes_str = nxt_string("types");
+
+    printf("%s: \n", __func__);
 
     mimes = nxt_conf_get_object_member(comp_conf, &mimes_str, NULL);
     if (mimes != NULL) {
@@ -744,6 +817,7 @@ nxt_http_comp_compression_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
                                       .opts.min_len = -1 };
 
     if (nxt_conf_type(comps) == NXT_CONF_OBJECT) {
+        print_comp_config(nxt_http_comp_nr_enabled_compressors);
         return nxt_http_comp_set_compressor(task, rtcf, comps, 1);
     }
 
@@ -756,6 +830,8 @@ nxt_http_comp_compression_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
             return NXT_ERROR;
         }
     }
+
+    print_comp_config(nxt_http_comp_nr_enabled_compressors);
 
     return NXT_OK;
 }
