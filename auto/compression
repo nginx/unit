@@ -1,0 +1,96 @@
+
+# Copyright (C) Alejandro Colomar
+# Copyright (C) Andrew Clayton
+# Copyright (C) NGINX, Inc.
+
+
+NXT_HAVE_ZLIB=no
+NXT_ZLIB_CFLAGS=
+NXT_ZLIB_LIBS=
+
+NXT_HAVE_ZSTD=no
+NXT_ZSTD_CFLAGS=
+NXT_ZSTD_LIBS=
+
+NXT_HAVE_BROTLI=no
+NXT_BROTLI_CFLAGS=
+NXT_BROTLI_LIBS=
+
+
+if [ $NXT_ZLIB = YES ]; then
+    NXT_ZLIB_CFLAGS="$(pkgconf --cflags-only-I zlib 2>/dev/null || echo "")"
+    NXT_ZLIB_LIBS="$(pkgconf --libs zlib 2>/dev/null || echo "-lz")"
+
+    nxt_feature="zlib"
+    nxt_feature_name=NXT_HAVE_ZLIB
+    nxt_feature_run=no
+    nxt_feature_incs=$NXT_ZLIB_CFLAGS
+    nxt_feature_libs=$NXT_ZLIB_LIBS
+    nxt_feature_test="#include <stdio.h>
+
+                      #include <zlib.h>
+
+                      int main(void) {
+                          puts(zlibVersion());
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_ZLIB=YES
+        echo " + zlib version: $(pkgconf --modversion zlib)"
+    fi
+fi
+
+
+if [ $NXT_ZSTD = YES ]; then
+    NXT_ZSTD_CFLAGS="$(pkgconf --cflags-only-I libzstd 2>/dev/null || echo "")"
+    NXT_ZSTD_LIBS="$(pkgconf --libs libzstd 2>/dev/null || echo "-lzstd")"
+
+    nxt_feature="zstd"
+    nxt_feature_name=NXT_HAVE_ZSTD
+    nxt_feature_run=no
+    nxt_feature_incs=$NXT_ZSTD_CFLAGS
+    nxt_feature_libs=$NXT_ZSTD_LIBS
+    nxt_feature_test="#include <stdio.h>
+
+                      #include <zstd.h>
+
+                      int main(void) {
+                          printf(\"zstd version: %u\n\", ZSTD_versionNumber());
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_ZSTD=YES
+        echo " + zstd version: $(pkgconf --modversion libzstd)"
+    fi
+fi
+
+
+if [ $NXT_BROTLI = YES ]; then
+    NXT_BROTLI_CFLAGS="$(pkgconf --cflags-only-I libbrotlienc 2>/dev/null || echo "")"
+    NXT_BROTLI_LIBS="$(pkgconf --libs libbrotlienc 2>/dev/null || echo "-lbrotlienc")"
+
+    nxt_feature="brotli"
+    nxt_feature_name=NXT_HAVE_BROTLI
+    nxt_feature_run=no
+    nxt_feature_incs=$NXT_BROTLI_CFLAGS
+    nxt_feature_libs=$NXT_BROTLI_LIBS
+    nxt_feature_test="#include <stdio.h>
+
+                      #include <brotli/encode.h>
+
+                      int main(void) {
+                          printf(\"brotli version: %d\n\",
+                                 BrotliEncoderVersion());
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_BROTLI=YES
+        echo " + brotli version: $(pkgconf --modversion libbrotlienc)"
+    fi
+fi
