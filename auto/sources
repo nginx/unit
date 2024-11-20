@@ -107,6 +107,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_websocket.c \
     src/nxt_h1proto_websocket.c \
     src/nxt_fs.c \
+    src/nxt_http_compression.c \
 "
 
 
@@ -212,6 +213,21 @@ fi
 
 if [ $NXT_POLARSSL = YES ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLARSSL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_ZLIB" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_zlib.c"
+fi
+
+
+if [ "$NXT_HAVE_ZSTD" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_zstd.c"
+fi
+
+
+if [ "$NXT_HAVE_BROTLI" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_brotli.c"
 fi
 
 

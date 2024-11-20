@@ -26,6 +26,10 @@ NXT_GNUTLS=NO
 NXT_CYASSL=NO
 NXT_POLARSSL=NO
 
+NXT_ZLIB=NO
+NXT_ZSTD=NO
+NXT_BROTLI=NO
+
 NXT_NJS=NO
 NXT_OTEL=NO
 
@@ -111,6 +115,10 @@ do
         --gnutls)                        NXT_GNUTLS=YES                      ;;
         --cyassl)                        NXT_CYASSL=YES                      ;;
         --polarssl)                      NXT_POLARSSL=YES                    ;;
+
+        --zlib)                          NXT_ZLIB=YES                        ;;
+        --zstd)                          NXT_ZSTD=YES                        ;;
+        --brotli)                        NXT_BROTLI=YES                      ;;
 
         --njs)                           NXT_NJS=YES                         ;;
         --otel)                          NXT_OTEL=YES                        ;;
