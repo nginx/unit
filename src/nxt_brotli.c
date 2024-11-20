@@ -2,6 +2,10 @@
  *
  */
 
+#define _GNU_SOURCE
+#include <unistd.h>
+
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -18,6 +22,9 @@ nxt_brotli_init(nxt_http_comp_compressor_ctx_t *ctx)
 
     *brotli = BrotliEncoderCreateInstance(NULL, NULL, NULL);
     BrotliEncoderSetParameter(*brotli, BROTLI_PARAM_QUALITY, ctx->level);
+
+    printf("%7d %s: brotli compression level [%d]\n", gettid(), __func__,
+           ctx->level);
 }
 
 
@@ -36,6 +43,10 @@ nxt_brotli_compress(nxt_http_comp_compressor_ctx_t *ctx, const uint8_t *in_buf,
     size_t              out_bytes = out_len;
     BrotliEncoderState  *brotli = ctx->brotli_ctx;
 
+    printf("%7d %s: last/%s\n", gettid(), __func__, last ? "true" : "false");
+    printf("%7d %s: in_len [%lu] out_len [%lu]\n", gettid(),  __func__,
+           in_len, out_len);
+
     ok = BrotliEncoderCompressStream(brotli, BROTLI_OPERATION_PROCESS,
                                      &in_len, &in_buf, &out_bytes, &out_buf,
                                      NULL);
@@ -44,12 +55,17 @@ nxt_brotli_compress(nxt_http_comp_compressor_ctx_t *ctx, const uint8_t *in_buf,
                                      &in_len, &in_buf, &out_bytes, &out_buf,
                                      NULL);
 
+    printf("%7d %s: in_len [%lu] out_len [%lu] out_bytes [%lu]\n", gettid(),
+           __func__, in_len, out_len, out_bytes);
     if (last) {
         ok = BrotliEncoderCompressStream(brotli, BROTLI_OPERATION_FINISH,
                                          &in_len, &in_buf, &out_bytes,
                                          &out_buf, NULL);
         BrotliEncoderDestroyInstance(brotli);
     }
+
+    printf("%7d %s: in_len [%lu] out_len [%lu] out_bytes [%lu]\n", gettid(),
+           __func__, in_len, out_len, out_bytes);
 
     return out_len - out_bytes;
 }
