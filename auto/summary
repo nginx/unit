@@ -28,6 +28,9 @@ Unit configuration summary:
   IPv6 support: .............. $NXT_INET6
   Unix domain sockets support: $NXT_UNIX_DOMAIN
   TLS support: ............... $NXT_OPENSSL
+  zlib support: .............. $NXT_ZLIB
+  zstd support: .............. $NXT_ZSTD
+  brotli support: ............ $NXT_BROTLI
   Regex support: ............. $NXT_REGEX
   njs support: ............... $NXT_NJS
   otel support: .............. $NXT_OTEL
