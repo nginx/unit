@@ -27,6 +27,10 @@ typedef struct nxt_http_comp_ctx_s         nxt_http_comp_ctx_t;
 
 enum nxt_http_comp_scheme_e {
     NXT_HTTP_COMP_SCHEME_IDENTITY = 0,
+#if NXT_HAVE_ZLIB
+    NXT_HTTP_COMP_SCHEME_DEFLATE,
+    NXT_HTTP_COMP_SCHEME_GZIP,
+#endif
 
     /* keep last */
     NXT_HTTP_COMP_SCHEME_UNKNOWN
@@ -89,6 +93,22 @@ static const nxt_http_comp_type_t  nxt_http_comp_compressors[] = {
     {
         .token      = nxt_string("identity"),
         .scheme     = NXT_HTTP_COMP_SCHEME_IDENTITY,
+#if NXT_HAVE_ZLIB
+    }, {
+        .token      = nxt_string("deflate"),
+        .scheme     = NXT_HTTP_COMP_SCHEME_DEFLATE,
+        .def_compr  = NXT_HTTP_COMP_ZLIB_DEFAULT_LEVEL,
+        .comp_min   = NXT_HTTP_COMP_ZLIB_COMP_MIN,
+        .comp_max   = NXT_HTTP_COMP_ZLIB_COMP_MAX,
+        .cops       = &nxt_http_comp_deflate_ops,
+    }, {
+        .token      = nxt_string("gzip"),
+        .scheme     = NXT_HTTP_COMP_SCHEME_GZIP,
+        .def_compr  = NXT_HTTP_COMP_ZLIB_DEFAULT_LEVEL,
+        .comp_min   = NXT_HTTP_COMP_ZLIB_COMP_MIN,
+        .comp_max   = NXT_HTTP_COMP_ZLIB_COMP_MAX,
+        .cops       = &nxt_http_comp_gzip_ops,
+#endif
     },
 };
 
