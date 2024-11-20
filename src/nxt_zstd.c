@@ -18,6 +18,8 @@ nxt_zstd_init(nxt_http_comp_compressor_ctx_t *ctx)
 
     *zstd = ZSTD_createCStream();
     ZSTD_initCStream(*zstd, ctx->level);
+
+    printf("%s: zstd compression level [%d]\n", __func__, ctx->level);
 }
 
 
@@ -37,9 +39,13 @@ nxt_zstd_compress(nxt_http_comp_compressor_ctx_t *ctx, const uint8_t *in_buf,
     ZSTD_inBuffer   zinb = { .src = in_buf, .size = in_len };
     ZSTD_outBuffer  zoutb = { .dst = out_buf, .size = out_len };
 
+    printf("%s: in_len [%lu] out_len [%lu] last [%s]\n", __func__,
+           in_len, out_len, last ? "true" : "false");
+
     ret = ZSTD_compressStream(zstd, &zoutb, &zinb);
 
     if (zinb.pos < zinb.size) {
+        printf("%s: short by [%d]\n", __func__, zinb.pos < zinb.size);
         ret = ZSTD_flushStream(zstd, &zoutb);
     }
 
@@ -48,7 +54,9 @@ nxt_zstd_compress(nxt_http_comp_compressor_ctx_t *ctx, const uint8_t *in_buf,
         ZSTD_freeCStream(zstd);
     }
 
+    printf("%s: ret [%lu]\n", __func__, ret);
     if (ZSTD_isError(ret)) {
+        printf("%s: [%s]\n", __func__, ZSTD_getErrorName(ret));
         return -1;
     }
 

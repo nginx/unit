@@ -320,6 +320,8 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
     nxt_socket_conf_t   *skcf;
     nxt_http_request_t  *r;
 
+    printf("%s: \n", __func__);
+
     r = obj;
 
     NXT_OTEL_TRACE();
@@ -692,6 +694,8 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_field_t   *server, *date, *content_length;
     nxt_socket_conf_t  *skcf;
 
+    printf("%s: \n", __func__);
+
     ret = nxt_http_set_headers(r);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
@@ -783,6 +787,9 @@ void
 nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
     if (nxt_fast_path(r->proto.any != NULL)) {
+        printf("%s: sending [%lu] bytes\n", __func__,
+               nxt_buf_mem_used_size(&out->mem));
+
         nxt_http_proto[r->protocol].send(task, r, out);
     }
 }
