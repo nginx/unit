@@ -16,6 +16,10 @@
 #include <zlib.h>
 #endif
 
+#if NXT_HAVE_ZSTD
+#include <zstd.h>
+#endif
+
 #include <nxt_main.h>
 #include <nxt_router.h>
 #include <nxt_string.h>
@@ -26,6 +30,11 @@
 #define NXT_HTTP_COMP_ZLIB_DEFAULT_LEVEL       Z_DEFAULT_COMPRESSION
 #define NXT_HTTP_COMP_ZLIB_COMP_MIN            Z_DEFAULT_COMPRESSION
 #define NXT_HTTP_COMP_ZLIB_COMP_MAX            Z_BEST_COMPRESSION
+#endif
+#if NXT_HAVE_ZSTD
+#define NXT_HTTP_COMP_ZSTD_DEFAULT_LEVEL       ZSTD_CLEVEL_DEFAULT
+#define NXT_HTTP_COMP_ZSTD_COMP_MIN            (-7)
+#define NXT_HTTP_COMP_ZSTD_COMP_MAX            22
 #endif
 
 
@@ -38,6 +47,9 @@ struct nxt_http_comp_compressor_ctx_s {
     union {
 #if NXT_HAVE_ZLIB
         z_stream zlib_ctx;
+#endif
+#if NXT_HAVE_ZSTD
+        ZSTD_CStream *zstd_ctx;
 #endif
     };
 };
@@ -55,6 +67,10 @@ struct nxt_http_comp_operations_s {
 #if NXT_HAVE_ZLIB
 extern const nxt_http_comp_operations_t  nxt_http_comp_deflate_ops;
 extern const nxt_http_comp_operations_t  nxt_http_comp_gzip_ops;
+#endif
+
+#if NXT_HAVE_ZSTD
+extern const nxt_http_comp_operations_t  nxt_http_comp_zstd_ops;
 #endif
 
 
