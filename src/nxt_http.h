@@ -111,6 +111,7 @@ typedef struct {
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_off_t                       content_length_n;
+    const nxt_str_t                 *mime_type;
 } nxt_http_response_t;
 
 
