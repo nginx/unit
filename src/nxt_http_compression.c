@@ -34,6 +34,9 @@ enum nxt_http_comp_scheme_e {
 #if NXT_HAVE_ZSTD
     NXT_HTTP_COMP_SCHEME_ZSTD,
 #endif
+#if NXT_HAVE_BROTLI
+    NXT_HTTP_COMP_SCHEME_BROTLI,
+#endif
 
     /* keep last */
     NXT_HTTP_COMP_SCHEME_UNKNOWN
@@ -120,6 +123,15 @@ static const nxt_http_comp_type_t  nxt_http_comp_compressors[] = {
         .comp_min   = NXT_HTTP_COMP_ZSTD_COMP_MIN,
         .comp_max   = NXT_HTTP_COMP_ZSTD_COMP_MAX,
         .cops       = &nxt_http_comp_zstd_ops,
+#endif
+#if NXT_HAVE_BROTLI
+    }, {
+        .token      = nxt_string("br"),
+        .scheme     = NXT_HTTP_COMP_SCHEME_BROTLI,
+        .def_compr  = NXT_HTTP_COMP_BROTLI_DEFAULT_LEVEL,
+        .comp_min   = NXT_HTTP_COMP_BROTLI_COMP_MIN,
+        .comp_max   = NXT_HTTP_COMP_BROTLI_COMP_MAX,
+        .cops       = &nxt_http_comp_brotli_ops,
 #endif
     },
 };

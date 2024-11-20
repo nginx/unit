@@ -20,6 +20,10 @@
 #include <zstd.h>
 #endif
 
+#if NXT_HAVE_BROTLI
+#include <brotli/encode.h>
+#endif
+
 #include <nxt_main.h>
 #include <nxt_router.h>
 #include <nxt_string.h>
@@ -36,6 +40,11 @@
 #define NXT_HTTP_COMP_ZSTD_COMP_MIN            (-7)
 #define NXT_HTTP_COMP_ZSTD_COMP_MAX            22
 #endif
+#if NXT_HAVE_BROTLI
+#define NXT_HTTP_COMP_BROTLI_DEFAULT_LEVEL     BROTLI_DEFAULT_QUALITY
+#define NXT_HTTP_COMP_BROTLI_COMP_MIN          BROTLI_MIN_QUALITY
+#define NXT_HTTP_COMP_BROTLI_COMP_MAX          BROTLI_MAX_QUALITY
+#endif
 
 
 typedef struct nxt_http_comp_compressor_ctx_s  nxt_http_comp_compressor_ctx_t;
@@ -50,6 +59,9 @@ struct nxt_http_comp_compressor_ctx_s {
 #endif
 #if NXT_HAVE_ZSTD
         ZSTD_CStream *zstd_ctx;
+#endif
+#if NXT_HAVE_BROTLI
+        BrotliEncoderState *brotli_ctx;
 #endif
     };
 };
@@ -71,6 +83,10 @@ extern const nxt_http_comp_operations_t  nxt_http_comp_gzip_ops;
 
 #if NXT_HAVE_ZSTD
 extern const nxt_http_comp_operations_t  nxt_http_comp_zstd_ops;
+#endif
+
+#if NXT_HAVE_BROTLI
+extern const nxt_http_comp_operations_t  nxt_http_comp_brotli_ops;
 #endif
 
 
