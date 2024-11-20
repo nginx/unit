@@ -30,6 +30,9 @@ enum nxt_http_comp_scheme_e {
     NXT_HTTP_COMP_SCHEME_DEFLATE,
     NXT_HTTP_COMP_SCHEME_GZIP,
 #endif
+#if NXT_HAVE_ZSTD
+    NXT_HTTP_COMP_SCHEME_ZSTD,
+#endif
 
     /* keep last */
     NXT_HTTP_COMP_SCHEME_UNKNOWN
@@ -104,6 +107,15 @@ static const nxt_http_comp_type_t  compressors[] = {
         .comp_min   = NXT_HTTP_COMP_ZLIB_COMP_MIN,
         .comp_max   = NXT_HTTP_COMP_ZLIB_COMP_MAX,
         .cops       = &nxt_comp_gzip_ops,
+#endif
+#if NXT_HAVE_ZSTD
+    }, {
+        .token      = nxt_string("zstd"),
+        .scheme     = NXT_HTTP_COMP_SCHEME_ZSTD,
+        .def_compr  = NXT_HTTP_COMP_ZSTD_DEFAULT_LEVEL,
+        .comp_min   = NXT_HTTP_COMP_ZSTD_COMP_MIN,
+        .comp_max   = NXT_HTTP_COMP_ZSTD_COMP_MAX,
+        .cops       = &nxt_comp_zstd_ops,
 #endif
     },
 };
