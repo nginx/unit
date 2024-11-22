@@ -174,8 +174,9 @@ rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
+	BUILDROOT=`rpmbuild -bc --short-circuit -D "_topdir \`pwd\`/rpmbuild" -D "__spec_build_pre echo bdir=%{_builddir}; exit 0" rpmbuild/SPECS/unit.spec | grep ^bdir= | cut -d'=' -f 2` ; \
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba --noclean rpmbuild/SPECS/unit.spec && \
-	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@
+	ln -s $$BUILDROOT/$@-$(VERSION)/build $@
 
 rpmlint:
 	find rpmbuild/ -name "*.rpm" -print -exec rpmlint {} \;
@@ -227,29 +228,34 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 
 unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $(subst _,-,$@) package" ; \
+	BUILDROOT=`rpmbuild -bc --short-circuit -D "_topdir \`pwd\`/rpmbuild" -D "__spec_build_pre echo bdir=%{_builddir}; exit 0" rpmbuild/SPECS/$@.spec | grep ^bdir= | cut -d'=' -f 2` ; \
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba --noclean rpmbuild/SPECS/$@.spec && \
-	ln -s rpmbuild/BUILD/$(subst _,-,$@)-$(VERSION)/build $@
+	ln -s $$BUILDROOT/$(subst _,-,$@)-$(VERSION)/build $@
 
 test: unit modules
 	@{ \
-	for so in `find rpmbuild/BUILD/*/build-nodebug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
+	BUILDROOT=`rpmbuild -bc --short-circuit -D "_topdir \`pwd\`/rpmbuild" -D "__spec_build_pre echo bdir=%{_builddir}; exit 0" rpmbuild/SPECS/unit.spec | grep ^bdir= | cut -d'=' -f 2` ; \
+	NODEBUGS=`find rpmbuild/BUILD -type d -name "build-nodebug"` ; \
+	for so in `find $${NODEBUGS} -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} || \
-		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} ; \
+		test -h $$BUILDROOT/unit-$(VERSION)/build-nodebug/$${soname} || \
+		ln -fs `pwd`/$${so} $$BUILDROOT/unit-$(VERSION)/build-nodebug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
+	( cd $$BUILDROOT/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 test-debug: unit modules
 	@{ \
-	for so in `find rpmbuild/BUILD/*/build-debug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
+	BUILDROOT=`rpmbuild -bc --short-circuit -D "_topdir \`pwd\`/rpmbuild" -D "__spec_build_pre echo bdir=%{_builddir}; exit 0" rpmbuild/SPECS/unit.spec | grep ^bdir= | cut -d'=' -f 2` ; \
+	DEBUGS=`find rpmbuild/BUILD -type d -name "build-debug"` ; \
+	for so in `find $$DEBUGS -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} || \
-		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} ; \
+		test -h $$BUILDROOT/unit-$(VERSION)/build-debug/$${soname} || \
+		ln -fs `pwd`/$${so} $$BUILDROOT/unit-$(VERSION)/build-debug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
+	( cd $$BUILDROOT/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 clean:
