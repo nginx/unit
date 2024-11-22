@@ -1,0 +1,16 @@
+{
+	"applications": {
+		"example_python": {
+			"type": "python 3.13",
+			"processes": 2,
+			"path": "/usr/share/doc/unit-python313/examples/python-app",
+			"module": "wsgi"
+		}
+	},
+
+	"listeners": {
+		"*:8400": {
+			"pass": "applications/example_python"
+		}
+	}
+}
