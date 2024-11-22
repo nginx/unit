@@ -18,8 +18,10 @@ else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2023)
 OSVER = amazonlinux2023
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 39'`; echo $$?),0)
-OSVER = fedora39
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -eq 40'`; echo $$?),0)
+OSVER = fedora40
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -eq 41'`; echo $$?),0)
+OSVER = fedora41
 endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint clang llvm
@@ -81,7 +83,7 @@ include Makefile.jsc17
 include Makefile.wasm
 endif
 
-ifeq ($(OSVER), fedora39)
+ifeq ($(OSVER), fedora40)
 include Makefile.php
 include Makefile.python312
 include Makefile.go
@@ -92,6 +94,17 @@ include Makefile.jsc17
 include Makefile.wasm
 endif
 
+ifeq ($(OSVER), fedora41)
+include Makefile.php
+include Makefile.python313
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc17
+include Makefile.jsc21
+include Makefile.wasm
+endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
