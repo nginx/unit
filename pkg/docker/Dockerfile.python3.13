@@ -1,6 +1,6 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.13-bookworm
 
-LABEL org.opencontainers.image.title="Unit (python3.11-slim)"
+LABEL org.opencontainers.image.title="Unit (python3.13)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
