@@ -166,6 +166,105 @@ nxt_http_comp_bound(size_t size)
 }
 
 
+nxt_int_t
+nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
+                                       nxt_file_info_t *fi,
+                                       size_t static_buf_len,
+                                       size_t *out_total)
+{
+    char           tmp_path[NXT_MAX_PATH_LEN];
+    size_t         in_size, out_size, rest;
+    u_char         *p;
+    uint8_t        *in, *out;
+    nxt_int_t      ret;
+    nxt_file_t     tfile;
+    nxt_runtime_t  *rt = task->thread->runtime;
+
+    static const char  *template = "unit-compr-XXXXXX";
+
+    *out_total = 0;
+
+    if (nxt_slow_path(strlen(rt->tmp) + 1 + strlen(template) + 1
+                      > NXT_MAX_PATH_LEN))
+    {
+        return NXT_ERROR;
+    }
+
+    p = nxt_cpymem(tmp_path, rt->tmp, strlen(rt->tmp));
+    *p++ = '/';
+    p = nxt_cpymem(p, template, strlen(template));
+    *p = '\0';
+
+    tfile.fd = mkstemp(tmp_path);
+    if (nxt_slow_path(tfile.fd == -1)) {
+        nxt_alert(task, "mkstemp(%s) failed %E", tmp_path, nxt_errno);
+        return NXT_ERROR;
+    }
+    unlink(tmp_path);
+
+    in_size = nxt_file_size(fi);
+    out_size = nxt_http_comp_bound(in_size);
+
+    ret = ftruncate(tfile.fd, out_size);
+    if (nxt_slow_path(ret == -1)) {
+        nxt_alert(task, "ftruncate(%d<%s>, %uz) failed %E",
+                  tfile.fd, tmp_path, out_size, nxt_errno);
+        nxt_file_close(task, &tfile);
+        return NXT_ERROR;
+    }
+
+    in = nxt_mem_mmap(NULL, in_size, PROT_READ, MAP_SHARED, (*f)->fd, 0);
+    if (nxt_slow_path(in == MAP_FAILED)) {
+        nxt_file_close(task, &tfile);
+        return NXT_ERROR;
+    }
+
+    out = nxt_mem_mmap(NULL, out_size, PROT_READ|PROT_WRITE, MAP_SHARED,
+                       tfile.fd, 0);
+    if (nxt_slow_path(out == MAP_FAILED)) {
+        nxt_mem_munmap(in, in_size);
+        nxt_file_close(task, &tfile);
+        return NXT_ERROR;
+    }
+
+    rest = in_size;
+
+    do {
+        bool     last;
+        size_t   n;
+        ssize_t  cbytes;
+
+        n = nxt_min(rest, static_buf_len);
+
+        last = n == rest;
+
+        cbytes = nxt_http_comp_compress(out + *out_total, out_size - *out_total,
+                                        in + in_size - rest, n, last);
+
+        *out_total += cbytes;
+        rest -= n;
+    } while (rest > 0);
+
+    nxt_mem_munmap(in, in_size);
+    msync(out, out_size, MS_ASYNC);
+    nxt_mem_munmap(out, out_size);
+
+    ret = ftruncate(tfile.fd, *out_total);
+    if (nxt_slow_path(ret == -1)) {
+        nxt_alert(task, "ftruncate(%d<%s>, %uz) failed %E",
+                  tfile.fd, tmp_path, *out_total, nxt_errno);
+        nxt_file_close(task, &tfile);
+        return NXT_ERROR;
+    }
+
+    nxt_file_close(task, *f);
+
+    **f = tfile;
+
+    return NXT_OK;
+}
+
+
 bool
 nxt_http_comp_wants_compression(void)
 {
