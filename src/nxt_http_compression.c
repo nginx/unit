@@ -137,6 +137,35 @@ static const nxt_http_comp_type_t  nxt_http_comp_compressors[] = {
 };
 
 
+static ssize_t
+nxt_http_comp_compress(uint8_t *dst, size_t dst_size, const uint8_t *src,
+                       size_t src_size, bool last)
+{
+    nxt_http_comp_ctx_t               *ctx = nxt_http_comp_ctx();
+    nxt_http_comp_compressor_t        *compressor;
+    const nxt_http_comp_operations_t  *cops;
+
+    compressor = &nxt_http_comp_enabled_compressors[ctx->idx];
+    cops = compressor->type->cops;
+
+    return cops->deflate(&ctx->ctx, src, src_size, dst, dst_size, last);
+}
+
+
+static size_t
+nxt_http_comp_bound(size_t size)
+{
+    nxt_http_comp_ctx_t               *ctx = nxt_http_comp_ctx();
+    nxt_http_comp_compressor_t        *compressor;
+    const nxt_http_comp_operations_t  *cops;
+
+    compressor = &nxt_http_comp_enabled_compressors[ctx->idx];
+    cops = compressor->type->cops;
+
+    return cops->bound(&ctx->ctx, size);
+}
+
+
 bool
 nxt_http_comp_wants_compression(void)
 {
