@@ -1,6 +1,6 @@
-FROM php:8.2-cli-bookworm
+FROM python:3.13-slim-bookworm
 
-LABEL org.opencontainers.image.title="Unit (php8.2)"
+LABEL org.opencontainers.image.title="Unit (python3.13-slim)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
@@ -47,12 +47,12 @@ RUN set -ex \
     && make clean \
     && /bin/true \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure php \
-    && make -j $NCPU php-install \
+    && ./configure python --config=/usr/local/bin/python3-config \
+    && make -j $NCPU python3-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure php \
-    && make -j $NCPU php-install \
+    && ./configure python --config=/usr/local/bin/python3-config \
+    && make -j $NCPU python3-install \
     && cd \
     && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
@@ -60,7 +60,7 @@ RUN set -ex \
        done \
     && apt-mark showmanual | xargs apt-mark auto > /dev/null \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
-    && ldconfig \
+    && /bin/true \
     && mkdir -p /var/lib/unit/ \
     && mkdir -p /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \
