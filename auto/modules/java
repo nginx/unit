@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.97
+NXT_TOMCAT_VERSION=9.0.98
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
@@ -297,7 +297,7 @@ NXT_JAR_NAME=jetty-http
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=classgraph
-NXT_JAR_VERSION=4.8.177
+NXT_JAR_VERSION=4.8.179
 NXT_JAR_NAMESPACE=io/github/classgraph/
 . auto/modules/java_get_jar
 
