@@ -36,6 +36,7 @@ pub type nxt_uint_t = usize;
 
 // Stored sender channel to send spans or a shutdown message to within the
 // Tokio runtime.
+#[allow(static_mut_refs)]
 unsafe fn nxt_otel_rs_span_tx(destruct: bool) -> *const OnceLock<Sender<SpanMessage>> {
     static mut SPAN_TX: OnceLock<Sender<SpanMessage>> = OnceLock::new();
     if destruct {
