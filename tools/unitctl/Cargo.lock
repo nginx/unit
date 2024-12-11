@@ -2185,7 +2185,7 @@ checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
 
 [[package]]
 name = "unit-client-rs"
-version = "1.33.0"
+version = "1.34.0"
 dependencies = [
  "bollard",
  "custom_error",
@@ -2208,7 +2208,7 @@ dependencies = [
 
 [[package]]
 name = "unit-openapi"
-version = "1.33.0"
+version = "1.34.0"
 dependencies = [
  "base64 0.21.7",
  "futures",
@@ -2222,7 +2222,7 @@ dependencies = [
 
 [[package]]
 name = "unitctl"
-version = "1.33.0"
+version = "1.34.0"
 dependencies = [
  "clap",
  "colored_json",
