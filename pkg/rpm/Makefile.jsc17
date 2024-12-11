@@ -8,7 +8,7 @@ MODULE_RELEASE_jsc17=	1
 
 ifeq ($(OSVER),amazonlinux2023)
 MODULE_CONFARGS_jsc17=	java --module=java17 --home=/usr/lib/jvm/java-17-amazon-corretto --lib-path=/usr/lib/jvm/java-17-amazon-corretto/lib --jars=/usr/share/unit-jsc-common/
-else ifeq ($(OSVER),fedora39)
+else ifneq (,$(findstring $(OSVER),fedora40 fedora41))
 MODULE_CONFARGS_jsc17=	java --module=java17 --home=/usr/lib/jvm/java-17-openjdk --lib-path=/usr/lib/jvm/java-17-openjdk/lib --jars=/usr/share/unit-jsc-common/
 endif
 MODULE_MAKEARGS_jsc17=	java17
@@ -19,7 +19,7 @@ MODULE_SOURCES_jsc17=	unit.example-jsc-app \
 
 ifeq ($(OSVER),amazonlinux2023)
 BUILD_DEPENDS_jsc17=	java-17-amazon-corretto-devel
-else ifeq ($(OSVER),fedora39)
+else ifneq (,$(findstring $(OSVER),fedora40 fedora41))
 BUILD_DEPENDS_jsc17=	java-17-openjdk-devel
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc17)
 endif
