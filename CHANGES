@@ -1,4 +1,14 @@
 
+Changes with Unit 1.34.0                                         19 Dec 2024
+
+    *) Feature: initial OpenTelemetry (OTEL) support. (Disabled by default).
+
+    *) Feature: support for JSON formatted access logs.
+
+    *) Bugfix: tweak the Perl language module to avoid breaking scripts in
+       some circumstances.
+
+
 Changes with Unit 1.33.0                                         17 Sep 2024
 
     *) Feature: make the number of router threads configurable.
