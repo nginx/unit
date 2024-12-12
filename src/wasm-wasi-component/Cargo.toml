@@ -17,10 +17,10 @@ http-body = { version = "1.0.0", default-features = false }
 http-body-util = "0.1.0"
 hyper = "1.4.1"
 tokio = { version = "1.33.0", default-features = false }
-wasi-common = "26.0.1"
-wasmtime = { version = "26.0.1", default-features = false, features = ['component-model', 'cranelift'] }
-wasmtime-wasi = "26.0.1"
-wasmtime-wasi-http = "26.0.1"
+wasi-common = "27.0.0"
+wasmtime = { version = "27.0.0", default-features = false, features = ['component-model', 'cranelift'] }
+wasmtime-wasi = "27.0.0"
+wasmtime-wasi-http = "27.0.0"
 
 [build-dependencies]
 bindgen = "0.68.1"
