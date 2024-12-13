@@ -119,7 +119,8 @@ CONFIGURE_ARGS_COMMON=\
 
 CONFIGURE_ARGS=\
 	$(CONFIGURE_ARGS_COMMON) \
-	--njs
+	--njs \
+	--otel
 
 export CR=\\n
 

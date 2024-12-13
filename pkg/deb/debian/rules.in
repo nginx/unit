@@ -79,7 +79,7 @@ configure.unit_debug: config.env.unit_debug
 
 build-arch.%: configure.%
 	dh_testdir
-	$(MAKE) -C $(BUILDDIR_$*)
+	$(MAKE) -C $(BUILDDIR_$*) E=0
 	$(MAKE) -C $(BUILDDIR_$*) build/lib/libunit.a
 ifeq ($(DOTESTS), 1)
 	$(MAKE) -C $(BUILDDIR_$*) tests
@@ -121,7 +121,7 @@ install: build do.tests
 	dh_installsystemd -punit --name=unit unit.service
 	dh_installsystemd -punit --name=unit-debug --no-start --no-enable unit-debug.service
 	dh_installlogrotate
-	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
+	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install E=0
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
 	install -m 755 $(BUILDDIR_unit)/tools/unitc $(INSTALLDIR)/usr/bin/unitc
 	install -m 755 $(BUILDDIR_unit)/tools/setup-unit $(INSTALLDIR)/usr/bin/setup-unit
