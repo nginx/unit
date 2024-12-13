@@ -79,33 +79,13 @@ MODULE_PREBUILD_ruby ?=	/bin/true
 
 VERSIONS_wasm ?=
 CONTAINER_wasm ?= debian:$(VARIANT)-slim
-CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
+CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/artifacts/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
 INSTALL_wasm ?=   wasm-install wasm-wasi-component-install
 RUN_wasm ?=       /bin/true
 
 define MODULE_PREBUILD_wasm
-apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
-\ \ \ \&\& export RUST_VERSION=1.80.1 \\\n \
-\ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
-\ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
-\ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \
-\ \ \ \&\& dpkgArch="\$$\(dpkg --print-architecture\)" \\\n \
-\ \ \ \&\& case "\$${dpkgArch##*-}" in \\\n \
-\ \ \ \ \ \ amd64\) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="6aeece6993e902708983b209d04c0d1dbb14ebb405ddb87def578d41f920f56d" ;; \\\n \
-\ \ \ \ \ \ arm64\) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="1cffbf51e63e634c746f741de50649bbbcbd9dbe1de363c9ecef64e278dba2b2" ;; \\\n \
-\ \ \ \ \ \ *\) echo \>\&2 "unsupported architecture: \$${dpkgArch}"; exit 1 ;; \\\n \
-\ \ \ \esac \\\n \
-\ \ \ \&\& url="https://static.rust-lang.org/rustup/archive/1.27.1/\$${rustArch}/rustup-init" \\\n \
-\ \ \ \&\& curl -L -O "\$$url" \\\n \
-\ \ \ \&\& echo "\$${rustupSha256} *rustup-init" | sha256sum -c - \\\n \
-\ \ \ \&\& chmod +x rustup-init \\\n \
-\ \ \ \&\& ./rustup-init -y --no-modify-path --profile minimal --default-toolchain \$$RUST_VERSION --default-host \$${rustArch} \\\n \
-\ \ \ \&\& rm rustup-init \\\n \
-\ \ \ \&\& rustup --version \\\n \
-\ \ \ \&\& cargo --version \\\n \
-\ \ \ \&\& rustc --version \\\n \
-\ \ \ \&\& make -C pkg/contrib .wasmtime \\\n \
-\ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/target/release/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
+make -C pkg/contrib .wasmtime \\\n \
+\ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/artifacts/lib/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
 endef
 
 default:
