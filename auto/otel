@@ -41,9 +41,7 @@ if [ $NXT_OTEL = YES ]; then
     fi
 
     NXT_OTEL_LIBS="-lssl -lcrypto"
-    if [ $(which pkg-config) ]; then
-        NXT_OTEL_LIBS="$(pkg-config openssl --cflags --libs)"
-    fi
+
     cat << END >> $NXT_AUTO_CONFIG_H
 
 #ifndef NXT_HAVE_OTEL
