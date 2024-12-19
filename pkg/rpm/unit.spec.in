@@ -76,6 +76,13 @@ Library and include files required for NGINX Unit modules development.
 %build
 %{__make} %{?_smp_mflags} -C pkg/contrib .njs
 
+# openssl-sys rust crate doesnt detect openssl11.pc in Amazon Linux 2, so needs
+# a bit of a helping hand.
+%if (0%{?amzn2})
+export OPENSSL_LIB_DIR=%_libdir
+export OPENSSL_INCLUDE_DIR=%_includedir
+%endif
+
 PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 ./configure \
 	%{CONFIGURE_ARGS} \
@@ -84,7 +91,7 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}" \
 	--debug
-%{__make} %{?_smp_mflags}
+%{__make} %{?_smp_mflags} E=0
 %{__make} %{?_smp_mflags} build/lib/libunit.a
 %{__mv} build build-debug
 
@@ -95,7 +102,7 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 	--libdir=%{_libdir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}"
-%{__make} %{?_smp_mflags}
+%{__make} %{?_smp_mflags} E=0
 %{__mv} build build-nodebug
 
 %if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
@@ -103,8 +110,15 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 %endif
 
 %install
+# openssl-sys rust crate doesnt detect openssl11.pc in Amazon Linux 2, so needs
+# a bit of a helping hand.
+%if (0%{?amzn2})
+export OPENSSL_LIB_DIR=%_libdir
+export OPENSSL_INCLUDE_DIR=%_includedir
+%endif
+
 %{__ln_s} build-nodebug build
-DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
+DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install E=0
 %{__mkdir} -p %{buildroot}%{_bindir}
 %{__install} -m755 %{bdir}/tools/unitc \
     %{buildroot}%{_bindir}/unitc

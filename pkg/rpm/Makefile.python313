@@ -1,0 +1,53 @@
+MODULES+=		python313
+MODULE_SUFFIX_python313=	python3.13
+
+MODULE_SUMMARY_python313=	Python 3.13 module for NGINX Unit
+
+MODULE_VERSION_python313=	$(VERSION)
+MODULE_RELEASE_python313=	1
+
+MODULE_CONFARGS_python313=	python --config=python3.13-config
+MODULE_MAKEARGS_python313=	python3.13
+MODULE_INSTARGS_python313=	python3.13-install
+
+MODULE_SOURCES_python313=	unit.example-python-app \
+			unit.example-python313-config
+
+BUILD_DEPENDS_python313=	python3-devel
+
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python313)
+
+define MODULE_PREINSTALL_python313
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-python313/examples/python-app
+%{__install} -m 644 -p %{SOURCE100} \
+    %{buildroot}%{_datadir}/doc/unit-python313/examples/python-app/wsgi.py
+%{__install} -m 644 -p %{SOURCE101} \
+    %{buildroot}%{_datadir}/doc/unit-python313/examples/unit.config
+endef
+export MODULE_PREINSTALL_python313
+
+define MODULE_FILES_python313
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+endef
+export MODULE_FILES_python313
+
+define MODULE_POST_python313
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python313) has been installed.
+
+To check the sample app, run these commands:
+
+ sudo service unit start
+ cd /usr/share/doc/%{name}/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/unit/control.sock http://localhost/config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python313

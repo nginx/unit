@@ -10,7 +10,7 @@ JAVA_ARCH_jsc_common=	$(shell /usr/lib/jvm/java-1.8.0/bin/java -XshowSettings 2>
 
 ifeq ($(OSVER),amazonlinux2023)
 MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-17-amazon-corretto --lib-path=/usr/lib/jvm/java-17-amazon-corretto/lib --jars=/usr/share/unit-jsc-common/
-else ifeq ($(OSVER),fedora39)
+else ifneq (,$(findstring $(OSVER),fedora40 fedora41))
 MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-17-openjdk --lib-path=/usr/lib/jvm/java-17-openjdk/lib --jars=/usr/share/unit-jsc-common/
 else
 MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-1.8.0 --lib-path=/usr/lib/jvm/jre-1.8.0/lib/$(JAVA_ARCH_jsc_common) --jars=/usr/share/unit-jsc-common/
@@ -21,7 +21,7 @@ MODULE_SOURCES_jsc_common=	COPYRIGHT.unit-jsc-common
 
 ifeq ($(OSVER),amazonlinux2023)
 BUILD_DEPENDS_jsc_common=	java-17-amazon-corretto-devel curl
-else ifeq ($(OSVER),fedora39)
+else ifneq (,$(findstring $(OSVER),fedora40 fedora41))
 BUILD_DEPENDS_jsc_common=	java-17-openjdk-devel curl
 else
 BUILD_DEPENDS_jsc_common=	java-1.8.0-openjdk-devel curl

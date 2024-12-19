@@ -1078,15 +1078,15 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 #endif
 
 #if (NXT_TLS)
-    static nxt_str_t certificates = nxt_string("certificates");
+    static const nxt_str_t certificates = nxt_string("certificates");
 #endif
 
 #if (NXT_HAVE_NJS)
-    static nxt_str_t scripts_str = nxt_string("js_modules");
+    static const nxt_str_t scripts_str = nxt_string("js_modules");
 #endif
 
-    static nxt_str_t config = nxt_string("config");
-    static nxt_str_t status = nxt_string("status");
+    static const nxt_str_t config = nxt_string("config");
+    static const nxt_str_t status = nxt_string("status");
 
     c = req->conn;
     path = req->parser.path;
@@ -2302,7 +2302,7 @@ nxt_controller_process_control(nxt_task_t *task,
     nxt_conf_value_t           *value;
     nxt_controller_response_t  resp;
 
-    static nxt_str_t applications = nxt_string("applications");
+    static const nxt_str_t applications = nxt_string("applications");
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 

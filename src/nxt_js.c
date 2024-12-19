@@ -230,7 +230,7 @@ nxt_js_add_module(nxt_js_conf_t *jcf, nxt_str_t *name, nxt_str_t *text)
 
 
 nxt_js_t *
-nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
+nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_uint_t flags)
 {
     size_t     size;
     u_char     *p, *start;
@@ -243,13 +243,19 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
                                            "    return ");
 
     /*
-     * Appending a terminating null character if strz is true.
+     * Append a newline character if newline is true.
+     * Append a terminating null character if strz is true.
      */
+    static const nxt_str_t  newline_str = nxt_string(" + '\\x0A'");
     static const nxt_str_t  strz_str = nxt_string(" + '\\x00'");
 
     size = func_str.length + str->length + 1;
 
-    if (strz) {
+    if (flags & NXT_TSTR_NEWLINE) {
+        size += newline_str.length;
+    }
+
+    if (flags & NXT_TSTR_STRZ) {
         size += strz_str.length;
     }
 
@@ -263,7 +269,11 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
     p = nxt_cpymem(p, func_str.start, func_str.length);
     p = nxt_cpymem(p, str->start, str->length);
 
-    if (strz) {
+    if (flags & NXT_TSTR_NEWLINE) {
+        p = nxt_cpymem(p, newline_str.start, newline_str.length);
+    }
+
+    if (flags & NXT_TSTR_STRZ) {
         p = nxt_cpymem(p, strz_str.start, strz_str.length);
     }
 

@@ -1,0 +1,69 @@
+MODULES+=		jsc21
+MODULE_SUFFIX_jsc21=	jsc21
+
+MODULE_SUMMARY_jsc21=	Java 21 module for NGINX Unit
+
+MODULE_VERSION_jsc21=	$(VERSION)
+MODULE_RELEASE_jsc21=	1
+
+MODULE_CONFARGS_jsc21=	java --module=java21 --home=/usr/lib/jvm/java-21-openjdk --lib-path=/usr/lib/jvm/java-21-openjdk/lib --jars=/usr/share/unit-jsc-common/
+MODULE_MAKEARGS_jsc21=	java21
+MODULE_INSTARGS_jsc21=	java21-install
+
+MODULE_SOURCES_jsc21=	unit.example-jsc-app \
+			unit.example-jsc21-config
+
+BUILD_DEPENDS_jsc21=	java-21-openjdk-devel
+
+define MODULE_DEFINITIONS_jsc21
+Requires: unit-jsc-common == $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)%{?dist}.ngx
+Requires: java-21-openjdk-headless
+endef
+export MODULE_DEFINITIONS_jsc21
+
+define MODULE_PREINSTALL_jsc21
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-jsc21/examples/jsc-app
+%{__install} -m 644 -p %{SOURCE100} \
+    %{buildroot}%{_datadir}/doc/unit-jsc21/examples/jsc-app/index.jsp
+%{__install} -m 644 -p %{SOURCE101} \
+    %{buildroot}%{_datadir}/doc/unit-jsc21/examples/unit.config
+%{__install} -m 644 -p %{bdir}/src/java/README.JSR-340 \
+    %{buildroot}%{_datadir}/doc/unit-jsc21/
+endef
+export MODULE_PREINSTALL_jsc21
+
+define MODULE_POSTINSTALL_jsc21
+DESTDIR=%{buildroot} make java-shared-uninstall
+endef
+export MODULE_POSTINSTALL_jsc21
+
+define MODULE_FILES_jsc21
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+%dir %{_datadir}/doc/unit-jsc21
+%{_datadir}/doc/unit-jsc21/*
+%{_datadir}/unit-jsc-common/*
+endef
+export MODULE_FILES_jsc21
+
+define MODULE_POST_jsc21
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc21) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/%{name}/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/unit/control.sock http://localhost/config
+ curl http://localhost:8800/
+
+Online documentation is available at https://unit.nginx.org
+
+`cat /usr/share/doc/unit-jsc21/README.JSR-340`
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc21

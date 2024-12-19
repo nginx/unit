@@ -1,6 +1,6 @@
 [package]
 name = "unit-client-rs"
-version = "1.33.0"
+version = "1.34.0"
 authors = ["Elijah Zupancic"]
 edition = "2021"
 license = "Apache-2.0"
@@ -15,7 +15,7 @@ default = ["serde_json/preserve_order"]
 [dependencies]
 custom_error = "1.9"
 hyper = { version = "0.14", features = ["stream"] }
-hyper-tls = "0.5"
+hyper-rustls = { version = "0.25.0", features = ["rustls-native-certs", "webpki-roots", "http2"] }
 hyperlocal = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -27,7 +27,7 @@ which = "5.0"
 
 unit-openapi = { path = "../unit-openapi" }
 rustls = "0.23.5"
-bollard = "0.16.1"
+bollard = "0.17.1"
 regex = "1.10.4"
 pbr = "1.1.1"
 

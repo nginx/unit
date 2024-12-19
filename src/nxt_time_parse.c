@@ -317,7 +317,6 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
     enum {
         st_first_digit = 0,
         st_digit,
-        st_letter,
         st_space,
     } state;
 
@@ -354,22 +353,17 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             state = st_first_digit;
         }
 
-        if (state != st_letter) {
+        /* Values below '0' become >= 208. */
+        c = ch - '0';
 
-            /* Values below '0' become >= 208. */
-            c = ch - '0';
+        if (c <= 9) {
+            val = val * 10 + c;
+            state = st_digit;
+            continue;
+        }
 
-            if (c <= 9) {
-                val = val * 10 + c;
-                state = st_digit;
-                continue;
-            }
-
-            if (state == st_first_digit) {
-                return -1;
-            }
-
-            state = st_letter;
+        if (state == st_first_digit) {
+            return -1;
         }
 
         switch (ch) {

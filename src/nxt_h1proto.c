@@ -178,6 +178,10 @@ static nxt_http_field_proc_t           nxt_h1p_fields[] = {
     { nxt_string("Content-Length"),    &nxt_http_request_content_length, 0 },
     { nxt_string("Authorization"),     &nxt_http_request_field,
         offsetof(nxt_http_request_t, authorization) },
+#if (NXT_HAVE_OTEL)
+    { nxt_string("Traceparent"),       &nxt_otel_parse_traceparent, 0 },
+    { nxt_string("Tracestate"),        &nxt_otel_parse_tracestate,  0 },
+#endif
 };
 
 
@@ -518,6 +522,9 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
             h1p->parser.discard_unsafe_fields = skcf->discard_unsafe_fields;
 
             nxt_h1p_conn_request_header_parse(task, c, h1p);
+
+            NXT_OTEL_TRACE();
+
             return;
         }
 
@@ -1331,6 +1338,8 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     };
 
     nxt_debug(task, "h1p request header send");
+
+    NXT_OTEL_TRACE();
 
     r->header_sent = 1;
     h1p = r->proto.h1;

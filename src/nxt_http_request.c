@@ -6,6 +6,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_otel.h>
 
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
@@ -284,6 +285,16 @@ nxt_http_request_create(nxt_task_t *task)
 
     r->tstr_cache.var.pool = mp;
 
+#if (NXT_HAVE_OTEL)
+    if (nxt_otel_rs_is_init()) {
+        r->otel = nxt_mp_zget(r->mem_pool, sizeof(nxt_otel_state_t));
+        if (nxt_slow_path(r->otel == NULL)) {
+            goto fail;
+        }
+        r->otel->status = NXT_OTEL_INIT_STATE;
+    }
+#endif
+
     return r;
 
 fail:
@@ -310,6 +321,8 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
     nxt_http_request_t  *r;
 
     r = obj;
+
+    NXT_OTEL_TRACE();
 
     r->state = &nxt_http_request_body_state;
 
@@ -581,6 +594,8 @@ nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 
     r = obj;
     action = r->conf->socket_conf->action;
+
+    NXT_OTEL_TRACE();
 
     if (r->chunked) {
         ret = nxt_http_request_chunked_transform(r);

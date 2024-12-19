@@ -144,7 +144,7 @@ impl UnitdContainer {
         if let Ok(docker) = Docker::connect_with_local_defaults() {
             match docker.list_containers::<String>(None).await {
                 Err(e) => {
-                    eprintln!("{}", e);
+                    eprintln!("Could not read docker instances: {}", e);
                     vec![]
                 }
                 Ok(summary) => {

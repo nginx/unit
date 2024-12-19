@@ -1,0 +1,76 @@
+name: "Clang AST"
+
+on:
+  push:
+    branches: master
+    paths:
+      - configure
+      - 'auto/**'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/clang-ast.yaml'
+  pull_request:
+    branches: master
+    paths:
+      - configure
+      - 'auto/**'
+      - 'src/**'
+      - 'test/**'
+      - '.github/workflows/clang-ast.yaml'
+
+jobs:
+  clang-ast:
+    runs-on: ubuntu-latest
+
+    container:
+      image: debian:testing
+
+    steps:
+      - name: Install tools/deps
+        run: |
+          apt-get -y update
+          apt-get -y install git wget curl llvm-dev libclang-dev clang make \
+                             libssl-dev libpcre2-dev libperl-dev \
+                             libphp-embed php-dev python3-dev libpython3-dev \
+                             ruby-dev openjdk-17-jdk npm
+          npm install -g node-gyp
+
+      - uses: actions/checkout@v4
+
+      - name: Checkout and build clang-ast
+        run: |
+          git clone https://github.com/nginx/clang-ast.git -b unit
+          cd clang-ast
+          make
+
+      - name: Configure Unit
+        run: ./configure --cc=clang --cc-opt="-Xclang -load -Xclang clang-ast/ngx-ast.so -Xclang -add-plugin -Xclang ngx-ast" --openssl --debug --tests
+
+      - name: Build Unit
+        run: make -j4 unitd
+
+      - name: Build C tests
+        run: make -j4 tests
+
+      - name: Build Perl language module
+        run: ./configure perl && make -j4 perl
+
+      - name: Build PHP language module
+        run: ./configure php && make -j4 php
+
+      - name: Build Python language module
+        run: ./configure python --config=python3-config && make -j4 python3
+
+      - name: Build Ruby language module
+        run: ./configure ruby && make -j4 ruby
+
+      - name: Build Java support
+        run: ./configure java && make -j4 java
+
+      - name: Build Nodejs support
+        run: ./configure nodejs && make node-local-install DESTDIR=node
+
+      - name: Build wasm language module
+        run: |
+          wget -q -O- https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-linux-c-api.tar.xz | tar -xJf -
+          ./configure wasm --include-path=wasmtime-v26.0.0-x86_64-linux-c-api/include --lib-path=wasmtime-v26.0.0-x86_64-linux-c-api/lib --rpath && make wasm

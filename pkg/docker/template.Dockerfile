@@ -11,7 +11,27 @@ LABEL org.opencontainers.image.version="@@VERSION@@"
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
-    && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config \
+    && apt-get install --no-install-recommends --no-install-suggests -y \
+         ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config libclang-dev cmake \
+    && export RUST_VERSION=1.83.0 \
+    && export RUSTUP_HOME=/usr/src/unit/rustup \
+    && export CARGO_HOME=/usr/src/unit/cargo \
+    && export PATH=/usr/src/unit/cargo/bin:$PATH \
+    && dpkgArch="$(dpkg --print-architecture)" \
+    && case "${dpkgArch##*-}" in \
+         amd64) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="6aeece6993e902708983b209d04c0d1dbb14ebb405ddb87def578d41f920f56d" ;; \
+         arm64) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="1cffbf51e63e634c746f741de50649bbbcbd9dbe1de363c9ecef64e278dba2b2" ;; \
+         *) echo >&2 "unsupported architecture: ${dpkgArch}"; exit 1 ;; \
+       esac \
+    && url="https://static.rust-lang.org/rustup/archive/1.27.1/${rustArch}/rustup-init" \
+    && curl -L -O "$url" \
+    && echo "${rustupSha256} *rustup-init" | sha256sum -c - \
+    && chmod +x rustup-init \
+    && ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch} \
+    && rm rustup-init \
+    && rustup --version \
+    && cargo --version \
+    && rustc --version \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
@@ -34,7 +54,8 @@ RUN set -ex \
                 --openssl \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
     && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
-                --njs" \
+                --njs \
+                --otel" \
     && make -j $NCPU -C pkg/contrib .njs \
     && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \

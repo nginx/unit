@@ -67,6 +67,8 @@ case $NXT_CC_NAME in
 
         NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
 
+        NXT_CFLAGS="$NXT_CFLAGS -funsigned-char"
+
         NXT_CFLAGS="$NXT_CFLAGS -std=gnu11"
 
         NXT_CFLAGS="$NXT_CFLAGS -O"
@@ -108,6 +110,8 @@ case $NXT_CC_NAME in
         NXT_CFLAGS="$NXT_CFLAGS -fvisibility=hidden"
 
         NXT_CFLAGS="$NXT_CFLAGS -fno-strict-overflow"
+
+        NXT_CFLAGS="$NXT_CFLAGS -funsigned-char"
 
         NXT_CFLAGS="$NXT_CFLAGS -std=gnu11"
 

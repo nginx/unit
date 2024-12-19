@@ -48,8 +48,6 @@ jobs:
             os: ubuntu-latest
           - build: perl
             os: ubuntu-latest
-          - build: php-8.1
-            os: ubuntu-latest
           - build: php-8.2
             os: ubuntu-latest
           - build: php-8.3
@@ -101,12 +99,18 @@ jobs:
       # https://github.com/actions/runner-images/issues/2821
       - name: Kill mono process
         run: |
-          sudo systemctl stop mono-xsp4.service
-          sudo systemctl mask mono-xsp4.service
-          sudo systemctl status mono-xsp4.service || true
-          PID=$(sudo lsof -t -i :8084)
-          echo "Killing PID $PID"
-          sudo kill -9 $PID
+          set +e
+          sudo systemctl status mono-xsp4.service
+          if [ $? -ne 0 ]; then
+            true
+          else
+            sudo systemctl stop mono-xsp4.service
+            sudo systemctl mask mono-xsp4.service
+            sudo systemctl status mono-xsp4.service
+            PID=$(sudo lsof -t -i :8084)
+            echo "Killing PID $PID"
+            sudo kill -9 $PID
+          fi
 
       ##
       ## njs
@@ -354,18 +358,15 @@ jobs:
 
       - name: Install pytest
         run: |
-          if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
-            pip install pytest
-          else
-            sudo -H pip install pytest
-          fi
+          sudo apt install -y python3-pytest
+
         if: steps.metadata.outputs.module != 'wasm'
 
       - name: Run ${{ steps.metadata.outputs.module }} tests
         run: |
           if [ "${{ matrix.build }}" == "wasm-wasi-component" ]; then
-            pytest --print-log ${{ steps.metadata.outputs.testpath }}
+            pytest-3 --print-log ${{ steps.metadata.outputs.testpath }}
           else
-            sudo -E pytest --print-log ${{ steps.metadata.outputs.testpath }}
+            sudo -E pytest-3 --print-log ${{ steps.metadata.outputs.testpath }}
           fi
         if: steps.metadata.outputs.module != 'wasm'

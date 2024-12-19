@@ -34,6 +34,7 @@ typedef struct {
 typedef enum {
     NXT_TSTR_STRZ       = 1 << 0,
     NXT_TSTR_LOGGING    = 1 << 1,
+    NXT_TSTR_NEWLINE    = 1 << 2,
 } nxt_tstr_flags_t;
 
 
@@ -61,6 +62,10 @@ nxt_int_t nxt_tstr_query_init(nxt_tstr_query_t **query_p,
 nxt_int_t nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query,
     nxt_tstr_t *tstr, nxt_str_t *val);
 void nxt_tstr_query_release(nxt_tstr_query_t *query);
+
+
+#define nxt_tstr_is_js(str)                                         \
+    nxt_strchr_start(str, '`')
 
 
 nxt_inline nxt_bool_t
