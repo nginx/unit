@@ -22,6 +22,7 @@ if [ $NXT_OTEL = YES ]; then
     $echo -n "  - "
 
     nxt_feature="OpenSSL library"
+    nxt_feature_name=NXT_HAVE_OTEL
     nxt_feature_run=yes
     nxt_feature_incs=
     nxt_feature_libs="-lssl -lcrypto"
@@ -42,11 +43,4 @@ if [ $NXT_OTEL = YES ]; then
 
     NXT_OTEL_LIBS="-lssl -lcrypto"
 
-    cat << END >> $NXT_AUTO_CONFIG_H
-
-#ifndef NXT_HAVE_OTEL
-#define NXT_HAVE_OTEL 1
-#endif
-
-END
 fi
