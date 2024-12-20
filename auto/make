@@ -265,36 +265,40 @@ tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
 			$NXT_BUILD_DIR/unit_websocket_echo
 
 $NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
 		\$(CFLAGS) \$(NXT_TEST_OBJS) \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/utf8_file_name_test \\
 		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/ncq_test: $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/ncq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/vbcq_test: $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/vbcq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
