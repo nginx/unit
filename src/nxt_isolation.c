@@ -790,6 +790,9 @@ nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
         if (nxt_slow_path(ret != NXT_OK)) {
             goto undo;
         }
+
+        printf("%s: mounted [%s] -> [%s]\n", __func__,
+               (const char *)mnt[i].src, (const char *)dst);
     }
 
     return NXT_OK;
