@@ -148,7 +148,7 @@ Dockerfile.%: ../../version template.Dockerfile
 			-e 's,@@MODULE@@,$*,g' \
 			> $@
 
-build-%: Dockerfile.%
+build-%: build-minimal Dockerfile.%
 	docker pull $(CONTAINER_$*)
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 	touch $@
