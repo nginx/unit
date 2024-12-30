@@ -10,6 +10,7 @@ LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installatio
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
 LABEL org.opencontainers.image.version="@@VERSION@@"
 
+@@COPY_STEP@@
 RUN --mount=type=bind,target=/rust,from=rust-build,rw \
     set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
@@ -44,24 +45,7 @@ RUN --mount=type=bind,target=/rust,from=rust-build,rw \
     && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
                 --njs \
                 --otel" \
-    && make -j $NCPU -C pkg/contrib .njs \
-    && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && make -j $NCPU unitd \
-    && install -pm755 build/sbin/unitd /usr/sbin/unitd-debug \
-    && make clean \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/modules \
-    && make -j $NCPU unitd \
-    && install -pm755 build/sbin/unitd /usr/sbin/unitd \
-    && make clean \
-    && @@MODULE_PREBUILD@@ \
-    && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure @@CONFIGURE@@ \
-    && make -j $NCPU @@INSTALL@@ \
-    && make clean \
-    && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure @@CONFIGURE@@ \
-    && make -j $NCPU @@INSTALL@@ \
+    && @@BUILD_STEP@@ \
     && cd \
     && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \

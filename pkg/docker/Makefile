@@ -19,6 +19,8 @@ CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
+COPY_STEP_minimal =
+BUILD_STEP_minimal = $(BUILD_UNITD)
 
 VERSIONS_go ?=		1.22 1.23
 VARIANT_go ?=		$(VARIANT)
@@ -88,6 +90,37 @@ make -C pkg/contrib .wasmtime \\\n \
 \ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/artifacts/lib/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
 endef
 
+define BUILD_UNITD
+make -j $$NCPU -C pkg/contrib .njs \\\n \
+\ \ \ \&\& export PKG_CONFIG_PATH=\$$\(pwd\)/pkg/contrib/njs/build \\\n \
+\ \ \ \&\& ./configure $$CONFIGURE_ARGS --cc-opt="$$CC_OPT" --ld-opt="$$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \\\n \
+\ \ \ \&\& make -j $$NCPU unitd \\\n \
+\ \ \ \&\& install -pm755 build/sbin/unitd /usr/sbin/unitd-debug \\\n \
+\ \ \ \&\& make clean \\\n \
+\ \ \ \&\& ./configure $$CONFIGURE_ARGS --cc-opt="$$CC_OPT" --ld-opt="$$LD_OPT" --modulesdir=/usr/lib/unit/modules \\\n \
+\ \ \ \&\& make -j $$NCPU unitd \\\n \
+\ \ \ \&\& install -pm755 build/sbin/unitd /usr/sbin/unitd \\\n \
+\ \ \ \&\& make clean
+endef
+
+define COPY_UNITD
+COPY --from=unit:$(VERSION)-minimal /usr/sbin/unitd* /usr/sbin/
+endef
+
+define BUILD_MODULE
+@@MODULE_PREBUILD@@ \\\n \
+\ \ \ \&\& ./configure $$$$CONFIGURE_ARGS_MODULES --cc-opt="$$$$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \\\n \
+\ \ \ \&\& ./configure @@CONFIGURE@@ \\\n \
+\ \ \ \&\& make -j $$$$NCPU @@INSTALL@@ \\\n \
+\ \ \ \&\& make clean \\\n \
+\ \ \ \&\& ./configure $$$$CONFIGURE_ARGS_MODULES --cc-opt="$$$$CC_OPT" --modulesdir=/usr/lib/unit/modules \\\n \
+\ \ \ \&\& ./configure @@CONFIGURE@@ \\\n \
+\ \ \ \&\& make -j $$$$NCPU @@INSTALL@@
+endef
+
+$(foreach module, $(MODULES), $(eval BUILD_STEP_$(module) = $(BUILD_MODULE)))
+$(foreach module, $(MODULES), $(eval COPY_STEP_$(module) = $(COPY_UNITD)))
+
 default:
 	@echo "valid targets: all build dockerfiles library clean"
 
@@ -104,6 +137,8 @@ Dockerfile.%: ../../version template.Dockerfile
 	@echo "===> Building $@"
 	cat template.Dockerfile | sed \
 			-e 's,@@VERSION@@,$(VERSION),g' \
+			-e 's,@@BUILD_STEP@@,$(BUILD_STEP_$(call modname, $*)),g' \
+			-e 's,@@COPY_STEP@@,$(COPY_STEP_$(call modname, $*)),g' \
 			-e 's,@@PATCHLEVEL@@,$(PATCHLEVEL),g' \
 			-e 's,@@CONTAINER@@,$(CONTAINER_$*),g' \
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
