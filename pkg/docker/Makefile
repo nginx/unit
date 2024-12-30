@@ -13,6 +13,9 @@ MODULES_SLIM ?= python
 
 VARIANT ?= bookworm
 
+VERSION_RUST ?= 1.83.0
+CONTAINER_RUST ?= rust:$(VERSION_RUST)-$(VARIANT)
+
 VERSIONS_minimal ?=
 CONTAINER_minimal ?= debian:$(VARIANT)-slim
 CONFIGURE_minimal ?=
@@ -141,6 +144,7 @@ Dockerfile.%: ../../version template.Dockerfile
 			-e 's,@@COPY_STEP@@,$(COPY_STEP_$(call modname, $*)),g' \
 			-e 's,@@PATCHLEVEL@@,$(PATCHLEVEL),g' \
 			-e 's,@@CONTAINER@@,$(CONTAINER_$*),g' \
+			-e 's,@@CONTAINER_RUST@@,$(CONTAINER_RUST),g' \
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
 			-e 's,@@RUN@@,$(RUN_$(call modname, $*)),g' \

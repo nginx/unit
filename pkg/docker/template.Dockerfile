@@ -1,4 +1,4 @@
-FROM rust:1.83.0-bookworm as rust-build
+FROM @@CONTAINER_RUST@@ as rust-build
 
 FROM @@CONTAINER@@
 
