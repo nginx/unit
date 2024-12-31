@@ -154,7 +154,7 @@ Dockerfile.%: ../../version template.Dockerfile
 
 build-%: build-minimal Dockerfile.%
 	docker pull $(CONTAINER_$*)
-	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
+	docker build --progress=plain --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 	touch $@
 
 library:
