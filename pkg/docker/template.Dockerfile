@@ -1,4 +1,4 @@
-FROM @@CONTAINER_RUST@@ as rust-build
+FROM @@CONTAINER_RUST@@ AS rust-build
 
 FROM @@CONTAINER@@
 
