@@ -311,17 +311,13 @@ nxt_otel_test_and_call_state(nxt_task_t *task, nxt_http_request_t *r)
 void
 nxt_otel_request_error_path(nxt_task_t *task, nxt_http_request_t *r)
 {
-    if (r->otel->trace == NULL) {
+    if (r->otel == NULL || r->otel->trace == NULL) {
         return;
     }
 
     // response headers have been cleared
     nxt_otel_propagate_header(task, r);
-
-    // collect span immediately
-    if (r->otel) {
-        nxt_otel_state_transition(r->otel, NXT_OTEL_COLLECT_STATE);
-    }
+    nxt_otel_state_transition(r->otel, NXT_OTEL_COLLECT_STATE);
     nxt_otel_test_and_call_state(task, r);
 }
 
@@ -344,6 +340,9 @@ nxt_otel_parse_traceparent(void *ctx, nxt_http_field_t *field, uintptr_t data)
      */
 
     r = ctx;
+    if (r->otel == NULL) {
+        return NXT_OK;
+    }
 
     if (field->value_length != NXT_OTEL_TRACEPARENT_LEN) {
         goto error_state;
@@ -391,6 +390,10 @@ nxt_otel_parse_tracestate(void *ctx, nxt_http_field_t *field, uintptr_t data)
     s.start = field->value;
 
     r = ctx;
+    if (r->otel == NULL) {
+        return NXT_OK;
+    }
+
     r->otel->trace_state = s;
 
     /*
