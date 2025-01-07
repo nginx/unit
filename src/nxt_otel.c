@@ -67,7 +67,7 @@ nxt_otel_propagate_header(nxt_task_t *task, nxt_http_request_t *r)
      * if we didn't inherit a trace id then we need to add the
      * traceparent header to the request
      */
-    } else if (r->otel->trace_id == NULL) {
+    } else {
 
         nxt_otel_rs_copy_traceparent(traceval, r->otel->trace);
 
@@ -92,15 +92,6 @@ nxt_otel_propagate_header(nxt_task_t *task, nxt_http_request_t *r)
 
         nxt_otel_rs_add_event_to_trace(r->otel->trace,
                                        &traceparent_name, &traceparent);
-
-    /*
-     * potentially nxt_http_request_error called before headers
-     * finished parsing
-     */
-    } else {
-        nxt_log(task, NXT_LOG_DEBUG,
-                "not propagating tracing headers for missing trace");
-        return;
     }
 
     f = nxt_list_add(r->resp.fields);
