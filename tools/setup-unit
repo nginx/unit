@@ -760,7 +760,7 @@ unit_ctl_welcome()
 
                 <hr>
                 <p><a href="https://unit.nginx.org/?referer=welcome">NGINX Unit &mdash; the universal web app server</a><br>
-                NGINX, Inc. &copy; 2024</p>
+                NGINX, Inc. &copy; 2025</p>
             </body>
         </html>
 __EOF__';
