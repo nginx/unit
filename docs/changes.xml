@@ -18,7 +18,7 @@
                 unit-jsc19 unit-jsc20 unit-jsc21
                 unit-wasm"
          ver="1.34.1" rev="1"
-         date="" time=""
+         date="2025-01-10" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -31,8 +31,21 @@ NGINX Unit updated to 1.34.1.
 
 
 <changes apply="unit" ver="1.34.1" rev="1"
-         date="" time=""
+         date="2025-01-10" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="bugfix">
+<para>
+fix instability issues due to OpenTelemetry (OTEL) support.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix issues with building OpenTelemetry (OTEL) support on various platforms,
+including macOS.
+</para>
+</change>
 
 </changes>
 
