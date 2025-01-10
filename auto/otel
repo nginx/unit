@@ -19,34 +19,44 @@ if [ $NXT_OTEL = YES ]; then
     fi
     $echo "found"
 
-    $echo -n "  - "
+    case "$NXT_SYSTEM" in
+        Darwin)
+            NXT_OTEL_LIBS="-framework CoreFoundation -framework Security -framework SystemConfiguration"
 
-    nxt_feature="OpenSSL library"
-    nxt_feature_run=yes
-    nxt_feature_incs=
-    nxt_feature_libs="-lssl -lcrypto"
-    nxt_feature_test="#include <openssl/ssl.h>
-
-                      int main(void) {
-                          SSL_library_init();
-                          return 0;
-                      }"
-    . auto/feature
-
-    if [ ! $nxt_found = yes ]; then
-        $echo
-        $echo $0: error: OpenTelemetry support requires OpenSSL.
-        $echo
-        exit 1;
-    fi
-
-    NXT_OTEL_LIBS="-lssl -lcrypto"
-
-    cat << END >> $NXT_AUTO_CONFIG_H
+            cat << END >> $NXT_AUTO_CONFIG_H
 
 #ifndef NXT_HAVE_OTEL
 #define NXT_HAVE_OTEL 1
 #endif
 
 END
+            ;;
+        *)
+
+            $echo -n "  - "
+
+            nxt_feature="OpenSSL library"
+            nxt_feature_name=NXT_HAVE_OTEL
+            nxt_feature_run=yes
+            nxt_feature_incs=
+            nxt_feature_libs="-lssl -lcrypto"
+            nxt_feature_test="#include <openssl/ssl.h>
+
+                              int main(void) {
+                                  SSL_library_init();
+                                  return 0;
+                              }"
+            . auto/feature
+
+            if [ ! $nxt_found = yes ]; then
+                $echo
+                $echo $0: error: OpenTelemetry support requires OpenSSL.
+                $echo
+                exit 1;
+            fi
+
+            NXT_OTEL_LIBS="-lssl -lcrypto"
+            ;;
+    esac
+
 fi

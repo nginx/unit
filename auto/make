@@ -15,18 +15,19 @@ PP_AR		:= @echo '  AR    '
 PP_LD		:= @echo '  LD    '
 PP_VER		:= @echo '  VER   '
 PP_SED		:= @echo '  SED   '
+PP_CR		:= @echo '  CR    '
 
 CC =			$CC
 AR =			$AR
 
 EXTRA_CFLAGS =
 CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS \$(EXTRA_CFLAGS)
-RUST_FLAGS =
-NXT_OTEL_LIB_LOC =
 
 NXT_EXEC_LINK =		$NXT_EXEC_LINK $NXT_LD_OPT
 NXT_SHARED_LOCAL_LINK =	$NXT_SHARED_LOCAL_LINK $NXT_LD_OPT
 NXT_MODULE_LINK =	$NXT_MODULE_LINK
+
+NXT_OTEL_LIB_STATIC =
 
 all: $NXT_DAEMON manpage
 
@@ -35,6 +36,18 @@ $NXT_DAEMON: $NXT_BUILD_DIR/sbin/$NXT_DAEMON
 manpage: $NXT_BUILD_DIR/share/man/man8/unitd.8
 
 END
+
+
+if [ $NXT_OTEL = YES ]; then
+
+	cat << END >> $NXT_MAKEFILE
+
+RUST_FLAGS =		--release
+NXT_OTEL_LIB_STATIC =	$NXT_BUILD_DIR/lib/libotel.a
+
+END
+
+fi
 
 
 NXT_OS=$(uname -s)
@@ -63,9 +76,7 @@ D := 0
 
 ifeq (\$D,1)
         CFLAGS += -O0
-        RUST_FLAGS += --debug
-else
-        RUST_FLAGS += --release
+        RUST_FLAGS =
 endif
 
 # Optionally disable -Werror with
@@ -80,18 +91,6 @@ END
 
 fi
 
-# potentially set otel lib location
-if [ $NXT_OTEL = YES ]; then
-cat << END >> $NXT_MAKEFILE
-
-ifeq (\$D,1)
-	NXT_OTEL_LIB_LOC = $NXT_OTEL_LIB_DIR/target/debug/libotel.a
-else
-	NXT_OTEL_LIB_LOC = $NXT_OTEL_LIB_DIR/target/release/libotel.a
-endif
-
-END
-fi
 
 # The include paths list.
 
@@ -154,14 +153,15 @@ cat << END >> $NXT_MAKEFILE
 
 libnxt:	$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
 
-$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS) \$(NXT_OTEL_LIB_LOC)
+$NXT_BUILD_DIR/lib/$NXT_LIB_SHARED: \$(NXT_LIB_OBJS) \$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_SHARED_LOCAL_LINK) -o \$@ \$(NXT_LIB_OBJS) \\
-		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \$(NXT_OTEL_LIB_LOC)
+		\$(NXT_OTEL_LIB_STATIC) \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
-$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS) \$(NXT_OTEL_LIB_LOC)
+$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC: \$(NXT_LIB_OBJS)
 	\$(PP_AR) \$@
-	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS) \$(NXT_OTEL_LIB_LOC)
+	\$(v)$NXT_STATIC_LINK \$@ \$(NXT_LIB_OBJS)
 
 $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC: \$(NXT_LIB_UNIT_OBJS) \\
 		$NXT_BUILD_DIR/share/pkgconfig/unit.pc \\
@@ -264,36 +264,40 @@ tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
 			$NXT_BUILD_DIR/unit_websocket_echo
 
 $NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
 		\$(CFLAGS) \$(NXT_TEST_OBJS) \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/utf8_file_name_test \\
 		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/ncq_test: $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/ncq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_ncq_test.o \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/vbcq_test: $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
-			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC
+			$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+			\$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/vbcq_test \\
 		\$(CFLAGS) $NXT_BUILD_DIR/src/test/nxt_vbcq_test.o \\
-		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
+		$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \$(NXT_OTEL_LIB_STATIC) \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
@@ -375,11 +379,12 @@ $echo >> $NXT_MAKEFILE
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/sbin/$NXT_DAEMON:	$NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
-				\$(NXT_OBJS) \$(NXT_OTEL_LIB_LOC)
+				\$(NXT_OBJS) \$(NXT_OTEL_LIB_STATIC)
 	\$(PP_LD) \$@
 	\$(v)\$(NXT_EXEC_LINK) -o \$@ \$(CFLAGS) \\
 		\$(NXT_OBJS) $NXT_BUILD_DIR/lib/$NXT_LIB_STATIC \\
-		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS \$(NXT_OTEL_LIB_LOC)
+		\$(NXT_OTEL_LIB_STATIC) \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 END
 
@@ -580,7 +585,10 @@ NXT_OTEL_DEPS=" \
 
     cat << END >> $NXT_MAKEFILE
 
-\$(NXT_OTEL_LIB_LOC): $NXT_OTEL_DEPS
-	cargo build \$(RUST_FLAGS) --manifest-path $NXT_OTEL_LIB_DIR/Cargo.toml
+\$(NXT_OTEL_LIB_STATIC): $NXT_OTEL_DEPS
+	\$(PP_CR) \$@
+	\$(v)cargo rustc \$(RUST_FLAGS) \\
+		--manifest-path $NXT_OTEL_LIB_DIR/Cargo.toml \\
+		-- --emit link=../../$NXT_BUILD_DIR/lib/libotel.a
 END
 fi

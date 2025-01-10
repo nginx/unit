@@ -1,4 +1,12 @@
 
+Changes with Unit 1.34.1                                         10 Jan 2025
+
+    *) Bugfix: fix instability issues due to OpenTelemetry (OTEL) support.
+
+    *) Bugfix: fix issues with building OpenTelemetry (OTEL) support on
+       various platforms, including macOS.
+
+
 Changes with Unit 1.34.0                                         19 Dec 2024
 
     *) Feature: initial OpenTelemetry (OTEL) support. (Disabled by default).
