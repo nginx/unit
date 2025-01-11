@@ -957,6 +957,7 @@ nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash)
         { nxt_string("text/x-rst"),     ".rst"   },
 
         { nxt_string("application/javascript"),  ".js"   },
+        { nxt_string("application/javascript"),  ".mjs"  },
         { nxt_string("application/json"),        ".json" },
         { nxt_string("application/xml"),         ".xml"  },
         { nxt_string("application/rss+xml"),     ".rss"  },
