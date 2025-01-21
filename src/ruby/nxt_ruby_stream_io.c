@@ -19,6 +19,24 @@ static VALUE nxt_ruby_stream_io_write(VALUE obj, VALUE args);
 nxt_inline long nxt_ruby_stream_io_s_write(nxt_ruby_ctx_t *rctx, VALUE val);
 static VALUE nxt_ruby_stream_io_flush(VALUE obj);
 static VALUE nxt_ruby_stream_io_close(VALUE obj);
+nxt_inline size_t nxt_ruby_dt_dsize_rctx(const void *arg);
+
+
+static const rb_data_type_t  nxt_rctx_dt = {
+    .wrap_struct_name  = "rctx",
+    .function  = {
+        .dsize         = nxt_ruby_dt_dsize_rctx,
+    },
+};
+
+
+nxt_inline size_t
+nxt_ruby_dt_dsize_rctx(const void *arg)
+{
+    const nxt_ruby_ctx_t  *rctx = arg;
+
+    return sizeof(*rctx);
+}
 
 
 VALUE
@@ -73,7 +91,7 @@ nxt_ruby_stream_io_new(VALUE class, VALUE arg)
 {
     VALUE  self;
 
-    self = Data_Wrap_Struct(class, 0, 0, (void *) (uintptr_t) arg);
+    self = TypedData_Wrap_Struct(class, &nxt_rctx_dt, (void *)(uintptr_t)arg);
 
     rb_obj_call_init(self, 0, NULL);
 
@@ -96,7 +114,7 @@ nxt_ruby_stream_io_gets(VALUE obj)
     nxt_ruby_ctx_t           *rctx;
     nxt_unit_request_info_t  *req;
 
-    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
+    TypedData_Get_Struct(obj, nxt_ruby_ctx_t, &nxt_rctx_dt, rctx);
     req = rctx->req;
 
     if (req->content_length == 0) {
@@ -152,7 +170,7 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
     long            copy_size, u_size;
     nxt_ruby_ctx_t  *rctx;
 
-    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
+    TypedData_Get_Struct(obj, nxt_ruby_ctx_t, &nxt_rctx_dt, rctx);
 
     copy_size = rctx->req->content_length;
 
@@ -208,7 +226,7 @@ nxt_ruby_stream_io_puts(VALUE obj, VALUE args)
         return Qnil;
     }
 
-    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
+    TypedData_Get_Struct(obj, nxt_ruby_ctx_t, &nxt_rctx_dt, rctx);
 
     nxt_ruby_stream_io_s_write(rctx, RARRAY_PTR(args)[0]);
 
@@ -226,7 +244,7 @@ nxt_ruby_stream_io_write(VALUE obj, VALUE args)
         return Qnil;
     }
 
-    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
+    TypedData_Get_Struct(obj, nxt_ruby_ctx_t, &nxt_rctx_dt, rctx);
 
     len = nxt_ruby_stream_io_s_write(rctx, RARRAY_PTR(args)[0]);
 
