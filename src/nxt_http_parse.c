@@ -164,8 +164,10 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     nxt_http_ver_t           ver;
     nxt_http_target_traps_e  trap;
 
-    static const nxt_http_ver_t  http11 = { "HTTP/1.1" };
-    static const nxt_http_ver_t  http10 = { "HTTP/1.0" };
+    static const nxt_http_ver_t  http11 =
+                            {{ 'H', 'T', 'T', 'P', '/', '1', '.', '1' }};
+    static const nxt_http_ver_t  http10 =
+                            {{ 'H', 'T', 'T', 'P', '/', '1', '.', '0' }};
 
     p = *pos;
 
@@ -516,7 +518,8 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
     size_t    len;
     uint32_t  hash;
 
-    static const u_char  normal[256]  nxt_aligned(64) =
+    /* The last '\0' is not needed because the string is NUL terminated */
+    static const u_char  normal[]  nxt_aligned(64) =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     /*   \s ! " # $ % & ' ( ) * + ,        . /                 : ; < = > ?   */
         "\0\1\0\1\1\1\1\1\0\0\1\1\0" "-" "\1\0" "0123456789" "\0\0\0\0\0\0"
@@ -529,7 +532,7 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     p = *pos + rp->field_name.length;
     hash = rp->field_hash;

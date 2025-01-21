@@ -592,13 +592,14 @@ nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length)
 }
 
 
+static const u_char  nxt_hex[] = "0123456789ABCDEF";
+
+
 uintptr_t
 nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 {
     u_char      *end;
     nxt_uint_t  n;
-
-    static const u_char  hex[16] = "0123456789ABCDEF";
 
     end = src + length;
 
@@ -624,8 +625,8 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 
         if (nxt_uri_escape[*src >> 5] & (1U << (*src & 0x1f))) {
             *dst++ = '%';
-            *dst++ = hex[*src >> 4];
-            *dst++ = hex[*src & 0xf];
+            *dst++ = nxt_hex[*src >> 4];
+            *dst++ = nxt_hex[*src & 0xf];
 
         } else {
             *dst++ = *src;
@@ -643,8 +644,6 @@ nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
 {
     u_char      *reserved, *end, ch;
     nxt_uint_t  n;
-
-    static const u_char  hex[16] = "0123456789ABCDEF";
 
     reserved = (u_char *) "?#\0";
 
@@ -689,8 +688,8 @@ nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
 
             } else {
                 *dst++ = '%';
-                *dst++ = hex[ch >> 4];
-                *dst++ = hex[ch & 0xf];
+                *dst++ = nxt_hex[ch >> 4];
+                *dst++ = nxt_hex[ch & 0xf];
                 continue;
             }
         }
