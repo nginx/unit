@@ -693,15 +693,17 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req,
                                               : nxt_py_1_0_str)
     SET_ITEM(scope, scheme, scheme)
 
-    v = PyString_FromStringAndSize(nxt_unit_sptr_get(&r->method),
-                                   r->method_length);
-    if (nxt_slow_path(v == NULL)) {
-        nxt_unit_req_alert(req, "Python failed to create 'method' string");
-        goto fail;
-    }
+    if (!r->websocket_handshake) {
+        v = PyString_FromStringAndSize(nxt_unit_sptr_get(&r->method),
+                                       r->method_length);
+        if (nxt_slow_path(v == NULL)) {
+            nxt_unit_req_alert(req, "Python failed to create 'method' string");
+            goto fail;
+        }
 
-    SET_ITEM(scope, method, v)
-    Py_DECREF(v);
+        SET_ITEM(scope, method, v)
+        Py_DECREF(v);
+    }
 
     v = PyUnicode_DecodeUTF8(nxt_unit_sptr_get(&r->path), r->path_length,
                              "replace");
