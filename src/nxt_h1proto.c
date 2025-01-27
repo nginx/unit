@@ -759,24 +759,23 @@ nxt_h1p_header_buffer_test(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c,
 static nxt_int_t
 nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
+    const u_char        *end;
     nxt_http_request_t  *r;
 
     r = ctx;
     field->hopbyhop = 1;
 
-    if (field->value_length == 5
-        && nxt_memcasecmp(field->value, "close", 5) == 0)
-    {
+    end = field->value + field->value_length;
+
+    if (nxt_memcasestrn(field->value, end, "close", 5) != NULL) {
         r->proto.h1->keepalive = 0;
+    }
 
-    } else if (field->value_length == 10
-               && nxt_memcasecmp(field->value, "keep-alive", 10) == 0)
-    {
+    if (nxt_memcasestrn(field->value, end, "keep-alive", 10) != NULL) {
         r->proto.h1->keepalive = 1;
+    }
 
-    } else if (field->value_length == 7
-               && nxt_memcasecmp(field->value, "upgrade", 7) == 0)
-    {
+    if (nxt_memcasestrn(field->value, end, "upgrade", 7) != NULL) {
         r->proto.h1->connection_upgrade = 1;
     }
 
