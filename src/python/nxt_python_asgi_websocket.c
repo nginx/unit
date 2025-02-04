@@ -984,9 +984,9 @@ nxt_py_asgi_websocket_close_handler(nxt_unit_request_info_t *req)
         return;
     }
 
-    if (ws->receive_future == NULL) {
-        ws->state = NXT_WS_DISCONNECTED;
+    ws->state = NXT_WS_DISCONNECTED;
 
+    if (ws->receive_future == NULL) {
         return;
     }
 
