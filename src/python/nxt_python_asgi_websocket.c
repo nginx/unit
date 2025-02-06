@@ -273,10 +273,10 @@ nxt_py_asgi_websocket_accept(nxt_py_asgi_websocket_t *ws, PyObject *dict)
         return PyErr_Format(PyExc_RuntimeError, "WebSocket already accepted");
 
     case NXT_WS_DISCONNECTED:
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket disconnected");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket disconnected");
 
     case NXT_WS_CLOSED:
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket already closed");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket already closed");
     }
 
     if (nxt_slow_path(nxt_unit_response_is_websocket(ws->req))) {
@@ -368,11 +368,11 @@ nxt_py_asgi_websocket_close(nxt_py_asgi_websocket_t *ws, PyObject *dict)
     }
 
     if (nxt_slow_path(ws->state == NXT_WS_DISCONNECTED)) {
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket disconnected");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket disconnected");
     }
 
     if (nxt_slow_path(ws->state == NXT_WS_CLOSED)) {
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket already closed");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket already closed");
     }
 
     if (nxt_unit_response_is_websocket(ws->req)) {
@@ -433,11 +433,11 @@ nxt_py_asgi_websocket_send_frame(nxt_py_asgi_websocket_t *ws, PyObject *dict)
     }
 
     if (nxt_slow_path(ws->state == NXT_WS_DISCONNECTED)) {
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket disconnected");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket disconnected");
     }
 
     if (nxt_slow_path(ws->state == NXT_WS_CLOSED)) {
-        return PyErr_Format(PyExc_RuntimeError, "WebSocket already closed");
+        return PyErr_Format(PyExc_ConnectionResetError, "WebSocket already closed");
     }
 
     bytes = PyDict_GetItem(dict, nxt_py_bytes_str);
@@ -984,9 +984,9 @@ nxt_py_asgi_websocket_close_handler(nxt_unit_request_info_t *req)
         return;
     }
 
-    if (ws->receive_future == NULL) {
-        ws->state = NXT_WS_DISCONNECTED;
+    ws->state = NXT_WS_DISCONNECTED;
 
+    if (ws->receive_future == NULL) {
         return;
     }
 
