@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.98
+NXT_TOMCAT_VERSION=9.0.108
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
@@ -284,7 +284,7 @@ static const char *nxt_java_unit_jars[] = {
     "$NXT_UNIT_JAR",
 END
 
-NXT_JAR_VERSION=9.4.56.v20240826
+NXT_JAR_VERSION=9.4.58.v20250814
 NXT_JAR_NAMESPACE=org/eclipse/jetty/
 
 NXT_JAR_NAME=jetty-util
