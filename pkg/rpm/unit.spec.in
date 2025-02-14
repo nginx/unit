@@ -88,6 +88,7 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 	%{CONFIGURE_ARGS} \
 	--modulesdir=%{_libdir}/unit/debug-modules \
 	--libdir=%{_libdir} \
+	--sbindir=%{_sbindir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}" \
 	--debug
@@ -151,6 +152,9 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install E=0
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/unit-debug.service
+# relocate when sbindir is /usr/bin
+sed -e 's:/usr/sbin:%{_sbindir}:' -i %{buildroot}%{_unitdir}/*.service
+
 
 %if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
 %{__mkdir} -p %{buildroot}%{_includedir}/unit/
