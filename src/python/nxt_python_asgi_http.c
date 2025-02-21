@@ -27,7 +27,7 @@ typedef struct {
     Py_ssize_t               send_body_off;
     uint8_t                  complete;
     uint8_t                  closed;
-    uint8_t                  empty_body_received;
+    uint8_t                  request_received;
 } nxt_py_asgi_http_t;
 
 
@@ -102,7 +102,7 @@ nxt_py_asgi_http_create(nxt_unit_request_info_t *req)
         http->send_body_off = 0;
         http->complete = 0;
         http->closed = 0;
-        http->empty_body_received = 0;
+        http->request_received = 0;
     }
 
     return (PyObject *) http;
@@ -177,11 +177,9 @@ nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http)
     }
 
     if (size == 0) {
-        if (http->empty_body_received) {
+        if (http->request_received) {
             Py_RETURN_NONE;
         }
-
-        http->empty_body_received = 1;
     }
 
     if (size > 0) {
@@ -233,6 +231,8 @@ nxt_py_asgi_http_read_msg(nxt_py_asgi_http_t *http)
 #undef SET_ITEM
 
         Py_XDECREF(body);
+
+        http->request_received = 1;
 
         return msg;
     }
