@@ -119,7 +119,7 @@ build-%: Dockerfile.%
 	touch $@
 
 library:
-	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
+	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git rev-parse HEAD)/pkg/docker/Makefile"
 	@echo ""
 	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx)"
 	@echo "GitRepo: https://github.com/nginx/unit.git"
@@ -144,7 +144,7 @@ library:
 		fi; \
 		echo "Architectures: amd64, arm64v8"; \
 		echo "GitFetch: refs/heads/packaging"; \
-		echo "GitCommit: $(shell git describe --always --abbrev=0 HEAD)"; \
+		echo "GitCommit: $(shell git rev-parse HEAD)"; \
 		echo "Directory: pkg/docker"; \
 		echo "File: Dockerfile.$$mod"; \
 		previous="$$previous $$modname"; \
