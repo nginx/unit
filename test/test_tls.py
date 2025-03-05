@@ -49,6 +49,7 @@ def context_cert_req(cert='root'):
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_REQUIRED
+    context.verify_flags &= ~ssl.VERIFY_X509_STRICT
     context.load_verify_locations(f'{option.temp_dir}/{cert}.crt')
 
     return context
