@@ -131,6 +131,17 @@
 #endif
 
 
+#if (NXT_HAVE_GCC_ATTRIBUTE_NONSTRING)
+
+#define NXT_NONSTRING      __attribute__((__nonstring__))
+
+#else
+
+#define NXT_NONSTRING
+
+#endif
+
+
 #if (NXT_HAVE_BUILTIN_POPCOUNT)
 
 #define nxt_popcount       __builtin_popcount

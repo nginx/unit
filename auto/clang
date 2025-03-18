@@ -194,3 +194,17 @@ nxt_feature_test="static void f(void) __attribute__ ((__unused__));
                       return 0;
                   }"
 . auto/feature
+
+
+nxt_feature="GCC __attribute__ nonstring"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_NONSTRING
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main(void) {
+                      static const char str[3] __attribute__ ((__nonstring__)) =
+                          \"ABC\";
+
+                      return !!str[0];
+                  }"
+. auto/feature
