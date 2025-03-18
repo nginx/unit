@@ -112,8 +112,8 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     nxt_sprintf_t        spf;
     nxt_file_name_t      *fn;
 
-    static const u_char  hexadecimal[16] = "0123456789abcdef";
-    static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
+    static const u_char  hexadecimal[16] NXT_NONSTRING = "0123456789abcdef";
+    static const u_char  HEXADECIMAL[16] NXT_NONSTRING = "0123456789ABCDEF";
     static const u_char  nan[] = "[nan]";
     static const u_char  null[] = "[null]";
     static const u_char  infinity[] = "[infinity]";

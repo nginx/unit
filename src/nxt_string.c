@@ -598,7 +598,7 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
     u_char      *end;
     nxt_uint_t  n;
 
-    static const u_char  hex[16] = "0123456789ABCDEF";
+    static const u_char  hex[16] NXT_NONSTRING = "0123456789ABCDEF";
 
     end = src + length;
 
@@ -644,7 +644,7 @@ nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
     u_char      *reserved, *end, ch;
     nxt_uint_t  n;
 
-    static const u_char  hex[16] = "0123456789ABCDEF";
+    static const u_char  hex[16] NXT_NONSTRING = "0123456789ABCDEF";
 
     reserved = (u_char *) "?#\0";
 

@@ -516,7 +516,7 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
     size_t    len;
     uint32_t  hash;
 
-    static const u_char  normal[256]  nxt_aligned(64) =
+    static const u_char  normal[256]  NXT_NONSTRING nxt_aligned(64) =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     /*   \s ! " # $ % & ' ( ) * + ,        . /                 : ; < = > ?   */
         "\0\1\0\1\1\1\1\1\0\0\1\1\0" "-" "\1\0" "0123456789" "\0\0\0\0\0\0"
