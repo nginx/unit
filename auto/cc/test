@@ -93,10 +93,6 @@ case $NXT_CC_NAME in
 
         NXT_CFLAGS="$NXT_CFLAGS -Wmissing-prototypes"
 
-        # Disable Wunterminated-string-initialization temporarily.
-        # See <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=117178#c21>
-        NXT_CFLAGS="$NXT_CFLAGS -Wno-unterminated-string-initialization"
-
         # Stop on warning.
         NXT_CFLAGS="$NXT_CFLAGS -Werror"
 
