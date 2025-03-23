@@ -76,6 +76,7 @@ pub async fn wait_for_sockets(cli: &UnitCtl) -> Result<Vec<ControlSocket>, Unitc
                     continue;
                 }
                 mapped.push(sock);
+                break;
             }
         }
 
