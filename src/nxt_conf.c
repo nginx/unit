@@ -870,7 +870,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
             break;
 
         default:
-            node = NULL;
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         if (parse.last) {
