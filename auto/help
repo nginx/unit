@@ -50,6 +50,10 @@ cat << END
 
   --openssl            enable OpenSSL library usage
 
+  --zlib               enable zlib compression
+  --zstd               enable zstd compression
+  --brotli             enable brotli compression
+
   --njs                enable njs library usage
 
   --otel               enable otel library usage
