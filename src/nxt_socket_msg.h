@@ -89,6 +89,8 @@ nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
     int             nfds;
     struct cmsghdr  *cmsg;
 
+    *oob = (nxt_send_oob_t) {};
+
 #if (NXT_HAVE_MSGHDR_CMSGCRED)
     cmsg = (struct cmsghdr *) (oob->buf);
     /*
