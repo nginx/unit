@@ -943,7 +943,7 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream, int queue_fd)
 {
     ssize_t          res;
     nxt_send_oob_t   oob;
-    nxt_port_msg_t   msg;
+    nxt_port_msg_t   msg = {};
     nxt_unit_impl_t  *lib;
     int              fds[2] = {queue_fd, -1};
 
@@ -951,12 +951,8 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream, int queue_fd)
 
     msg.stream = stream;
     msg.pid = lib->pid;
-    msg.reply_port = 0;
     msg.type = _NXT_PORT_MSG_PROCESS_READY;
     msg.last = 1;
-    msg.mmap = 0;
-    msg.nf = 0;
-    msg.mf = 0;
 
     nxt_socket_msg_oob_init(&oob, fds);
 
@@ -3258,7 +3254,7 @@ void
 nxt_unit_request_done(nxt_unit_request_info_t *req, int rc)
 {
     uint32_t                      size;
-    nxt_port_msg_t                msg;
+    nxt_port_msg_t                msg = {};
     nxt_unit_impl_t               *lib;
     nxt_unit_request_info_impl_t  *req_impl;
 
@@ -3302,13 +3298,9 @@ skip_response_send:
 
     msg.stream = req_impl->stream;
     msg.pid = lib->pid;
-    msg.reply_port = 0;
     msg.type = (rc == NXT_UNIT_OK) ? _NXT_PORT_MSG_DATA
                                    : _NXT_PORT_MSG_RPC_ERROR;
     msg.last = 1;
-    msg.mmap = 0;
-    msg.nf = 0;
-    msg.mf = 0;
 
     (void) nxt_unit_port_send(req->ctx, req->response_port,
                               &msg, sizeof(msg), NULL);
