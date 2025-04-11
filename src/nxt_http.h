@@ -33,6 +33,7 @@ typedef enum {
     NXT_HTTP_FORBIDDEN = 403,
     NXT_HTTP_NOT_FOUND = 404,
     NXT_HTTP_METHOD_NOT_ALLOWED = 405,
+    NXT_HTTP_NOT_ACCEPTABLE = 406,
     NXT_HTTP_REQUEST_TIMEOUT = 408,
     NXT_HTTP_LENGTH_REQUIRED = 411,
     NXT_HTTP_PAYLOAD_TOO_LARGE = 413,
@@ -111,6 +112,7 @@ typedef struct {
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_off_t                       content_length_n;
+    const nxt_str_t                 *mime_type;
 } nxt_http_response_t;
 
 

@@ -5,6 +5,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_http_compression.h>
 
 
 typedef struct {
@@ -576,7 +577,37 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
             field->value_length = mtype->length;
         }
 
+        r->resp.mime_type = mtype;
+
         if (ctx->need_body && nxt_file_size(&fi) > 0) {
+            ret = nxt_http_comp_check_compression(task, r);
+            if (ret == NXT_HTTP_NOT_ACCEPTABLE) {
+                nxt_http_request_error(task, r, NXT_HTTP_NOT_ACCEPTABLE);
+                return;
+            } else if (ret != NXT_OK) {
+                goto fail;
+            }
+
+            if (nxt_http_comp_wants_compression()) {
+                size_t     out_total;
+                nxt_int_t  ret;
+
+                ret = nxt_http_comp_compress_static_response(
+                                                    task, &f, &fi,
+                                                    NXT_HTTP_STATIC_BUF_SIZE,
+                                                    &out_total);
+                if (ret == NXT_ERROR) {
+                    goto fail;
+                }
+
+                ret = nxt_file_info(f, &fi);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    goto fail;
+                }
+
+                r->resp.content_length_n = out_total;
+            }
+
             fb = nxt_mp_zget(r->mem_pool, NXT_BUF_FILE_SIZE);
             if (nxt_slow_path(fb == NULL)) {
                 goto fail;
