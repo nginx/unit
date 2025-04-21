@@ -255,8 +255,8 @@ def test_tls_sni_duplicated_bundle():
 
 def test_tls_sni_same_alt():
     bundles = {
-        "localhost": {"subj": "subj1", "alt_names": "same.altname.com"},
-        "example": {"subj": "subj2", "alt_names": "same.altname.com"},
+        "localhost": {"subj": "subj1", "alt_names": ["same.altname.com"]},
+        "example": {"subj": "subj2", "alt_names": ["same.altname.com"]},
     }
     ctx = config_bundles(bundles)
     add_tls(["localhost", "example"])
