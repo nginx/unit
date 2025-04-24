@@ -1586,7 +1586,8 @@ nxt_openssl_conn_test_error(nxt_task_t *task, nxt_conn_t *c, int ret,
 
         nxt_debug(task, "ERR_peek_error(): %l", lib_err);
 
-        if (sys_err != 0 || lib_err != 0) {
+        /* Treat a broken pipe on shutdown as a normal close */
+        if (sys_err != NXT_EPIPE && (sys_err != 0 || lib_err != 0)) {
             c->socket.error = sys_err;
             return NXT_ERROR;
         }
