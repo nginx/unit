@@ -8,6 +8,8 @@
 
 ![NGINX Unit Logo](docs/unitlogo.svg)
 
+Please see: [SUPPORT.md](/SUPPORT.md)
+
 NGINX Unit is a lightweight and versatile open-source server that has
 two primary capabilities:
 
