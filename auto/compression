@@ -39,6 +39,11 @@ if [ $NXT_ZLIB = YES ]; then
     if [ $nxt_found = yes ]; then
         NXT_HAVE_ZLIB=YES
         echo " + zlib version: $(pkgconf --modversion zlib)"
+    else
+        $echo
+        $echo $0: error: zlib library not found.
+        $echo
+        exit 1;
     fi
 fi
 
@@ -65,6 +70,11 @@ if [ $NXT_ZSTD = YES ]; then
     if [ $nxt_found = yes ]; then
         NXT_HAVE_ZSTD=YES
         echo " + zstd version: $(pkgconf --modversion libzstd)"
+    else
+        $echo
+        $echo $0: error: zstd library not found.
+        $echo
+        exit 1;
     fi
 fi
 
@@ -92,5 +102,10 @@ if [ $NXT_BROTLI = YES ]; then
     if [ $nxt_found = yes ]; then
         NXT_HAVE_BROTLI=YES
         echo " + brotli version: $(pkgconf --modversion libbrotlienc)"
+    else
+        $echo
+        $echo $0: error: brotli library not found.
+        $echo
+        exit 1;
     fi
 fi
