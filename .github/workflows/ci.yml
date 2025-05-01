@@ -112,6 +112,9 @@ jobs:
             sudo kill -9 $PID
           fi
 
+      - name: Install packages
+        run: sudo apt-get -y install libbrotli-dev
+
       ##
       ## njs
       ##
@@ -139,6 +142,9 @@ jobs:
             --tests \
             --openssl \
             --njs \
+            --zlib \
+            --zstd \
+            --brotli \
             --cc-opt="-I njs/src/ -I njs/build"  \
             --ld-opt="-L njs/build"
 
