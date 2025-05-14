@@ -74,6 +74,8 @@ static int nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
 static int nxt_unit_send_req_headers_ack(nxt_unit_request_info_t *req);
 static int nxt_unit_process_websocket(nxt_unit_ctx_t *ctx,
     nxt_unit_recv_msg_t *recv_msg);
+static int nxt_unit_process_client_error(nxt_unit_ctx_t *ctx,
+    nxt_unit_recv_msg_t *recv_msg);
 static int nxt_unit_process_shm_ack(nxt_unit_ctx_t *ctx);
 static nxt_unit_request_info_impl_t *nxt_unit_request_info_get(
     nxt_unit_ctx_t *ctx);
@@ -1117,6 +1119,10 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
         rc = nxt_unit_process_websocket(ctx, &recv_msg);
         break;
 
+    case _NXT_PORT_MSG_CLIENT_ERROR:
+        rc = nxt_unit_process_client_error(ctx, &recv_msg);
+        break;
+
     case _NXT_PORT_MSG_REMOVE_PID:
         if (nxt_slow_path(recv_msg.size != sizeof(pid))) {
             nxt_unit_alert(ctx, "#%"PRIu32": remove_pid: invalid message size "
@@ -1373,18 +1379,16 @@ nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg,
 
         lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
+        res = nxt_unit_request_hash_add(ctx, req);
+        if (nxt_slow_path(res != NXT_UNIT_OK)) {
+            nxt_unit_req_warn(req, "failed to add request to hash");
+            nxt_unit_request_done(req, NXT_UNIT_ERROR);
+            return NXT_UNIT_ERROR;
+        }
+
         if (req->content_length
             > (uint64_t) (req->content_buf->end - req->content_buf->free))
         {
-            res = nxt_unit_request_hash_add(ctx, req);
-            if (nxt_slow_path(res != NXT_UNIT_OK)) {
-                nxt_unit_req_warn(req, "failed to add request to hash");
-
-                nxt_unit_request_done(req, NXT_UNIT_ERROR);
-
-                return NXT_UNIT_ERROR;
-            }
-
             /*
              * If application have separate data handler, we may start
              * request processing and process data when it is arrived.
@@ -1414,7 +1418,7 @@ nxt_unit_process_req_body(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     nxt_unit_mmap_buf_t      *b;
     nxt_unit_request_info_t  *req;
 
-    req = nxt_unit_request_hash_find(ctx, recv_msg->stream, recv_msg->last);
+    req = nxt_unit_request_hash_find(ctx, recv_msg->stream, 0);
     if (req == NULL) {
         return NXT_UNIT_OK;
     }
@@ -1718,6 +1722,26 @@ nxt_unit_process_websocket(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     return NXT_UNIT_OK;
 }
 
+static int
+nxt_unit_process_client_error(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
+{
+    nxt_unit_impl_t          *lib;
+    nxt_unit_request_info_t  *req;
+
+    req = nxt_unit_request_hash_find(ctx, recv_msg->stream, 0);
+
+    if (req == NULL) {
+        return NXT_UNIT_OK;
+    }
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+
+    if (lib->callbacks.close_handler) {
+        lib->callbacks.close_handler(req);
+    }
+
+    return NXT_UNIT_OK;
+}
 
 static int
 nxt_unit_process_shm_ack(nxt_unit_ctx_t *ctx)
