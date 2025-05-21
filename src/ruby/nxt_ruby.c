@@ -1081,7 +1081,7 @@ nxt_ruby_rack_result_body(nxt_unit_request_info_t *req, VALUE result)
         }
 
     } else if (rb_respond_to(body, rb_intern("each"))) {
-        rb_block_call(body, rb_intern("each"), 0, 0,
+        rb_block_call(body, rb_intern("each"), 0, NULL,
                       nxt_ruby_rack_result_body_each, (VALUE) (uintptr_t) req);
 
     } else {

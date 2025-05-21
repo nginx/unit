@@ -108,10 +108,10 @@ static PyMethodDef nxt_py_write_method[] = {
 
 
 static PyMethodDef nxt_py_input_methods[] = {
-    { "read",      (PyCFunction) nxt_py_input_read,      METH_VARARGS, 0 },
-    { "readline",  (PyCFunction) nxt_py_input_readline,  METH_VARARGS, 0 },
-    { "readlines", (PyCFunction) nxt_py_input_readlines, METH_VARARGS, 0 },
-    { NULL, NULL, 0, 0 }
+    { "read",      (PyCFunction) nxt_py_input_read,      METH_VARARGS, NULL },
+    { "readline",  (PyCFunction) nxt_py_input_readline,  METH_VARARGS, NULL },
+    { "readlines", (PyCFunction) nxt_py_input_readlines, METH_VARARGS, NULL },
+    {}
 };
 
 
