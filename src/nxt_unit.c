@@ -716,7 +716,7 @@ nxt_unit_ctx_init(nxt_unit_impl_t *lib, nxt_unit_ctx_impl_t *ctx_impl,
     ctx_impl->req.req.unit = &lib->unit;
 
     ctx_impl->read_port = NULL;
-    ctx_impl->requests.slot = 0;
+    ctx_impl->requests.slot = NULL;
 
     return NXT_UNIT_OK;
 }

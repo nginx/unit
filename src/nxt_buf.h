@@ -189,7 +189,7 @@ struct nxt_buf_s {
 
 #define nxt_buf_mem_set_size(bm, size)                                        \
     do {                                                                      \
-        (bm)->start = 0;                                                      \
+        (bm)->start = NULL;                                                   \
         (bm)->end = (void *) size;                                            \
     } while (0)
 
