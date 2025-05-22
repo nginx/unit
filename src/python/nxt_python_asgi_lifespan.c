@@ -48,10 +48,10 @@ static void nxt_py_asgi_lifespan_dealloc(PyObject *self);
 
 
 static PyMethodDef nxt_py_asgi_lifespan_methods[] = {
-    { "receive",   nxt_py_asgi_lifespan_receive, METH_NOARGS, 0 },
-    { "send",      nxt_py_asgi_lifespan_send,    METH_O,      0 },
-    { "_done",     nxt_py_asgi_lifespan_done,    METH_O,      0 },
-    { NULL, NULL, 0, 0 }
+    { "receive",   nxt_py_asgi_lifespan_receive, METH_NOARGS, NULL },
+    { "send",      nxt_py_asgi_lifespan_send,    METH_O,      NULL },
+    { "_done",     nxt_py_asgi_lifespan_done,    METH_O,      NULL },
+    {}
 };
 
 static PyMemberDef nxt_py_asgi_lifespan_members[] = {

@@ -70,10 +70,10 @@ static PyObject *nxt_py_asgi_websocket_done(PyObject *self, PyObject *future);
 
 
 static PyMethodDef nxt_py_asgi_websocket_methods[] = {
-    { "receive",   nxt_py_asgi_websocket_receive, METH_NOARGS, 0 },
-    { "send",      nxt_py_asgi_websocket_send,    METH_O,      0 },
-    { "_done",     nxt_py_asgi_websocket_done,    METH_O,      0 },
-    { NULL, NULL, 0, 0 }
+    { "receive",   nxt_py_asgi_websocket_receive, METH_NOARGS, NULL },
+    { "send",      nxt_py_asgi_websocket_send,    METH_O,      NULL },
+    { "_done",     nxt_py_asgi_websocket_done,    METH_O,      NULL },
+    {}
 };
 
 static PyAsyncMethods nxt_py_asgi_async_methods = {
