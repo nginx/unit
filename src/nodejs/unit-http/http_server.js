@@ -153,9 +153,9 @@ ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
         this.headers_count -= value.length;
         this.headers_len -= value.length * name_len;
 
-        value.forEach(function(val) {
-            this.headers_len -= Buffer.byteLength(val + "", 'latin1');
-        });
+        for (let i = 0; i < value.length; i++){
+            this.headers_len -= Buffer.byteLength(value[i] + "", 'latin1');
+        }
 
         return;
     }
