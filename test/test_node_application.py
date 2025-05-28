@@ -234,6 +234,16 @@ def test_node_application_set_header_array():
     ], 'set header array'
 
 
+def test_node_application_set_header_array_with_override():
+    client.load('set_header_array_with_override')
+
+    assert client.get()['headers']['Set-Cookie'] == [
+        'tc=one,two,three',
+        'tc=four,five,six',
+        'tc=seven,eight,nine',
+    ], 'set header array with override'
+
+
 @pytest.mark.skip('not yet')
 def test_node_application_status_message():
     client.load('status_message')
