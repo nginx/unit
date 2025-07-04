@@ -624,36 +624,14 @@ nxt_java_Request_getServerName(JNIEnv *env, jclass cls, jlong req_ptr)
 static jint JNICALL
 nxt_java_Request_getServerPort(JNIEnv *env, jclass cls, jlong req_ptr)
 {
-    jint                res;
-    char                *host, *colon, tmp;
-    nxt_unit_field_t    *f;
+    char                *p;
     nxt_unit_request_t  *r;
 
     r = nxt_jlong2ptr(req_ptr);
 
-    f = nxt_java_findHeader(r->fields, r->fields + r->fields_count,
-                            "Host", 4);
-    if (f != NULL) {
-        host = nxt_unit_sptr_get(&f->value);
+    p = nxt_unit_sptr_get(&r->local_port);
 
-        colon = memchr(host, ':', f->value_length);
-
-        if (colon == NULL) {
-            return 80;
-        }
-
-        tmp = host[f->value_length];
-
-        host[f->value_length] = '\0';
-
-        res = strtol(colon + 1, NULL, 10);
-
-        host[f->value_length] = tmp;
-
-        return res;
-    }
-
-    return nxt_java_Request_getLocalPort(env, cls, req_ptr);
+    return strtol(p, NULL, 10);
 }
 
 

@@ -644,6 +644,7 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req,
     PyObject            *scope, *v, *type, *scheme;
     PyObject            *headers, *header;
     nxt_str_t           prefix;
+    unsigned long       port;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
@@ -752,7 +753,10 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req,
     SET_ITEM(scope, client, v)
     Py_DECREF(v);
 
-    v = nxt_py_asgi_create_address(&r->local_addr, r->local_addr_length, 80);
+    p = nxt_unit_sptr_get(&r->local_port);
+    port = strtoul(p, NULL, 10);
+
+    v = nxt_py_asgi_create_address(&r->local_addr, r->local_addr_length, port);
     if (nxt_slow_path(v == NULL)) {
         nxt_unit_req_alert(req, "Python failed to create 'server' pair");
         goto fail;
