@@ -131,7 +131,6 @@ static PyTypeObject nxt_py_input_type = {
 
 static PyObject  *nxt_py_environ_ptyp;
 
-static PyObject  *nxt_py_80_str;
 static PyObject  *nxt_py_close_str;
 static PyObject  *nxt_py_content_length_str;
 static PyObject  *nxt_py_content_type_str;
@@ -151,7 +150,6 @@ static PyObject  *nxt_py_wsgi_input_str;
 static PyObject  *nxt_py_wsgi_uri_scheme_str;
 
 static nxt_python_string_t nxt_python_strings[] = {
-    { nxt_string("80"), &nxt_py_80_str },
     { nxt_string("close"), &nxt_py_close_str },
     { nxt_string("CONTENT_LENGTH"), &nxt_py_content_length_str },
     { nxt_string("CONTENT_TYPE"), &nxt_py_content_type_str },
@@ -638,6 +636,8 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx,
                            r->remote_length));
     RC(nxt_python_add_sptr(pctx, nxt_py_server_addr_str, &r->local_addr,
                            r->local_addr_length));
+    RC(nxt_python_add_sptr(pctx, nxt_py_server_port_str, &r->local_port,
+                           r->local_port_length));
 
     if (r->tls) {
         RC(nxt_python_add_obj(pctx, nxt_py_wsgi_uri_scheme_str,
@@ -652,7 +652,6 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx,
 
     RC(nxt_python_add_sptr(pctx, nxt_py_server_name_str, &r->server_name,
                            r->server_name_length));
-    RC(nxt_python_add_obj(pctx, nxt_py_server_port_str, nxt_py_80_str));
 
     nxt_unit_request_group_dup_fields(pctx->req);
 

@@ -106,7 +106,6 @@ typedef struct {
     VALUE      *v;
 } nxt_ruby_string_t;
 
-static VALUE  nxt_rb_80_str;
 static VALUE  nxt_rb_content_length_str;
 static VALUE  nxt_rb_content_type_str;
 static VALUE  nxt_rb_http_str;
@@ -127,7 +126,6 @@ static VALUE  nxt_rb_on_thread_boot;
 static VALUE  nxt_rb_on_thread_shutdown;
 
 static nxt_ruby_string_t nxt_rb_strings[] = {
-    { nxt_string("80"), &nxt_rb_80_str },
     { nxt_string("CONTENT_LENGTH"), &nxt_rb_content_length_str },
     { nxt_string("CONTENT_TYPE"), &nxt_rb_content_type_str },
     { nxt_string("http"), &nxt_rb_http_str },
@@ -754,10 +752,10 @@ nxt_ruby_read_request(nxt_unit_request_info_t *req, VALUE hash_env)
                       r->remote_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local_addr,
                       r->local_addr_length);
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_port_str, &r->local_port,
+                      r->local_port_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_server_name_str, &r->server_name,
                       r->server_name_length);
-
-    rb_hash_aset(hash_env, nxt_rb_server_port_str, nxt_rb_80_str);
 
     rb_hash_aset(hash_env, nxt_rb_rack_url_scheme_str,
                  r->tls ? nxt_rb_https_str : nxt_rb_http_str);
