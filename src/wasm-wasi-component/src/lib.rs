@@ -11,7 +11,9 @@ use std::sync::OnceLock;
 use tokio::sync::mpsc;
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
-use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView};
+use wasmtime_wasi::p2::{WasiCtx, WasiCtxBuilder, WasiView, IoView,
+                        add_to_linker_async};
+use wasmtime_wasi::{DirPerms, FilePerms};
 use wasmtime_wasi_http::bindings::http::types::{ErrorCode, Scheme};
 use wasmtime_wasi_http::bindings::ProxyPre;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
@@ -20,7 +22,9 @@ use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
     non_camel_case_types,
     non_upper_case_globals,
     non_snake_case,
-    dead_code
+    dead_code,
+    unknown_lints,
+    unnecessary_transmutes
 )]
 mod bindings {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
@@ -208,7 +212,7 @@ impl GlobalState {
         let component = Component::from_file(&engine, &global_config.component)
             .context("failed to compile component")?;
         let mut linker = Linker::<StoreState>::new(&engine);
-        wasmtime_wasi::add_to_linker_async(&mut linker)
+        add_to_linker_async(&mut linker)
             .context("failed to add wasi to linker")?;
         wasmtime_wasi_http::add_only_http_to_linker_sync(&mut linker)
             .context("failed to add wasi:http to linker")?;
@@ -591,22 +595,16 @@ struct StoreState {
     table: ResourceTable,
 }
 
+impl IoView for StoreState {
+    fn table(&mut self) -> &mut ResourceTable { &mut self.table }
+}
+
 impl WasiView for StoreState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
-    fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.ctx
-    }
+    fn ctx(&mut self) -> &mut WasiCtx { &mut self.ctx }
 }
 
 impl WasiHttpView for StoreState {
-    fn ctx(&mut self) -> &mut WasiHttpCtx {
-        &mut self.http
-    }
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
+    fn ctx(&mut self) -> &mut WasiHttpCtx { &mut self.http }
 }
 
 impl StoreState {}
