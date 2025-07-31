@@ -3311,6 +3311,764 @@ paths:
         "404":
           $ref: "#/components/responses/responseNotFound"
 
+  /config/settings/http/compression:
+    summary: "Endpoint for the `compression` object in `http`"
+    get:
+      operationId: getSettingsHttpCompression
+      summary: "Retrieve the compression object from http settings"
+      description: "Retrieves the `compression` object that represents
+        Unit's [HTTP compression settings]
+        (https://unit.nginx.org/configuration/#settings)."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `compression` object exists in the configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompression"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompression"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompression
+      summary: "Create or overwrite the compression object"
+      description: "Creates or overwrites the `compression` object in the
+        configuration."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpCompression"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompression"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompression
+      summary: "Delete the compression object"
+      description: "Deletes the `compression` object from the configuration."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/types:
+    summary: "Endpoint for the `settings/http/compression/types` object"
+    get:
+      operationId: listSettingsHttpCompressionTypes
+      summary: "Retrieve the types option in HTTP compression"
+      description: "Retrieves the `types` option that lists the MIME types
+        considered for compressing."
+
+      tags:
+        - settings
+        - config
+        - compression
+
+      responses:
+        "200":
+          description: "OK; the `types` option exists in the configuration."
+
+          content:
+            application/jsons:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompressionTypes"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionType"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    post:
+      operationId: insertSettingsHttpCompressionTypes
+      summary: "Add a new types array item in HTTP compression"
+      description: "Adds a new HTTP compression MIME type to the end of the
+        `types` array that lists the MIME types that are considered for
+        compression."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionType"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    put:
+      operationId: updateSettingsHttpCompressionTypes
+      summary: "Create or overwrite the types option in HTTP compression"
+      description: "Creates or overwrites the entire `types` option with an
+        array of MIME types that are considered for HTTP compression."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpCompressionTypes"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionTypes"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionTypes
+      summary: "Delete the types option in HTTP compression"
+      description: "Deletes the `types` option."
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/types/{arrayIndex}:
+    summary: "Endpoint for the `settings/http/compression/types/{arrayIndex}`
+      object"
+
+    get:
+      operationId: getSettingsHttpCompressionType
+      summary: "Retrieve a types array item in HTTP compression"
+      description: "Retrieves the `{arrayIndex}` item from the `types`
+        string array."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the type key at `{arrayIndex}` exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                type: string
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionType"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompressionType
+      summary: "Create or overwrite a types array item in HTTP compression"
+      description: "Overwrites a single `types` string array item identified
+        by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionType"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionType
+      summary: "Delete a types array item in HTTP compression"
+      description: "Deletes an item from the `types` string array."
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/compressors:
+    summary: "Endpoint for the `compressors` HTTP compression object"
+    get:
+      operationId: getSettingsHttpCompressionCompressors
+      summary: "Retrieve the compressors HTTP compression object"
+      description: "Retrieves the `compressors` HTTP compression object that
+        represents a list of enabled compression methods."
+
+      tags:
+        - settings
+        - config
+
+      responses:
+        "200":
+          description: "OK; the `compressors` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompressionCompressors"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionCompressors"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    post:
+      operationId: insertSettingsHttpCompressionCompressorsCompressor
+      summary: "Add a new compressor array item in HTTP compression"
+      description: "Adds a new HTTP compression compressor to the end of the
+        `compressors` array that lists the enabled compression methods."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressor"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    put:
+      operationId: updateSettingsHttpCompressionCompressors
+      summary: "Create or overwrite the compressors option in HTTP
+        compression"
+      description: "Creates or overwrites the entire `compressors` option
+        with an array of compression methods."
+
+      tags:
+        - settings
+        - config
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/configSettingsHttpCompressionCompressors"
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressors"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+        operationId: deleteSettingsHttpCompressionCompressors
+        summary: "Delete the compressors option in HTTP compression"
+        description: "Deletes the `compressors` option."
+        tags:
+          - settings
+          - config
+
+        responses:
+          "200":
+            $ref: "#/components/responses/responseOkDeleted"
+
+          "404":
+            $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/compressors/{arrayIndex}:
+    summary: "Endpoint for the `settings/http/compression/compressors/{arrayIndex}` object"
+
+    get:
+      operationId: getSettingsHttpCompressionCompressorsCompressor
+      summary: "Retrieve the compressor object"
+      description: "Retrieves the `{arrayIndex}` object that represents an
+        enabled compression method."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the compressor object at `{arrayIndex}` exists in
+            the configuration."
+
+          content:
+            application/json:
+              schema:
+                type: object
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressor"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompressionCompressor
+      summary: "Create or overwrite a compressors array item in HTTP
+        compression"
+      description: "Overwrites a single `compressors` object array item
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressor"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionCompressor
+      summary: "Delete a compressors array item in HTTP compression"
+      description: "Deletes an item from the `compressors` object array."
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/compressors/{arrayIndex}/encoding:
+    summary: "Endpoint for the enabled compressor `encoding` object"
+    get:
+      operationId: getSettingsHttpCompressionCompressorsCompressorEncoding
+      summary: "Retrieve the compressor encoding string"
+      description: "Retrieves the compressor `encoding` string that
+        represents the compression method of the enabled compressor
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the compressor `encoding` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompressionCompressorsCompressorEncoding"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorEncoding"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompressionCompressorsCompressorEncoding
+      summary: "Create or overwrite a compressors array encoding item in HTTP
+        compression"
+      description: "Overwrites the compressor `encoding` string that
+        represents the compression method of the enabled compressor
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorEncoding"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionCompressorsCompressorEncoding
+      summary: "Delete a compressors array encoding item in HTTP compression"
+      description: "Deletes the compressor `encoding` string that
+        represents the compression method of the enabled compressor
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/compressors/{arrayIndex}/level:
+    summary: "Endpoint for the enabled compressor `level` object"
+    get:
+      operationId: getSettingsHttpCompressionCompressorsCompressorLevel
+      summary: "Retrieve the compressor level value"
+      description: "Retrieves the compressor `level` value that
+        represents the compression level of the enabled compressor."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the compressor `level` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompressionCompressorsCompressorLevel"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorLevel"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompressionCompressorsCompressorLevel
+      summary: "Create or overwrite a compressors array level item in HTTP
+        compression"
+      description: "Overwrites the compressor `level` integer that
+        represents the compression level of the enabled compressor
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorLevel"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionCompressorsCompressorLevel
+      summary: "Delete a compressors array level item in HTTP compression"
+      description: "Deletes the compressor `level` integer that
+        represents the compression level of the enabled compressor
+        identified by `{arrayIndex}`."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+  /config/settings/http/compression/compressors/{arrayIndex}/min_length:
+    summary: "Endpoint for the enabled compressor `min_length` object"
+    get:
+      operationId: getSettingsHttpCompressionCompressorsCompressorMinLength
+      summary: "Retrieve the compressor min_length object"
+      description: "Retrieves the compressor `min_length` object that
+        represents the minimum length of data to compress."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          description: "OK; the compressor `min_level` object exists in the
+            configuration."
+
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/configSettingsHttpCompressionCompressorsCompressorMinLength"
+
+              examples:
+                example1:
+                  $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorMinLength"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+    put:
+      operationId: updateSettingsHttpCompressionCompressorsCompressorMinLength
+      summary: "Create or overwrite a compressors array min_length item in
+        HTTP compression"
+      description: "Overwrites the compressor `min_length` integer that
+        represents the minimum length of data to compress."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: integer
+
+            examples:
+              example1:
+                $ref: "#/components/examples/configSettingsHttpCompressionCompressorsCompressorMinLength"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkUpdated"
+
+        "400":
+          $ref: "#/components/responses/responseBadRequest"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
+        "500":
+          $ref: "#/components/responses/responseInternalError"
+
+    delete:
+      operationId: deleteSettingsHttpCompressionCompressorsCompressorMinLength
+      summary: "Delete a compressors array min_length item in HTTP
+        compression"
+      description: "Deletes the compressor `min_length` integer that
+        represents the minimum length of data to compress."
+
+      tags:
+        - settings
+        - config
+
+      parameters:
+        - $ref: "#/components/parameters/arrayIndex"
+
+      responses:
+        "200":
+          $ref: "#/components/responses/responseOkDeleted"
+
+        "404":
+          $ref: "#/components/responses/responseNotFound"
+
   /config/settings/http/discard_unsafe_fields:
     summary: "Endpoint for the `discard_unsafe_fields` option in `http`"
     get:
@@ -5273,6 +6031,14 @@ components:
       value:
         http:
           body_read_timeout: 30
+          compression:
+          types:
+            - "text/*"
+          compressors:
+            - { "encoding": "gzip", "level": 3, "min_length": 2048 }
+            - { "encoding": "deflate", "min_length": 1024 }
+            - { "encoding": "zstd", "min_length": 0 }
+            - { "encoding": "br" }
           discard_unsafe_fields: true
           header_read_timeout: 30
           idle_timeout: 180
@@ -5291,6 +6057,14 @@ components:
       summary: "HTTP settings"
       value:
         body_read_timeout: 30
+        compression:
+          types:
+            - "text/*"
+          compressors:
+            - { "encoding": "gzip", "level": 3, "min_length": 2048 }
+            - { "encoding": "deflate", "min_length": 1024 }
+            - { "encoding": "zstd", "min_length": 0 }
+            - { "encoding": "br" }
         discard_unsafe_fields: true
         header_read_timeout: 30
         idle_timeout: 180
@@ -5303,6 +6077,60 @@ components:
             "text/x-code":
               - ".c"
               - ".h"
+
+    # /config/settings/http/compression
+    configSettingsHttpCompression:
+      summary: "HTTP compression settings"
+      value:
+        types:
+          - "text/*"
+        compressors:
+          - { "encoding": "gzip", "level": 3, "min_length": 2048 }
+          - { "encoding": "deflate", "min_length": 1024 }
+          - { "encoding": "zstd", "min_length": 0 }
+          - { "encoding": "br" }
+
+    # /config/settings/http/compression/types
+    configSettingsHttpCompressionTypes:
+      summary: "MIME types considered for compressing"
+      value:
+        - "text/*"
+
+    # /config/settings/http/compression/types/{optionName}
+    configSettingsHttpCompressionType:
+      summary: "Individual MIME type"
+      value:
+        - "text/*"
+
+    # /config/settings/http/compression/compressors
+    configSettingsHttpCompressionCompressors:
+      summary: "Enabled compression methods"
+      value:
+        - { "encoding": "gzip", "level": 3, "min_length": 2048 }
+        - { "encoding": "deflate", "min_length": 1024 }
+        - { "encoding": "zstd", "min_length": 0 }
+        - { "encoding": "br" }
+
+    # /config/settings/http/compression/compressors/{arrayIndex}
+    configSettingsHttpCompressionCompressorsCompressor:
+      summary: "An individual compressor"
+      value:
+        - { "encoding": "gzip", "level": 3, "min_length": 2048 }
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/encoding
+    configSettingsHttpCompressionCompressorsCompressorEncoding:
+      summary: "A compression type"
+      value: "gzip"
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/level
+    configSettingsHttpCompressionCompressorsCompressorLevel:
+      summary: "The compression lkevel"
+      value: 3
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/level
+    configSettingsHttpCompressionCompressorsCompressorMinLength:
+      summary: "The minimum amount of data to consider for compression"
+      value: 2048
 
     # /config/settings/http/static
     configSettingsHttpStatic:
@@ -6653,6 +7481,10 @@ components:
 
           default: 30
 
+        compression:
+          description: "Configures HTTP compression."
+          $ref: "#/components/schemas/configSettingsHttpCompression"
+
         discard_unsafe_fields:
           type: boolean
           description: "If `true`, Unit only processes header names made of
@@ -6702,6 +7534,67 @@ components:
         static:
           description: "Configures static asset handling."
           $ref: "#/components/schemas/configSettingsHttpStatic"
+
+    # /config/settings/http/compression
+    configSettingsHttpCompression:
+      type: object
+      description: "An object that describes HTTP compression."
+      properties:
+        types:
+          $ref: "#/components/schemas/configSettingsHttpCompressionTypes"
+
+        compressors:
+          $ref: "#/components/schemas/configSettingsHttpCompressionCompressors"
+
+    # /config/settings/http/compression/types
+    configSettingsHttpCompressionTypes:
+      type: array
+      description: "An array of MIME types considered for compression."
+
+      items:
+        type: string
+        description: "A MIME type considered for compressing."
+
+    # /config/settings/http/compression/compressors
+    configSettingsHttpCompressionCompressors:
+      type: array
+      description: "An array of objects describing enabled compression
+        methods."
+
+      items:
+        type: object
+        description: "Compressor object."
+        required:
+          - encoding
+
+        properties:
+          encoding:
+            type: string
+            description: "Compression method."
+
+          level:
+            type: integer
+            description: "Compression level."
+
+          min_length:
+            type: integer
+            description: "Minimum amount of data to consider for compressing."
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/encoding
+    configSettingsHttpCompressionCompressorsCompressorEncoding:
+      type: string
+      description: "A string describing the compression method."
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/level
+    configSettingsHttpCompressionCompressorsCompressorLevel:
+      type: integer
+      description: "An integer describing the compression level to use."
+
+    # /config/settings/http/compression/compressors/{arrayIndex}/min_length
+    configSettingsHttpCompressionCompressorsCompressorMinLength:
+      type: integer
+      description: "An integer describing the minimum length of data to
+        consider ofr compression."
 
     # /config/settings/http/static
     configSettingsHttpStatic:
