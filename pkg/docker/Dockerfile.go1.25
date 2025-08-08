@@ -1,19 +1,19 @@
-FROM golang:1.22-bookworm
+FROM golang:1.25-bookworm
 
-LABEL org.opencontainers.image.title="Unit (go1.22)"
+LABEL org.opencontainers.image.title="Unit (go1.25)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="1.34.0"
+LABEL org.opencontainers.image.version="1.35.0"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
-         ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config libclang-dev cmake \
-    && export RUST_VERSION=1.83.0 \
+         ca-certificates git build-essential libssl-dev libpcre2-dev zlib1g-dev libzstd-dev libbrotli-dev curl pkg-config pkgconf libclang-dev cmake \
+    && export RUST_VERSION=1.89.0 \
     && export RUSTUP_HOME=/usr/src/unit/rustup \
     && export CARGO_HOME=/usr/src/unit/cargo \
     && export PATH=/usr/src/unit/cargo/bin:$PATH \
@@ -35,7 +35,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && git clone --depth 1 -b 1.34.0-1 https://github.com/nginx/unit \
+    && git clone --depth 1 -b 1.35.0 https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
@@ -55,7 +55,10 @@ RUN set -ex \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
     && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
                 --njs \
-                --otel" \
+                --otel \
+                --zlib \
+                --zstd \
+                --brotli" \
     && make -j $NCPU -C pkg/contrib .njs \
     && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
