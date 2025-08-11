@@ -305,6 +305,12 @@ nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_http_request_t *r,
 
         cbytes = nxt_http_comp_compress(out + *out_total, out_size - *out_total,
                                         in + in_size - rest, n, last);
+        if (cbytes == -1) {
+            nxt_file_close(task, &tfile);
+            nxt_mem_munmap(in, in_size);
+            nxt_mem_munmap(out, out_size);
+            return NXT_ERROR;
+        }
 
         *out_total += cbytes;
         rest -= n;
