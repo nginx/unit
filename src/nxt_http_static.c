@@ -593,7 +593,7 @@ nxt_http_static_send(nxt_task_t *task, nxt_http_request_t *r,
                 nxt_int_t  ret;
 
                 ret = nxt_http_comp_compress_static_response(
-                                                    task, &f, &fi,
+                                                    task, r, &f, &fi,
                                                     NXT_HTTP_STATIC_BUF_SIZE,
                                                     &out_total);
                 if (ret == NXT_ERROR) {
