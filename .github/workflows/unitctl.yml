@@ -43,7 +43,7 @@ jobs:
             os: macos-latest
             target: aarch64-apple-darwin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - run: rustup update stable
       - run: rustup target add ${{ matrix.target }}
@@ -100,7 +100,7 @@ jobs:
             target: x86_64-apple-darwin
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - run: rustup update stable
       - run: rustup target add ${{ matrix.target }}

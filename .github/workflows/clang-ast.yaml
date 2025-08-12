@@ -35,7 +35,7 @@ jobs:
                              ruby-dev openjdk-21-jdk npm
           npm install -g node-gyp
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Checkout and build clang-ast
         run: |
