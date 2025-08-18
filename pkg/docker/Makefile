@@ -121,7 +121,9 @@ build-%: Dockerfile.%
 library:
 	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
 	@echo ""
-	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx)"
+	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx),"
+	@echo "             Konstantin Pavlov (@thresheek),"
+	@echo "             Igor Ippolitov (@oxpa)"
 	@echo "GitRepo: https://github.com/nginx/unit.git"
 	@previous=""; \
 	 for mod in $(MODVERSIONS); do \
