@@ -8,7 +8,7 @@
 
 ![NGINX Unit Logo](docs/unitlogo.svg)
 
-# NGINX Unit is actively seeking contributors and maintainers. 
+# NGINX Unit is actively seeking contributors and maintainers
 
 Please see: [SUPPORT.md](/SUPPORT.md)
 
@@ -34,7 +34,8 @@ the most out of today's computing platforms.
 
 ### macOS
 
-Run the following command to install both `unitd` (the Unit daemon) and `unitctl` (the control tool).
+Run the following command to install both `unitd` (the Unit daemon) and
+`unitctl` (the control tool).
 
 ``` console
 $ brew install nginx/unit/unit
