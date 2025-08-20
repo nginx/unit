@@ -1730,5 +1730,8 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_fast_path(port != NULL)) {
         (void) nxt_port_socket_write(task, port, type, file.fd,
                                      msg->port_msg.stream, 0, NULL);
+
+    } else {
+        nxt_file_close(task, &file);
     }
 }

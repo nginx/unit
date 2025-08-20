@@ -232,14 +232,12 @@ nxt_http_comp_compress_app_response(nxt_task_t *task, nxt_http_request_t *r,
 
 
 nxt_int_t
-nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
-                                       nxt_file_info_t *fi,
-                                       size_t static_buf_len,
-                                       size_t *out_total)
+nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_http_request_t *r,
+                                       nxt_file_t **f, nxt_file_info_t *fi,
+                                       size_t static_buf_len, size_t *out_total)
 {
-    char           tmp_path[NXT_MAX_PATH_LEN];
     size_t         in_size, out_size, rest;
-    u_char         *p;
+    char           *tmp_path, *p;
     uint8_t        *in, *out;
     nxt_int_t      ret;
     nxt_file_t     tfile;
@@ -249,13 +247,14 @@ nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
 
     *out_total = 0;
 
-    if (nxt_slow_path(strlen(rt->tmp) + 1 + strlen(template) + 1
-                      > NXT_MAX_PATH_LEN))
-    {
+    tmp_path = nxt_mp_nget(r->mem_pool,
+                           strlen(rt->tmp) + 1 + strlen(template) + 1);
+    if (nxt_slow_path(tmp_path == NULL)) {
         return NXT_ERROR;
     }
 
-    p = nxt_cpymem(tmp_path, rt->tmp, strlen(rt->tmp));
+    p = tmp_path;
+    p = nxt_cpymem(p, rt->tmp, strlen(rt->tmp));
     *p++ = '/';
     p = nxt_cpymem(p, template, strlen(template));
     *p = '\0';
@@ -266,6 +265,7 @@ nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
         return NXT_ERROR;
     }
     unlink(tmp_path);
+    tfile.name = (nxt_file_name_t *)tmp_path;
 
     in_size = nxt_file_size(fi);
     out_size = nxt_http_comp_bound(in_size);
@@ -305,6 +305,12 @@ nxt_http_comp_compress_static_response(nxt_task_t *task, nxt_file_t **f,
 
         cbytes = nxt_http_comp_compress(out + *out_total, out_size - *out_total,
                                         in + in_size - rest, n, last);
+        if (cbytes == -1) {
+            nxt_file_close(task, &tfile);
+            nxt_mem_munmap(in, in_size);
+            nxt_mem_munmap(out, out_size);
+            return NXT_ERROR;
+        }
 
         *out_total += cbytes;
         rest -= n;
