@@ -36,6 +36,8 @@ jobs:
             os: ubuntu-latest
           - build: go-1.22
             os: ubuntu-latest
+          - build: java-8
+            os: ubuntu-latest
           - build: java-17
             os: ubuntu-latest
           - build: java-18
