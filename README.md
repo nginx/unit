@@ -1,12 +1,14 @@
 # NGINX Unit
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Project Status: Unsupported – The project has reached a stable, usable state but the author(s) have ceased all work on it. A new maintainer is desired.](https://www.repostatus.org/badges/latest/unsupported.svg)](https://www.repostatus.org/#unsupported)
 [![CI](https://github.com/nginx/unit/actions/workflows/ci.yml/badge.svg)](https://github.com/nginx/unit/actions/workflows/ci.yml "GitHub workflow CI")
 [![GitHub Discussions](https://img.shields.io/badge/GitHub-discussions-009639)](https://github.com/nginx/unit/discussions "GitHub Discussions")
 
 ## Universal Web App Server
 
 ![NGINX Unit Logo](docs/unitlogo.svg)
+
+# NGINX Unit is actively seeking contributors and maintainers. 
 
 Please see: [SUPPORT.md](/SUPPORT.md)
 
@@ -18,7 +20,7 @@ two primary capabilities:
 
 Unit compresses several layers of the modern application stack into a potent,
 coherent solution with a focus on performance, low latency, and scalability. It
-is intended as a universal building block for any web architecture regardless
+is intended as a universal building block for any web architecture, regardless
 of its complexity, from enterprise-scale deployments to your pet's homepage.
 
 Its native [RESTful JSON API](#openapi-specification) enables dynamic
@@ -56,7 +58,7 @@ $ docker run -d \
 For a description of image tags, see the
 [docs](https://unit.nginx.org/installation/#docker-images).
 
-WARNING: latest image tag may not provide support for specific language
+WARNING: The latest image tag may not provide support for specific languages
 modules, *do* check the available image tags from the link above before
 pulling your image.
 
