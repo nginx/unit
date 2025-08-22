@@ -195,7 +195,6 @@ nxt_http_comp_compress_app_response(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     buf->data = (*b)->data;
-    buf->parent = (*b)->parent;
 
     last = ctx->clen_sent + in_len == ctx->resp_clen;
 
