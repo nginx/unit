@@ -1,4 +1,39 @@
 
+Changes with Unit 1.35.0                                         03 Sep 2025
+
+    *) Security: fix missing websocket payload length validation in the Java
+       language module which could lead to Java language module processes
+       consuming excess CPU. (CVE-2025-1695).
+
+    *) Change: if building with njs, version 0.9.0 or later is now required.
+
+    *) Feature: HTTP compression.
+
+    *) Feature: PHP 8.5 compatibility.
+
+    *) Feature: Ruby 3.4 compatibility.
+
+    *) Feature: Django 5.x compatibility.
+
+    *) Feature: Python Litestar WebSockets compatibility.
+
+    *) Feature: GCC 15 compatibility.
+
+    *) Bugfix: set SERVER_PORT to the actual value.
+
+    *) Bugfix: fix issue in node.js with duplicate headers in response.
+
+    *) Bugfix: fix WebSockets with Firefox.
+
+    *) Bugfix: fix incorrect websocket payload length calculation in the
+       Java language module.
+
+    *) Bugfix: fix instability issues due to OpenTelemetry (OTEL) support.
+
+    *) Bugfix: fix issues with building OpenTelemetry (OTEL) support on
+       various platforms, including macOS.
+
+
 Changes with Unit 1.34.0                                         19 Dec 2024
 
     *) Feature: initial OpenTelemetry (OTEL) support. (Disabled by default).
