@@ -12,7 +12,7 @@ RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
-         ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config libclang-dev cmake \
+         ca-certificates git build-essential libssl-dev libpcre2-dev zlib1g-dev libzstd-dev libbrotli-dev curl pkg-config pkgconf libclang-dev cmake \
     && export RUST_VERSION=1.89.0 \
     && export RUSTUP_HOME=/usr/src/unit/rustup \
     && export CARGO_HOME=/usr/src/unit/cargo \
@@ -55,7 +55,10 @@ RUN set -ex \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
     && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
                 --njs \
-                --otel" \
+                --otel \
+                --zlib \
+                --zstd \
+                --brotli" \
     && make -j $NCPU -C pkg/contrib .njs \
     && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
