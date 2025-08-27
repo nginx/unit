@@ -13,7 +13,7 @@ RUN set -ex \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
          ca-certificates git build-essential libssl-dev libpcre2-dev curl pkg-config libclang-dev cmake \
-    && export RUST_VERSION=1.83.0 \
+    && export RUST_VERSION=1.89.0 \
     && export RUSTUP_HOME=/usr/src/unit/rustup \
     && export CARGO_HOME=/usr/src/unit/cargo \
     && export PATH=/usr/src/unit/cargo/bin:$PATH \
