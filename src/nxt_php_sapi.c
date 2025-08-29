@@ -93,8 +93,10 @@ static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
 #ifdef NXT_PHP8
 static void nxt_php_disable_functions(nxt_str_t *str);
 #endif
+#if (PHP_VERSION_ID < 80500)
 static void nxt_php_disable(nxt_task_t *task, const char *type,
     nxt_str_t *value, char **ptr, nxt_php_disable_t disable);
+#endif
 
 static nxt_int_t nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir);
 static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
@@ -710,9 +712,11 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
             }
 
             if (nxt_str_eq(&name, "disable_classes", 15)) {
+#if (PHP_VERSION_ID < 80500)
                 nxt_php_disable(task, "class", &value,
                                 &PG(disable_classes),
                                 zend_disable_class);
+#endif
                 continue;
             }
         }
@@ -817,6 +821,7 @@ nxt_php_disable_functions(nxt_str_t *str)
 #endif
 
 
+#if (PHP_VERSION_ID < 80500)
 static void
 nxt_php_disable(nxt_task_t *task, const char *type, nxt_str_t *value,
     char **ptr, nxt_php_disable_t disable)
@@ -867,6 +872,7 @@ nxt_php_disable(nxt_task_t *task, const char *type, nxt_str_t *value,
 
     } while (c != '\0');
 }
+#endif
 
 
 static nxt_int_t
