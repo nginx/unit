@@ -18,7 +18,7 @@
                 unit-jsc19 unit-jsc20 unit-jsc21
                 unit-wasm"
          ver="1.35.0" rev="1"
-         date="" time=""
+         date="2025-09-03" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -31,8 +31,95 @@ NGINX Unit updated to 1.35.0.
 
 
 <changes apply="unit" ver="1.35.0" rev="1"
-         date="" time=""
+         date="2025-09-03" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="security">
+<para>
+fix missing websocket payload length validation in the Java language module
+which could lead to Java language module processes consuming excess CPU.
+(CVE-2025-1695).
+</para>
+</change>
+
+<change type="change">
+<para>
+if building with njs, version 0.9.0 or later is now required.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP compression.
+</para>
+</change>
+
+<change type="feature">
+<para>
+PHP 8.5 compatibility.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby 3.4 compatibility.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Django 5.x compatibility.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python Litestar WebSockets compatibility.
+</para>
+</change>
+
+<change type="feature">
+<para>
+GCC 15 compatibility.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+set SERVER_PORT to the actual value.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix issue in node.js with duplicate headers in response.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix WebSockets with Firefox.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix incorrect websocket payload length calculation in the Java language module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix instability issues due to OpenTelemetry (OTEL) support.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix issues with building OpenTelemetry (OTEL) support on various platforms,
+including macOS.
+</para>
+</change>
 
 </changes>
 

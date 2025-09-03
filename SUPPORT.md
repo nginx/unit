@@ -1,8 +1,9 @@
 # Maintenance and support guidelines
 
-# NGINX Unit is seeking new maintainers. 
+# NGINX Unit is seeking new maintainers
 
-Going forward, NGINX Unit will no longer receive new features or enhancements from the project maintainers. 
+Going forward, NGINX Unit will no longer receive new features or
+enhancements from the project maintainers.
 
 NGINX Unit is still open to community contributions.
 

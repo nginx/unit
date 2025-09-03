@@ -20,7 +20,7 @@ INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
 
-VERSIONS_go ?=		1.22 1.23
+VERSIONS_go ?=		1.24 1.25
 VARIANT_go ?=		$(VARIANT)
 $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(goversion)-$(VARIANT_go)))
 CONFIGURE_go ?=		go --go-path=$$GOPATH
@@ -69,7 +69,7 @@ INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 MODULE_PREBUILD_python ?= /bin/true
 
-VERSIONS_ruby ?=	3.2 3.3
+VERSIONS_ruby ?=	3.3 3.4
 VARIANT_ruby ?=		$(VARIANT)
 $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = ruby:$(rubyversion)-$(VARIANT_ruby)))
 CONFIGURE_ruby ?=	ruby
@@ -121,7 +121,9 @@ build-%: Dockerfile.%
 library:
 	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
 	@echo ""
-	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx)"
+	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx),"
+	@echo "             Konstantin Pavlov (@thresheek),"
+	@echo "             Igor Ippolitov (@oxpa)"
 	@echo "GitRepo: https://github.com/nginx/unit.git"
 	@previous=""; \
 	 for mod in $(MODVERSIONS); do \
