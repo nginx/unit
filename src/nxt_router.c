@@ -5320,7 +5320,16 @@ nxt_router_http_request_done(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "router http request done (rpc_data %p)", r->req_rpc_data);
 
     if (r->req_rpc_data != NULL) {
-        nxt_request_rpc_data_unlink(task, r->req_rpc_data);
+        nxt_request_rpc_data_t  *req_rpc_data = r->req_rpc_data;
+
+        if (r->error) {
+            nxt_port_socket_write(task, req_rpc_data->app_port,
+                                  NXT_PORT_MSG_CLIENT_ERROR,
+                                  -1, req_rpc_data->stream,
+                                  task->thread->engine->port->id, NULL);
+        }
+
+        nxt_request_rpc_data_unlink(task, req_rpc_data);
     }
 
     nxt_http_request_close_handler(task, r, r->proto.any);
