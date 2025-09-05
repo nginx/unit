@@ -265,7 +265,7 @@ jobs:
       ## Python 3
       ##
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '${{ steps.metadata.outputs.version }}'
         if: steps.metadata.outputs.module == 'python'
@@ -357,7 +357,7 @@ jobs:
           namei -l ${{ github.workspace }}
 
       # Install python3 if not present
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3'
         if: steps.metadata.outputs.module != 'wasm'
