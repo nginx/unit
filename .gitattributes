@@ -5,3 +5,4 @@
 pkg/**	export-ignore
 docs/*.*	export-ignore
 docs/Makefile	export-ignore
+docs/unit-openapi.yaml	-export-ignore
