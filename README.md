@@ -10,8 +10,6 @@
 
 # NGINX Unit is actively seeking contributors and maintainers
 
-Please see: [SUPPORT.md](/SUPPORT.md)
-
 NGINX Unit is a lightweight and versatile open-source server that has
 two primary capabilities:
 
