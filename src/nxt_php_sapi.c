@@ -340,7 +340,10 @@ static sapi_module_struct  nxt_php_sapi_module =
 
     NULL,                        /* ini_entries */
     NULL,                        /* additional_functions */
-    NULL                         /* input_filter_init */
+    NULL,                        /* input_filter_init */
+#if (PHP_VERSION_ID >= 80500)
+    NULL,                        /* pre_request_init */
+#endif
 };
 
 
