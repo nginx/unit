@@ -156,7 +156,7 @@ jobs:
       ## Go
       ##
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '${{ steps.metadata.outputs.version }}'
           cache: false
