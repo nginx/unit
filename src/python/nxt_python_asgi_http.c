@@ -368,6 +368,11 @@ nxt_py_asgi_http_response_body(nxt_py_asgi_http_t *http, PyObject *dict)
                             "sent, after response already completed");
     }
 
+    if (nxt_slow_path(http->closed)) {
+        return PyErr_Format(PyExc_ConnectionResetError,
+                            "Connection Closed ");
+    }
+
     if (nxt_slow_path(http->send_future != NULL)) {
         return PyErr_Format(PyExc_RuntimeError, "Concurrent send");
     }
