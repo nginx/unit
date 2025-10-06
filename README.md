@@ -1,14 +1,14 @@
 # NGINX Unit
 
-[![Project Status: Unsupported – The project has reached a stable, usable state but the author(s) have ceased all work on it. A new maintainer is desired.](https://www.repostatus.org/badges/latest/unsupported.svg)](https://www.repostatus.org/#unsupported)
-[![CI](https://github.com/nginx/unit/actions/workflows/ci.yml/badge.svg)](https://github.com/nginx/unit/actions/workflows/ci.yml "GitHub workflow CI")
-[![GitHub Discussions](https://img.shields.io/badge/GitHub-discussions-009639)](https://github.com/nginx/unit/discussions "GitHub Discussions")
+[![Project Status: Unsupported – The project has reached a stable, usable state, but the author(s) have ceased all work on it. A new maintainer is desired.](https://www.repostatus.org/badges/latest/unsupported.svg)](https://www.repostatus.org/#unsupported)
+
+## Note: This repository has been archived. There will likely be no further development at this repo, and security vulnerabilities may be unaddressed.
+## The repo may be cloned and used under its current license.
+
 
 ## Universal Web App Server
 
 ![NGINX Unit Logo](docs/unitlogo.svg)
-
-# NGINX Unit is actively seeking contributors and maintainers
 
 NGINX Unit is a lightweight and versatile open-source server that has
 two primary capabilities:
