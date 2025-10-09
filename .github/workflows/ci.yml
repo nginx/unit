@@ -197,7 +197,7 @@ jobs:
       ## Node
       ##
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '${{ steps.metadata.outputs.version }}'
         if: steps.metadata.outputs.module == 'node'
