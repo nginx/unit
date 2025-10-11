@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 try:
     # Python 3
@@ -10,6 +11,9 @@ except ImportError:
 
 
 def application(environ, start_response):
+    print("pwd:", os.getcwd())
+    print("sys.path:\n", sys.path, file=sys.stdout)
+
     ret = {
         'FileExists': False,
     }
